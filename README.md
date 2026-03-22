@@ -1,8 +1,6 @@
 # LMS IUAP - Full Stack Application
 
-A premium, modern Learning Management System (LMS) built with a **Next.js** frontend and a **Spring Boot** backend. 
-
-This project features a seamless authentication flow utilizing both classic email/password validation and Google OAuth single sign-on (SSO), beautifully wrapped in a dynamic glassmorphism UI.
+A Learning Management System (LMS) built with a **Next.js** frontend and a **Spring Boot** backend. 
 
 ## Features
 - **Frontend**: Next.js 15, React, Tailwind CSS, TypeScript
