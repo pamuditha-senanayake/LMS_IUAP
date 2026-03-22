@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { GoogleLogin } from "@react-oauth/google";
 
 export default function Register() {
     const [name, setName] = useState("");
@@ -32,6 +33,33 @@ export default function Register() {
 
             const data = await res.json();
 
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("user", JSON.stringify({ name: data.name, email: data.email }));
+            router.push("/dashboard");
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleLogin = async (credentialResponse: any) => {
+        setLoading(true);
+        setError("");
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+            const res = await fetch(`${apiUrl}/api/auth/google`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ credential: credentialResponse.credential }),
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(errorText || "Google authentication failed");
+            }
+
+            const data = await res.json();
             localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify({ name: data.name, email: data.email }));
             router.push("/dashboard");
@@ -105,6 +133,27 @@ export default function Register() {
                             {loading ? "Creating account..." : "Create account"}
                         </button>
                     </form>
+
+                    <div className="mt-6">
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-slate-700"></div>
+                            </div>
+                            <div className="relative flex justify-center text-sm">
+                                <span className="bg-transparent px-2 text-slate-400">Or continue with</span>
+                            </div>
+                        </div>
+                        <div className="mt-6 flex justify-center">
+                            <GoogleLogin
+                                onSuccess={handleGoogleLogin}
+                                onError={() => setError("Google Sign-In failed.")}
+                                theme="filled_black"
+                                shape="pill"
+                                text="signup_with"
+                                width="100%"
+                            />
+                        </div>
+                    </div>
 
                     <p className="mt-8 text-center text-sm text-slate-400">
                         Already have an account?{" "}

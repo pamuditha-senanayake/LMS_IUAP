@@ -32,4 +32,13 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Invalid email or password");
         }
     }
+
+    @PostMapping("/google")
+    public ResponseEntity<?> googleLogin(@Valid @RequestBody com.lms.backend.dto.GoogleAuthRequest request) {
+        try {
+            return ResponseEntity.ok(authService.loginWithGoogle(request.getCredential()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Google authentication failed: " + e.getMessage());
+        }
+    }
 }
