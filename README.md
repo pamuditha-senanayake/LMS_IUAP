@@ -34,10 +34,10 @@ cd LMS_IUAP
    ```bash
    cd backend
    ```
-2. Update the environment properties. Open `src/main/resources/application.properties` and paste your exact MongoDB URI and Google Client ID:
-   ```properties
-   spring.data.mongodb.uri=mongodb+srv://<username>:<password>@cluster0...
-   google.client.id=your-google-client-id.apps.googleusercontent.com
+2. Configure your environment variables. The backend defaults to a local MongoDB but you must override this by setting the `MONGO_URI` environment variable before running. You can also override the `GOOGLE_CLIENT_ID`.
+   ```bash
+   export MONGO_URI="mongodb+srv://<username>:<password>@cluster0..."
+   export GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
    ```
    *(Critical Note: If MongoDB throws a connection error, go to the Atlas Dashboard **Network Access** tab and whitelist your IP `0.0.0.0/0`).*
 3. Run the development server using the Maven wrapper:
