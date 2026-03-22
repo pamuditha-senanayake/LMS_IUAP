@@ -67,23 +67,3 @@ cd LMS_IUAP
    The Next.js application will boot up at `http://localhost:3000`. Open this URL in your browser to see the live app!
 
 ---
-
-## 🚀 Cloud Deployment (Production)
-
-This monorepo is architected so it can be deployed to the cloud directly from GitHub with zero friction:
-
-### Deploying the Backend
-We highly recommend **Railway** or **Render** for Java applications.
-1. Connect your GitHub to Railway/Render.
-2. Select this repository and set the **Root Directory** to `backend`.
-3. The cloud provider will automatically detect the `pom.xml`, build the Maven tree, and deploy it. 
-*(Once deployed, grab the new public URL like `https://api.railway.app`)*.
-
-### Deploying the Frontend
-We highly recommend **Vercel** for Next.js applications.
-1. Connect your GitHub to Vercel and import this repository.
-2. Under "Configure Project", click **Edit** on Root Directory and change it to `frontend`.
-3. Open the **Environment Variables** tab and map the newly deployed backend:
-   - `NEXT_PUBLIC_API_URL` = `https://your-new-backend-url.com`
-   - `NEXT_PUBLIC_GOOGLE_CLIENT_ID` = `your-google-client-id`
-4. Click Deploy!
