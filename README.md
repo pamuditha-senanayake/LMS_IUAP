@@ -34,17 +34,23 @@ cd LMS_IUAP
    ```bash
    cd backend
    ```
-2. Configure your environment variables. The backend defaults to a local MongoDB but you must override this by setting the `MONGO_URI` environment variable before running. You can also override the `GOOGLE_CLIENT_ID`.
-   ```bash
-   export MONGO_URI="mongodb+srv://<username>:<password>@cluster0..."
-   export GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
+2. Configure your environment variables. 
+   Optionally, you can create a `.env` file in the `backend/src/main/resources/` (or simply export them in your terminal) OR modify the `application.properties` directly.
+   However, the easiest way is to add these to your environment or run the backend like this:
+   
+   If you rely on your existing `application.properties`, make sure the MongoDB URI and Google Client ID are properly pasted. The current `src/main/resources/application.properties` already has defaults:
+   ```properties
+   spring.application.name=backend
+   spring.data.mongodb.uri=${MONGO_URI:mongodb://localhost:27017/lms}
+   google.client.id=${GOOGLE_CLIENT_ID:916544102316-85ocp1vglfhaer9ulob2bvbl9hdervd1.apps.googleusercontent.com}
    ```
-   *(Critical Note: If MongoDB throws a connection error, go to the Atlas Dashboard **Network Access** tab and whitelist your IP `0.0.0.0/0`).*
+   *Note: If MongoDB throws a connection error, go to the Atlas Dashboard **Network Access** tab and whitelist your IP `0.0.0.0/0`.*
+
 3. Run the development server using the Maven wrapper:
    ```bash
    ./mvnw spring-boot:run
    ```
-   The backend API will start securely on `http://localhost:8080`.
+   *(Or run it using your IDE like IntelliJ/VS Code).* The backend API will start securely on `http://localhost:8080`.
 
 ### 3. Frontend Setup (Next.js)
 1. Open a **new** separate terminal and navigate to the `frontend` directory:
@@ -55,10 +61,10 @@ cd LMS_IUAP
    ```bash
    npm install
    ```
-3. Set up the local environment variables. Create a file named `.env.local` inside the `frontend` folder and add:
+3. Set up the local environment variables. **Create a file exactly named `.env.local` inside the `frontend` directory** and copy-paste the following code into it:
    ```env
    NEXT_PUBLIC_API_URL=http://localhost:8080
-   NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+   NEXT_PUBLIC_GOOGLE_CLIENT_ID=916544102316-85ocp1vglfhaer9ulob2bvbl9hdervd1.apps.googleusercontent.com
    ```
 4. Start the frontend development server:
    ```bash

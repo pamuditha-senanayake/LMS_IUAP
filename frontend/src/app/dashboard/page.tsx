@@ -42,22 +42,15 @@ export default function Dashboard() {
                     <p className="text-xl text-slate-400 mb-10">{user.email}</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 text-left">
-                        <div className="p-6 rounded-2xl bg-slate-800/50 border border-slate-700/50 hover:border-indigo-500/50 transition-colors cursor-pointer group">
-                            <h3 className="text-lg font-semibold text-white group-hover:text-indigo-400 transition-colors">Start Learning</h3>
-                            <p className="text-slate-400 text-sm mt-2">Pick up where you left off on your enrolled courses.</p>
+                        <div className="p-6 rounded-2xl bg-slate-800/50 border border-slate-700/50 hover:border-indigo-500/50 transition-colors cursor-pointer group" onClick={() => router.push('/dashboard/facilities')}>
+                            <h3 className="text-lg font-semibold text-white group-hover:text-indigo-400 transition-colors">Facilities Catalogue</h3>
+                            <p className="text-slate-400 text-sm mt-2">Browse and book resources, rooms, and equipment across campus.</p>
                         </div>
-                        <div className="p-6 rounded-2xl bg-slate-800/50 border border-slate-700/50 hover:border-pink-500/50 transition-colors cursor-pointer group">
-                            <h3 className="text-lg font-semibold text-white group-hover:text-pink-400 transition-colors">Profile Settings</h3>
-                            <p className="text-slate-400 text-sm mt-2">Manage your account preferences and security.</p>
+                        <div className="p-6 rounded-2xl bg-slate-800/50 border border-slate-700/50 hover:border-pink-500/50 transition-colors cursor-pointer group" onClick={() => router.push('/dashboard/tickets')}>
+                            <h3 className="text-lg font-semibold text-white group-hover:text-pink-400 transition-colors">Incident Ticketing</h3>
+                            <p className="text-slate-400 text-sm mt-2">Report faults or view the status of existing maintenance issues.</p>
                         </div>
                     </div>
-
-                    <button
-                        onClick={handleLogout}
-                        className="rounded-xl border border-slate-600 hover:bg-slate-800 active:scale-[0.98] transition-all text-white px-8 py-3 font-medium"
-                    >
-                        Sign out
-                    </button>
                 </div>
             </div>
         </div>
