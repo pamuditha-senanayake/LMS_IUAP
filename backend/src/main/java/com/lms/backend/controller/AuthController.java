@@ -18,12 +18,11 @@ public class AuthController {
     private ResponseEntity<?> createCookieResponse(com.lms.backend.dto.AuthResponse res) {
         org.springframework.http.ResponseCookie cookie = org.springframework.http.ResponseCookie.from("token", res.getToken())
                 .httpOnly(true)
-                .secure(false) // Assuming standard local dev config without ssl
+                .secure(true) // Enforced Secure required for None
                 .path("/")
                 .maxAge(86400)
-                .sameSite("Lax")
+                .sameSite("None") // Enabled Cross-Site delivery for Vercel -> Railway
                 .build();
-        res.setToken(null);
         return ResponseEntity.ok()
                 .header(org.springframework.http.HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(res);
@@ -69,10 +68,10 @@ public class AuthController {
     public ResponseEntity<?> logout() {
         org.springframework.http.ResponseCookie cookie = org.springframework.http.ResponseCookie.from("token", "")
                 .httpOnly(true)
-                .secure(false)
+                .secure(true)
                 .path("/")
                 .maxAge(0)
-                .sameSite("Lax")
+                .sameSite("None")
                 .build();
         return ResponseEntity.ok()
                 .header(org.springframework.http.HttpHeaders.SET_COOKIE, cookie.toString())
