@@ -42,8 +42,8 @@ cd LMS_IUAP
    If you rely on your existing `application.properties`, make sure the MongoDB URI and Google Client ID are properly pasted. The current `src/main/resources/application.properties` already has defaults:
    ```properties
    spring.application.name=backend
-   spring.data.mongodb.uri=${MONGO_URI:mongodb://localhost:27017/lms}
-   google.client.id=${GOOGLE_CLIENT_ID:916544102316-85ocp1vglfhaer9ulob2bvbl9hdervd1.apps.googleusercontent.com}
+   spring.data.mongodb.uri=${MONGO_URI:mongodb:xxx}
+   google.client.id=${GOOGLE_CLIENT_ID:xxxx}
    ```
    *Note: If MongoDB throws a connection error, go to the Atlas Dashboard **Network Access** tab and whitelist your IP `0.0.0.0/0`.*
 
@@ -65,7 +65,7 @@ cd LMS_IUAP
 3. Set up the local environment variables. **Create a file exactly named `.env.local` inside the `frontend` directory** and copy-paste the following code into it:
    ```env
    NEXT_PUBLIC_API_URL=http://localhost:8080
-   NEXT_PUBLIC_GOOGLE_CLIENT_ID=916544102316-85ocp1vglfhaer9ulob2bvbl9hdervd1.apps.googleusercontent.com
+   NEXT_PUBLIC_GOOGLE_CLIENT_ID=xxx
    ```
 4. Start the frontend development server:
    ```bash
