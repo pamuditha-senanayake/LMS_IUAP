@@ -21,14 +21,23 @@ public class Booking {
     private String id;
     
     private String resourceId;
-    private String requestedById;
-    private String reviewedById;
+    private UserSummary requestedBy;
+    private UserSummary reviewedBy;
     
     private String purpose;
     private Integer expectedAttendees;
     
-    private LocalDateTime startDatetime;
-    private LocalDateTime endDatetime;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UserSummary {
+        private String userId;
+        private String name;
+        private String email;
+    }
     
     private String status; // PENDING, APPROVED, REJECTED, CANCELLED
     private String rejectionReason;

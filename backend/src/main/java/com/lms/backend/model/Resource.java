@@ -10,6 +10,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -20,17 +21,40 @@ public class Resource {
     @Id
     private String id;
     
-    // Using String references in place of DBRefs to simplify queries
-    private String resourceTypeId;
-    private String locationId;
-    private String createdById;
+    // Using embedded objects instead of IDs
+    private ResourceLocation location;
     
     private String resourceCode;
     private String resourceName;
+    private String resourceType; 
     private String description;
     private Integer capacity;
     private String status; // active, out_of_service
     private Boolean requiresAttendanceCount;
+    
+    private List<AvailabilityWindow> availabilityWindows;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ResourceLocation {
+        private String campusName;
+        private String buildingName;
+        private String floor;
+        private String roomNumber;
+        private Double latitude;
+        private Double longitude;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AvailabilityWindow {
+        private Integer dayOfWeek; // 1-7
+        private String startTime; // HH:mm
+        private String endTime; // HH:mm
+        private Boolean isAvailable;
+    }
     
     @CreatedDate
     private LocalDateTime createdAt;

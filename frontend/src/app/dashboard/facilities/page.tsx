@@ -1,23 +1,46 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 
 export default function FacilitiesCatalogue() {
     const [resources, setResources] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        // Mock data fetch, normally would call API
-        // fetch('http://localhost:8080/api/facilities/resources')
-        setTimeout(() => {
-            setResources([
-                { id: "1", type: "Lecture Hall", name: "Main Hall A", capacity: 200, location: "Computing Faculty", status: "ACTIVE" },
-                { id: "2", type: "Lab", name: "Network Lab 1", capacity: 40, location: "Computing Faculty", status: "ACTIVE" },
-                { id: "3", type: "Equipment", name: "Projector Pro", capacity: 0, location: "IT Store", status: "OUT_OF_SERVICE" },
-            ]);
+    const fetchResources = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch('http://localhost:8080/api/facilities/resources', {
+                headers: { 'Authorization': "Bearer " + token }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setResources(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch resources", err);
+        } finally {
             setLoading(false);
-        }, 1000);
+        }
+    };
+
+    useEffect(() => {
+        fetchResources();
     }, []);
+
+    const getInitialStartStr = () => {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        d.setHours(10, 0, 0, 0);
+        return d.toISOString().slice(0, 16);
+    };
+
+    const getInitialEndStr = () => {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        d.setHours(12, 0, 0, 0);
+        return d.toISOString().slice(0, 16);
+    };
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -47,13 +70,13 @@ export default function FacilitiesCatalogue() {
                     {resources.map(res => (
                         <div key={res.id} className="glass-card p-6 rounded-2xl flex flex-col group hover:-translate-y-1 transition-transform">
                             <div className="flex justify-between items-start mb-4">
-                                <span className="text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full">{res.type}</span>
-                                <span className={`text-xs font-bold px-2 py-1 rounded-md ${res.status === 'ACTIVE' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                <span className="text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full">{res.resourceType}</span>
+                                <span className={"text-xs font-bold px-2 py-1 rounded-md " + (res.status === 'ACTIVE' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400')}>
                                     {res.status}
                                 </span>
                             </div>
-                            <h3 className="text-xl font-semibold text-white mb-1 group-hover:text-indigo-300 transition-colors">{res.name}</h3>
-                            <p className="text-sm text-slate-400 mb-4">{res.location}</p>
+                            <h3 className="text-xl font-semibold text-white mb-1 group-hover:text-indigo-300 transition-colors">{res.resourceName}</h3>
+                            <p className="text-sm text-slate-400 mb-4">{res.location?.campusName} - {res.location?.buildingName} (Room {res.location?.roomNumber})</p>
                             
                             {res.capacity > 0 && (
                                 <div className="text-slate-300 text-sm mb-6 flex items-center gap-2">
@@ -62,7 +85,79 @@ export default function FacilitiesCatalogue() {
                                 </div>
                             )}
 
-                            <button className="mt-auto w-full py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-medium transition-colors cursor-pointer outline-none active:scale-[0.98]">
+                            <button 
+                                onClick={async () => {
+                                    const userStr = localStorage.getItem("user");
+                                    if(!userStr) {
+                                        Swal.fire("Error", "Please log in first", "error");
+                                        return;
+                                    }
+                                    const user = JSON.parse(userStr);
+
+                                    Swal.fire({
+                                        title: "Book " + res.resourceName,
+                                        html: `
+                                            <div class="flex flex-col gap-3 text-left">
+                                                <label class="text-sm font-semibold text-slate-300">Reservation Purpose</label>
+                                                <input id="book-purpose" class="swal2-input !w-11/12 !mx-auto" placeholder="e.g. End of year exam">
+                                                
+                                                <label class="text-sm font-semibold text-slate-300">Expected Attendance</label>
+                                                <input type="number" id="book-attendees" class="swal2-input !w-11/12 !mx-auto" value="${res.capacity > 0 ? res.capacity : 30}">
+                                                
+                                                <label class="text-sm font-semibold text-slate-300">Start Time</label>
+                                                <input type="datetime-local" id="book-start" class="swal2-input !w-11/12 !mx-auto" value="${getInitialStartStr()}">
+                                                
+                                                <label class="text-sm font-semibold text-slate-300">End Time</label>
+                                                <input type="datetime-local" id="book-end" class="swal2-input !w-11/12 !mx-auto" value="${getInitialEndStr()}">
+                                            </div>
+                                        `,
+                                        focusConfirm: false,
+                                        showCancelButton: true,
+                                        confirmButtonColor: '#6366f1',
+                                        cancelButtonColor: '#64748b',
+                                        confirmButtonText: 'Send Request',
+                                        background: '#1e293b',
+                                        color: '#fff',
+                                        customClass: { popup: 'swal2-dark' },
+                                        preConfirm: () => {
+                                            const purpose = (document.getElementById('book-purpose') as HTMLInputElement).value;
+                                            const start = (document.getElementById('book-start') as HTMLInputElement).value;
+                                            const end = (document.getElementById('book-end') as HTMLInputElement).value;
+                                            if (!purpose || !start || !end) {
+                                                Swal.showValidationMessage("All fields including timings are required");
+                                                return false;
+                                            }
+                                            return {
+                                                resourceId: res.id || res._id,
+                                                purpose: purpose,
+                                                expectedAttendees: parseInt((document.getElementById('book-attendees') as HTMLInputElement).value) || 0,
+                                                startTime: new Date(start).toISOString(),
+                                                endTime: new Date(end).toISOString(),
+                                                requestedBy: { userId: user.id, name: user.name, email: user.email }
+                                            };
+                                        }
+                                    }).then(async (result) => {
+                                        if (result.isConfirmed) {
+                                            try {
+                                                const token = localStorage.getItem("token");
+                                                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+                                                const resPost = await fetch(apiUrl + "/api/bookings", {
+                                                    method: "POST",
+                                                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                                                    body: JSON.stringify(result.value)
+                                                });
+                                                if (resPost.ok) {
+                                                    Swal.fire({ title: "Booking Requested!", text: "Your request is pending admin approval.", icon: "success", background: '#1e293b', color: '#fff'});
+                                                } else {
+                                                    Swal.fire({ title: "Failed", text: await resPost.text(), icon: "error", background: '#1e293b', color: '#fff'});
+                                                }
+                                            } catch(e) {
+                                                Swal.fire("Error", "Network processing failed", "error");
+                                            }
+                                        }
+                                    });
+                                }}
+                                className="mt-auto w-full py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-medium transition-colors cursor-pointer outline-none active:scale-[0.98]">
                                 Request Booking
                             </button>
                         </div>

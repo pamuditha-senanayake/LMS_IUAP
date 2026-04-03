@@ -36,9 +36,24 @@ public class User implements UserDetails {
     
     private String phone;
     private String avatarUrl;
-    private String accountStatus;
+    private String accountStatus; // e.g., ACTIVE, SUSPENDED
     
-    private List<String> roles; // string ids of assigned roles
+    private List<String> roles; // string paths of assigned roles
+    
+    private UserOAuth oauth; // Embedded OAuth data
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UserOAuth {
+        private String provider;
+        private String providerUserId;
+        private String email;
+        private String accessTokenRef;
+        private String refreshTokenRef;
+        private LocalDateTime linkedAt;
+        private LocalDateTime lastLoginAt;
+    }
     
     @CreatedDate
     private LocalDateTime createdAt;
@@ -48,7 +63,12 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        if (roles == null || roles.isEmpty()) {
+            return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        }
+        return roles.stream()
+                .map(SimpleGrantedAuthority::new)
+                .toList();
     }
 
     @Override

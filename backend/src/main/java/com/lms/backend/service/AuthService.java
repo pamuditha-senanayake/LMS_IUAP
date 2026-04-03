@@ -22,6 +22,10 @@ public class AuthService {
         private final AuthenticationManager authenticationManager;
 
         public AuthResponse register(RegisterRequest request) {
+                return registerWithRole(request, "ROLE_STUDENT");
+        }
+
+        public AuthResponse registerWithRole(RegisterRequest request, String role) {
                 if (userRepository.existsByEmail(request.getEmail())) {
                         throw new RuntimeException("Email is already registered");
                 }
@@ -30,6 +34,7 @@ public class AuthService {
                                 .name(request.getName())
                                 .email(request.getEmail())
                                 .password(passwordEncoder.encode(request.getPassword()))
+                                .roles(java.util.List.of(role))
                                 .build();
                 userRepository.save(user);
 
@@ -81,6 +86,7 @@ public class AuthService {
                                                 .email(email)
                                                 .password(passwordEncoder
                                                                 .encode(java.util.UUID.randomUUID().toString()))
+                                                .roles(java.util.List.of("ROLE_STUDENT"))
                                                 .build();
                                 return userRepository.save(newUser);
                         });

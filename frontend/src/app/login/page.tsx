@@ -22,6 +22,7 @@ export default function Login() {
             const res = await fetch(`${apiUrl}/api/auth/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({ email, password }),
             });
 
@@ -31,8 +32,7 @@ export default function Login() {
             }
 
             const data = await res.json();
-            localStorage.setItem("token", data.token);
-            localStorage.setItem("user", JSON.stringify({ name: data.name, email: data.email }));
+            localStorage.setItem("user", JSON.stringify(data));
             router.push("/dashboard");
         } catch (err: any) {
             setError(err.message);
@@ -49,6 +49,7 @@ export default function Login() {
             const res = await fetch(`${apiUrl}/api/auth/google`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({ credential: credentialResponse.credential }),
             });
 
@@ -58,8 +59,7 @@ export default function Login() {
             }
 
             const data = await res.json();
-            localStorage.setItem("token", data.token);
-            localStorage.setItem("user", JSON.stringify({ name: data.name, email: data.email }));
+            localStorage.setItem("user", JSON.stringify(data));
             router.push("/dashboard");
         } catch (err: any) {
             setError(err.message);

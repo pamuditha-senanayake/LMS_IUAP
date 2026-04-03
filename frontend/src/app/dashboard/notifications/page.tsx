@@ -1,69 +1,106 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 
-export default function NotificationsPage() {
+export default function Notifications() {
     const [notifications, setNotifications] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchNotifications = async (userId: string) => {
+        setLoading(true);
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+            const res = await fetch(`${apiUrl}/api/notifications/user/${userId}`, { credentials: "include" });
+            if (res.ok) {
+                const data = await res.json();
+                setNotifications(data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+            }
+        } catch (err) {
+            console.error("Failed to fetch notifications");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        setTimeout(() => {
-            setNotifications([
-                { id: "n1", title: "Booking Approved", message: "Your booking for Main Hall A is approved.", isRead: false, time: "2 hours ago" },
-                { id: "n2", title: "Ticket Updated", message: "IT Support replied to T-1002.", isRead: false, time: "5 hours ago" },
-                { id: "n3", title: "System Scheduled Maintenance", message: "LMS will be down for 20 mins tonight.", isRead: true, time: "1 day ago" },
-            ]);
-        }, 500);
+        const loadUser = async () => {
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+                const res = await fetch(`${apiUrl}/api/auth/me`, { credentials: "include" });
+                if (res.ok) {
+                    const user = await res.json();
+                    if (user.id) fetchNotifications(user.id);
+                    else setLoading(false);
+                } else {
+                    setLoading(false);
+                }
+            } catch (e) {
+                setLoading(false);
+            }
+        };
+        loadUser();
     }, []);
 
-    const markAsRead = (id: string) => {
-        setNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n));
+    const handleMarkAsRead = async (id: string, e: any, userId: string) => {
+        e.stopPropagation();
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+            const res = await fetch(`${apiUrl}/api/notifications/${id}/read`, {
+                method: "PATCH",
+                credentials: "include"
+            });
+            if (res.ok) {
+                fetchNotifications(userId);
+            }
+        } catch (err) {
+            Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#1e293b', color: '#fff' });
+        }
     };
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold text-white">Notifications</h1>
-                <button className="text-sm text-indigo-400 hover:text-indigo-300 font-medium px-4 py-2 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors">
-                    Mark all as read
-                </button>
-            </div>
+        <div className="p-6 text-white max-w-4xl mx-auto">
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-amber-400 to-orange-500 mb-10">
+                Notifications
+            </h1>
 
-            <div className="flex flex-col gap-4">
-                {notifications.map(notification => (
-                    <div 
-                        key={notification.id} 
-                        className={`glass-card p-5 rounded-2xl flex gap-4 transition-all
-                            ${!notification.isRead ? 'border-indigo-500/30 bg-indigo-900/10 shadow-[0_0_15px_rgba(99,102,241,0.1)]' : 'border-slate-800'}
-                        `}
-                    >
-                        <div className="mt-1">
-                            {!notification.isRead ? (
-                                <div className="w-3 h-3 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.8)]"></div>
-                            ) : (
-                                <div className="w-3 h-3 bg-slate-600 rounded-full"></div>
-                            )}
+            {loading ? (
+                <div className="text-center text-slate-400 py-10">Checking notifications...</div>
+            ) : (
+                <div className="flex flex-col gap-4">
+                    {notifications.length === 0 ? (
+                        <div className="text-center text-slate-400 p-8 glass-card rounded-2xl">
+                            All caught up! No notifications.
                         </div>
-                        <div className="flex-1">
-                            <div className="flex justify-between items-start mb-1">
-                                <h4 className={`text-lg font-semibold ${!notification.isRead ? 'text-white' : 'text-slate-300'}`}>
-                                    {notification.title}
-                                </h4>
-                                <span className="text-xs text-slate-500 font-medium">{notification.time}</span>
+                    ) : (
+                        notifications.map((n) => (
+                            <div key={n.id} className={`p-5 rounded-2xl border transition-all ${n.isRead ? 'bg-slate-800/20 border-slate-700/50' : 'bg-slate-800 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.1)]'}`}>
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-2">
+                                            {!n.isRead && <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse"></span>}
+                                            <h3 className={`font-semibold ${n.isRead ? 'text-slate-300' : 'text-indigo-300'}`}>{n.title}</h3>
+                                            <span className="text-xs text-slate-500 ml-2">{new Date(n.createdAt).toLocaleString()}</span>
+                                        </div>
+                                        <p className="text-slate-400 text-sm">{n.message}</p>
+                                    </div>
+                                    {!n.isRead && (
+                                        <button 
+                                            onClick={(e) => {
+                                                const user = JSON.parse(localStorage.getItem("user") || "{}");
+                                                handleMarkAsRead(n.id, e, user.id);
+                                            }}
+                                            className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors border border-slate-600"
+                                        >
+                                            Mark as read
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                            <p className="text-slate-400 mb-3">{notification.message}</p>
-                            
-                            {!notification.isRead && (
-                                <button 
-                                    onClick={() => markAsRead(notification.id)}
-                                    className="text-xs font-semibold text-slate-400 hover:text-white transition-colors"
-                                >
-                                    Mark as read
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                ))}
-            </div>
+                        ))
+                    )}
+                </div>
+            )}
         </div>
     );
 }

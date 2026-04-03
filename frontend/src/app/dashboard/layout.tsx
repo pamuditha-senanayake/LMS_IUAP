@@ -2,9 +2,34 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+            try {
+                const user = JSON.parse(storedUser);
+                if (user.roles && user.roles.includes("ROLE_ADMIN")) {
+                    setIsAdmin(true);
+                }
+                if (user.id) {
+                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+                    fetch(`${apiUrl}/api/notifications/user/${user.id}`, { credentials: "include" })
+                        .then(res => res.json())
+                        .then(data => {
+                            const unread = data.filter((n: any) => !n.isRead).length;
+                            setUnreadCount(unread);
+                        })
+                        .catch(() => {});
+                }
+            } catch (e) {}
+        }
+    }, [pathname]);
 
     const navLinks = [
         { name: "Overview", path: "/dashboard" },
@@ -13,6 +38,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: "Ticketing", path: "/dashboard/tickets" },
         { name: "Notifications", path: "/dashboard/notifications" },
     ];
+
+    if (isAdmin) {
+        navLinks.push({ name: "User Management", path: "/dashboard/users" });
+        navLinks.push({ name: "Admin Bookings", path: "/dashboard/admin-bookings" });
+        navLinks.push({ name: "Admin Tickets", path: "/dashboard/admin-tickets" });
+        navLinks.push({ name: "Admin Facilities", path: "/dashboard/admin-facilities" });
+    }
 
     return (
         <div className="flex min-h-screen bg-transparent">
@@ -37,7 +69,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                     : "text-slate-400 hover:text-white hover:bg-slate-800/50 hover:border-slate-700"}
                                 `}
                             >
-                                {link.name}
+                                <div className="flex items-center justify-between w-full">
+                                    <span>{link.name}</span>
+                                    {link.name === "Notifications" && unreadCount > 0 && (
+                                        <span className="bg-pink-500 text-white text-[10px] items-center justify-center font-bold px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(236,72,153,0.5)]">
+                                            {unreadCount}
+                                        </span>
+                                    )}
+                                </div>
                             </Link>
                         );
                     })}
@@ -45,8 +84,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                 <div className="mt-auto w-full">
                     <button 
-                        onClick={() => {
-                            localStorage.removeItem("token");
+                        onClick={async () => {
+                            try {
+                                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+                                await fetch(`${apiUrl}/api/auth/logout`, { method: "POST", credentials: "include" });
+                            } catch (e) {}
                             localStorage.removeItem("user");
                             window.location.href = "/login";
                         }}

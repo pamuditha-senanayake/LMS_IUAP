@@ -8,7 +8,6 @@ import java.util.List;
 
 @Repository
 public interface ResourceRepository extends MongoRepository<Resource, String> {
-    List<Resource> findByResourceTypeId(String typeId);
-    List<Resource> findByLocationId(String locationId);
+    List<Resource> findByResourceType(String resourceType);
     List<Resource> findByStatus(String status);
 }

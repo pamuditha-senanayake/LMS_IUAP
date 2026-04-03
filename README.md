@@ -6,7 +6,8 @@ A Learning Management System (LMS) built with a **Next.js** frontend and a **Spr
 - **Frontend**: Next.js 15, React, Tailwind CSS, TypeScript
 - **Backend**: Spring Boot 3, Spring Security, Java 17+
 - **Database**: MongoDB (Atlas)
-- **Authentication**: Stateless JWT Authentication, BCrypt Password Encoding
+- **Authentication**: Secure HttpOnly Cookie-Based JWT Session Management
+  - **Registration Routes**: Separate pathways for Admin (`/register/admin`), Lecturer (`/register/lecturer`), and Student (`/register`).
 - **SSO**: Fully integrated Google Sign-In (`@react-oauth/google` & `google-api-client`)
 - **UI/UX**: Premium dark mode aesthetics with responsive glassmorphism layouts and animations
 

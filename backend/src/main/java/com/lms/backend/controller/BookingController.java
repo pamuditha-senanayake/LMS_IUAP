@@ -37,4 +37,17 @@ public class BookingController {
             @RequestParam(required = false) String reason) {
         return ResponseEntity.ok(bookingService.updateBookingStatus(bookingId, status, adminId, reason));
     }
+
+    @PutMapping("/{bookingId}")
+    public ResponseEntity<Booking> updateBooking(
+            @PathVariable String bookingId,
+            @RequestBody Booking booking) {
+        return ResponseEntity.ok(bookingService.updateBooking(bookingId, booking));
+    }
+
+    @DeleteMapping("/{bookingId}")
+    public ResponseEntity<?> deleteBooking(@PathVariable String bookingId) {
+        bookingService.deleteBooking(bookingId);
+        return ResponseEntity.ok("Booking deleted successfully");
+    }
 }
