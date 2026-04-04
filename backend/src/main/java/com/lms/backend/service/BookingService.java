@@ -32,21 +32,22 @@ public class BookingService {
 
     // Checking overlap correctly is critical
     public Booking createBooking(Booking booking) {
-        List<Booking> existingBookings = bookingRepository.findByResourceId(booking.getResourceId());
-        
-        // Conflict checking algorithm (overlapping time ranges)
-        boolean hasConflict = existingBookings.stream()
-                .filter(b -> b.getStatus().equals("APPROVED") || b.getStatus().equals("PENDING"))
-                .anyMatch(b -> 
-                    (booking.getStartTime().isBefore(b.getEndTime()) && 
-                     booking.getEndTime().isAfter(b.getStartTime()))
-                );
-        
-        if (hasConflict) {
+        validateBookingData(booking);
+
+        if (hasConflict(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), null)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Resource is already booked during this time range");
         }
 
+        // Set timestamps properly
+        LocalDateTime now = LocalDateTime.now();
+        booking.setResourceId(booking.getResourceId().trim());
+        booking.setPurpose(booking.getPurpose().trim());
+        booking.setCreatedAt(now);
+        booking.setUpdatedAt(now);
+
+        // Set status
         booking.setStatus("PENDING");
+        
         return bookingRepository.save(booking);
     }
 
@@ -55,14 +56,29 @@ public class BookingService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
         
         String oldStatus = booking.getStatus();
-        booking.setStatus(newStatus);
-        if ("REJECTED".equals(newStatus)) {
-            booking.setRejectionReason(reason);
-        } else if ("APPROVED".equals(newStatus)) {
+
+        if (!isValidStatus(newStatus)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Invalid status. Allowed: PENDING, APPROVED, REJECTED, CANCELLED");
+        }
+
+        if ("APPROVED".equals(newStatus)) {
+            validateBookingData(booking);
+
+            if (hasConflict(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), booking.getId())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Resource is already booked during this time range");
+            }
+
             booking.setApprovedAt(LocalDateTime.now());
+            booking.setRejectionReason(null);
+        } else if ("REJECTED".equals(newStatus)) {
+            booking.setRejectionReason(reason);
         } else if ("CANCELLED".equals(newStatus)) {
             booking.setCancelledAt(LocalDateTime.now());
         }
+
+        booking.setStatus(newStatus);
+        booking.setUpdatedAt(LocalDateTime.now());
         
         Booking updatedBooking = bookingRepository.save(booking);
         
@@ -98,25 +114,19 @@ public class BookingService {
         if (!"PENDING".equals(booking.getStatus())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can only update pending bookings");
         }
-        
-        if (!booking.getStartTime().equals(update.getStartTime()) || !booking.getEndTime().equals(update.getEndTime())) {
-            List<Booking> existingBookings = bookingRepository.findByResourceId(booking.getResourceId());
-            boolean hasConflict = existingBookings.stream()
-                    .filter(b -> !b.getId().equals(bookingId))
-                    .filter(b -> b.getStatus().equals("APPROVED") || b.getStatus().equals("PENDING"))
-                    .anyMatch(b -> 
-                        (update.getStartTime().isBefore(b.getEndTime()) && 
-                         update.getEndTime().isAfter(b.getStartTime()))
-                    );
-            if (hasConflict) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Resource is already booked during this time range");
-            }
-        }
 
         booking.setPurpose(update.getPurpose());
         booking.setExpectedAttendees(update.getExpectedAttendees());
         booking.setStartTime(update.getStartTime());
         booking.setEndTime(update.getEndTime());
+
+        validateBookingData(booking);
+        
+        if (hasConflict(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), bookingId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Resource is already booked during this time range");
+        }
+
+        booking.setPurpose(booking.getPurpose().trim());
         booking.setUpdatedAt(LocalDateTime.now());
         
         return bookingRepository.save(booking);
@@ -128,5 +138,52 @@ public class BookingService {
         }
         historyRepository.deleteById(bookingId); // Try to clear history if bound by FK logic, but since it's mongodb just leave it or clean manually. We'll simply let it drop.
         bookingRepository.deleteById(bookingId);
+    }
+
+    private void validateBookingData(Booking booking) {
+        // Validate required fields
+        if (booking == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Booking request must not be null");
+        }
+        if (booking.getResourceId() == null || booking.getResourceId().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resource ID must not be empty");
+        }
+        if (booking.getStartTime() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start time must not be null");
+        }
+        if (booking.getEndTime() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "End time must not be null");
+        }
+        if (booking.getPurpose() == null || booking.getPurpose().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Purpose must not be empty");
+        }
+        if (booking.getExpectedAttendees() != null && booking.getExpectedAttendees() < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Expected attendees must not be negative");
+        }
+
+        // Validate time logic
+        if (!booking.getStartTime().isBefore(booking.getEndTime())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start time must be before end time");
+        }
+    }
+
+    private boolean hasConflict(String resourceId, LocalDateTime startTime, LocalDateTime endTime, String excludeBookingId) {
+        List<Booking> existingBookings = bookingRepository.findByResourceId(resourceId);
+
+        // Conflict checking algorithm (overlapping time ranges)
+        return existingBookings.stream()
+                .filter(b -> excludeBookingId == null || !b.getId().equals(excludeBookingId))
+                .filter(b -> "APPROVED".equals(b.getStatus()) || "PENDING".equals(b.getStatus()))
+                .anyMatch(b ->
+                        startTime.isBefore(b.getEndTime()) &&
+                        endTime.isAfter(b.getStartTime())
+                );
+    }
+
+    private boolean isValidStatus(String status) {
+        return "PENDING".equals(status)
+                || "APPROVED".equals(status)
+                || "REJECTED".equals(status)
+                || "CANCELLED".equals(status);
     }
 }
