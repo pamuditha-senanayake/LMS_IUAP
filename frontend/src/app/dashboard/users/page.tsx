@@ -182,25 +182,25 @@ export default function UserManagement() {
     };
 
     return (
-        <div className="p-6 text-slate-200 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+        <div className="p-6 text-slate-100 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
             {/* Hero Banner Section */}
-            <div className="relative w-full rounded-3xl overflow-hidden border border-slate-800/60 shadow-2xl bg-slate-900 group/banner">
+            <div className="relative w-full rounded-3xl overflow-hidden border border-slate-700/50 shadow-2xl bg-slate-900 group/banner">
                 {/* Background Decoration */}
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-pink-500/10 opacity-50 transition-opacity duration-700 group-hover/banner:opacity-70" />
-                <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/20 blur-[120px] -mr-48 -mt-48 rounded-full" />
-                <div className="absolute bottom-0 left-0 w-96 h-96 bg-pink-500/10 blur-[120px] -ml-48 -mb-48 rounded-full" />
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-pink-500/20 opacity-40 transition-opacity duration-700 group-hover/banner:opacity-60" />
+                <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/30 blur-[120px] -mr-48 -mt-48 rounded-full" />
+                <div className="absolute bottom-0 left-0 w-96 h-96 bg-pink-500/20 blur-[120px] -ml-48 -mb-48 rounded-full" />
                 
                 <div className="relative p-8 md:p-12 flex flex-col items-center text-center space-y-8">
-                    <div className="space-y-3 max-w-2xl">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-[0.3em]">
+                    <div className="space-y-4 max-w-2xl">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[10px] font-black uppercase tracking-[0.3em]">
                             <Shield size={12} />
                             Administrative Console
                         </div>
                         <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white flex items-center justify-center gap-4">
-                            <img src="/A.png" alt="CourseFlow" className="w-12 h-12 rounded-xl border border-slate-700/50 shadow-lg" />
+                            <img src="/A.png" alt="CourseFlow" className="w-12 h-12 rounded-xl border border-slate-700/60 shadow-xl bg-slate-800" />
                             <span>Course<span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Flow</span></span>
                         </h1>
-                        <p className="text-slate-400 text-sm md:text-base font-medium max-w-lg mx-auto leading-relaxed mt-4">
+                        <p className="text-slate-300 text-sm md:text-base font-semibold max-w-lg mx-auto leading-relaxed mt-4 drop-shadow-sm">
                             Efficiently manage institution-wide access, monitor registry status, and maintain secure platform permissions from one unified platform.
                         </p>
                     </div>
@@ -208,19 +208,19 @@ export default function UserManagement() {
                     {/* Integrated Search & Actions */}
                     <div className="w-full max-w-3xl flex flex-col md:flex-row items-center gap-4">
                         <div className="relative w-full group/search">
-                            <div className="absolute inset-0 bg-indigo-500/20 blur-xl opacity-0 group-focus-within/search:opacity-100 transition-opacity duration-500" />
-                            <div className="relative flex items-center bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 group-focus-within/search:border-indigo-500/50 rounded-2xl transition-all duration-300">
-                                <Search className="absolute left-5 text-slate-500 group-focus-within/search:text-indigo-400" size={20} />
+                            <div className="absolute inset-0 bg-indigo-500/30 blur-xl opacity-0 group-focus-within/search:opacity-100 transition-opacity duration-500" />
+                            <div className="relative flex items-center bg-slate-950/90 backdrop-blur-2xl border border-slate-700/60 group-focus-within/search:border-indigo-500 rounded-2xl transition-all duration-300 shadow-2xl">
+                                <Search className="absolute left-5 text-slate-400 group-focus-within/search:text-indigo-400" size={20} />
                                 <input 
                                     type="text" 
                                     placeholder="Search by name, email or identifier..." 
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-14 pr-4 py-4 bg-transparent outline-none text-white placeholder:text-slate-600 text-sm font-medium"
+                                    className="w-full pl-14 pr-4 py-4 bg-transparent outline-none text-white placeholder:text-slate-600 text-sm font-bold"
                                 />
                                 <div className="pr-4 hidden md:flex items-center gap-2">
-                                    <kbd className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-[10px] font-bold text-slate-500">⌘</kbd>
-                                    <kbd className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-[10px] font-bold text-slate-500">K</kbd>
+                                    <kbd className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-[10px] font-black text-slate-400">⌘</kbd>
+                                    <kbd className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-[10px] font-black text-slate-400">K</kbd>
                                 </div>
                             </div>
                         </div>
@@ -228,7 +228,7 @@ export default function UserManagement() {
                         <button 
                             onClick={fetchUsers}
                             disabled={loading}
-                            className="shrink-0 flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white rounded-2xl font-bold text-sm shadow-lg shadow-indigo-500/20 active:scale-95 transition-all disabled:opacity-50"
+                            className="shrink-0 flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white rounded-2xl font-black text-sm shadow-xl shadow-indigo-500/30 active:scale-95 transition-all disabled:opacity-50"
                         >
                             <RotateCw size={18} className={loading ? 'animate-spin' : ''} />
                             Reload
@@ -238,12 +238,12 @@ export default function UserManagement() {
             </div>
 
             {/* Main Content */}
-            <div className="relative glass-card rounded-3xl overflow-hidden border border-slate-700/40 shadow-2xl">
+            <div className="relative glass-card rounded-3xl overflow-hidden border border-slate-700/60 shadow-2xl bg-slate-900/90">
                 {loading && (
-                    <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-10 flex items-center justify-center">
-                        <div className="flex flex-col items-center gap-3">
-                            <RotateCw className="text-indigo-400 animate-spin" size={32} />
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">Synchronizing</span>
+                    <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-10 flex items-center justify-center">
+                        <div className="flex flex-col items-center gap-4">
+                            <RotateCw className="text-indigo-400 animate-spin" size={40} />
+                            <span className="text-xs font-black text-slate-200 uppercase tracking-[0.3em]">Synchronizing Registry</span>
                         </div>
                     </div>
                 )}

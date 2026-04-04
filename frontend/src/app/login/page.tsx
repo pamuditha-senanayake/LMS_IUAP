@@ -69,10 +69,10 @@ export default function Login() {
     };
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-transparent">
-            <div className="glass-card w-full max-w-md rounded-2xl p-8 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500 rounded-full mix-blend-screen filter blur-[50px] opacity-20 animate-pulse"></div>
-                <div className="absolute bottom-0 left-0 w-32 h-32 bg-pink-500 rounded-full mix-blend-screen filter blur-[50px] opacity-20 animate-pulse" style={{ animationDelay: "2s" }}></div>
+        <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-[#020617]">
+            <div className="glass-card w-full max-w-md rounded-3xl p-10 relative overflow-hidden border border-slate-700/60 shadow-2xl bg-slate-900/90">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500 rounded-full mix-blend-screen filter blur-[60px] opacity-30 animate-pulse"></div>
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-pink-500 rounded-full mix-blend-screen filter blur-[60px] opacity-30 animate-pulse" style={{ animationDelay: "2s" }}></div>
 
                 <div className="relative z-10">
                     <div className="mb-8 text-center">
