@@ -69,9 +69,9 @@ export default function Login() {
     };
 
     return (
-        <div className="flex min-h-screen bg-[#020617] items-start overflow-x-hidden">
+        <div className="flex h-screen bg-[#020617] overflow-hidden">
             {/* Left Side: Branding & Form */}
-            <div className="flex-1 flex flex-col items-center p-8 md:p-16 py-12 md:py-24 z-10 relative pb-40">
+            <div className="flex-1 h-full overflow-y-auto scrollbar-none flex flex-col items-center p-8 md:p-16 py-12 md:py-24 z-10 relative pb-40">
                 {/* Background Glows */}
                 <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full" />
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-pink-500/5 blur-[100px] rounded-full" />
@@ -166,7 +166,7 @@ export default function Login() {
             </div>
 
             {/* Right Side: Immersive Imagery (Hidden on Mobile) */}
-            <div className="hidden lg:flex flex-[1.2] sticky top-0 h-screen bg-slate-900 overflow-hidden">
+            <div className="hidden lg:flex flex-[1.2] h-full bg-slate-900 overflow-hidden relative">
                 <img 
                     src="/login-bg.png" 
                     alt="CourseFlow Atmosphere" 

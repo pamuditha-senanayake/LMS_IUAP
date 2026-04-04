@@ -48,9 +48,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
 
     return (
-        <div className="flex min-h-screen bg-[#020617] text-slate-100">
+        <div className="flex items-start min-h-screen bg-[#020617] text-slate-100">
             {/* Sidebar */}
-            <div className="group/sidebar flex flex-col items-center relative transition-all duration-[450ms] ease-in-out w-[80px] hover:w-[260px] h-screen sticky top-0 py-6 px-3 z-50">
+            <div className="group/sidebar flex flex-col items-center fixed top-0 left-0 transition-all duration-[450ms] ease-in-out w-[80px] hover:w-[260px] h-screen py-6 px-3 z-50">
                 <article className="border border-solid border-slate-700/50 w-full h-full ease-in-out duration-500 rounded-2xl flex flex-col shadow-lg shadow-black/40 bg-slate-900/98 backdrop-blur-xl overflow-y-auto overflow-x-hidden scrollbar-none">
                     
                     <div className="flex items-center w-full h-20 shrink-0 px-2 group-hover/sidebar:px-4">
@@ -125,7 +125,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             {/* Main Content Area */}
-            <main className="flex-1 overflow-y-auto bg-slate-950/20 backdrop-blur-3xl">
+            <main className="flex-1 bg-slate-950/20 backdrop-blur-3xl transition-all duration-[450ms] ease-in-out ml-[80px] group-hover/sidebar:ml-[260px]">
                 <div className="max-w-6xl mx-auto w-full p-8 py-12 md:py-20 pb-40">
                     {children}
                 </div>

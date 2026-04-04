@@ -76,20 +76,32 @@ export default function UserManagement() {
 
     const handleEdit = (user: any) => {
         Swal.fire({
-            title: 'Edit User Profile',
             html: `
-                <div class="flex flex-col gap-4 text-left px-2">
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Full Name</label>
-                        <input id="swal-input1" class="swal2-input !m-0 !w-full !bg-slate-800 !border-slate-700 !text-white !rounded-xl focus:!border-indigo-500" placeholder="Name" value="${user.name}">
+                <div class="flex flex-col items-center gap-4 mb-8 text-center">
+                    <img src="/A.png" class="w-16 h-16 rounded-2xl shadow-xl bg-slate-900 border border-slate-700" />
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Edit User Profile</h2>
                     </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Email Address</label>
-                        <input id="swal-input2" class="swal2-input !m-0 !w-full !bg-slate-800 !border-slate-700 !text-white !rounded-xl focus:!border-indigo-500" placeholder="Email" value="${user.email}">
+                </div>
+                <div class="flex flex-col gap-5 text-left px-2">
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-semibold text-slate-400 ml-1">Full Name</label>
+                        <input id="swal-input1" 
+                            class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-indigo-500 transition-all text-base" 
+                            placeholder="Name" 
+                            value="${user.name}">
                     </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Select Role</label>
-                        <select id="swal-input3" class="swal2-select !m-0 !w-full !bg-slate-800 !border-slate-700 !text-white !rounded-xl focus:!border-indigo-500">
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-semibold text-slate-400 ml-1">Email Address</label>
+                        <input id="swal-input2" 
+                            class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-indigo-500 transition-all text-base" 
+                            placeholder="Email" 
+                            value="${user.email}">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-semibold text-slate-400 ml-1">Role Selection</label>
+                        <select id="swal-input3" 
+                            class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-indigo-500 transition-all text-base cursor-pointer">
                             <option value="ROLE_USER" ${user.roles?.includes('ROLE_USER') ? 'selected' : ''}>User</option>
                             <option value="ROLE_STUDENT" ${user.roles?.includes('ROLE_STUDENT') ? 'selected' : ''}>Student</option>
                             <option value="ROLE_LECTURER" ${user.roles?.includes('ROLE_LECTURER') ? 'selected' : ''}>Lecturer</option>
@@ -100,14 +112,17 @@ export default function UserManagement() {
             `,
             focusConfirm: false,
             showCancelButton: true,
-            confirmButtonColor: '#6366f1',
-            cancelButtonColor: '#475569',
             confirmButtonText: 'Update User',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#6366f1',
+            cancelButtonColor: 'transparent',
             background: '#111827',
             color: '#f1f5f9',
             customClass: {
-                popup: 'rounded-3xl border border-slate-800 shadow-2xl',
-                title: 'text-2xl font-bold py-6'
+                popup: 'rounded-3xl border border-slate-800 shadow-2xl p-8',
+                confirmButton: 'px-8 py-3 rounded-xl font-bold text-base transition-all active:scale-95',
+                cancelButton: 'px-8 py-3 text-slate-400 font-semibold hover:text-white transition-all',
+                actions: 'mt-8 gap-4'
             },
             preConfirm: () => {
                 return {
@@ -131,14 +146,21 @@ export default function UserManagement() {
                     });
 
                     if (res.ok) {
-                        Swal.fire({ title: "Saved!", text: "User information updated.", icon: "success", background: '#111827', color: '#f1f5f9' });
+                        Swal.fire({ 
+                            title: "Saved!", 
+                            text: "User information updated.", 
+                            icon: "success", 
+                            background: '#0f172a', 
+                            color: '#f1f5f9',
+                            customClass: { popup: 'rounded-3xl border border-slate-800 shadow-2xl' }
+                        });
                         fetchUsers();
                     } else {
                         const errText = await res.text();
-                        Swal.fire({ title: "Error", text: errText, icon: "error", background: '#111827', color: '#f1f5f9' });
+                        Swal.fire({ title: "Error", text: errText, icon: "error", background: '#0f172a', color: '#f1f5f9' });
                     }
                 } catch (err) {
-                    Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#111827', color: '#f1f5f9' });
+                    Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#0f172a', color: '#f1f5f9' });
                 }
             }
         })
@@ -146,17 +168,29 @@ export default function UserManagement() {
 
     const handleDelete = (id: string, name: string) => {
         Swal.fire({
-            title: 'Delete user?',
-            text: `Are you sure you want to remove ${name} from the platform?`,
-            icon: 'warning',
+            html: `
+                <div class="flex flex-col items-center gap-4 py-4 text-center">
+                    <img src="/A.png" class="w-20 h-20 rounded-2xl shadow-xl bg-slate-900 border border-slate-700" />
+                    <div class="space-y-2">
+                        <h2 class="text-2xl font-bold text-white">Delete User</h2>
+                        <p class="text-slate-400 font-semibold text-base leading-relaxed px-4">
+                            Are you sure you want to delete <span class="text-rose-400 font-bold">${name}</span>? This action cannot be undone.
+                        </p>
+                    </div>
+                </div>
+            `,
             showCancelButton: true,
+            confirmButtonText: 'Delete User',
+            cancelButtonText: 'Cancel',
             confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#475569',
-            confirmButtonText: 'Yes, delete permanently',
+            cancelButtonColor: 'transparent',
             background: '#111827',
             color: '#f1f5f9',
             customClass: {
-                popup: 'rounded-3xl border border-slate-800 shadow-2xl'
+                popup: 'rounded-3xl border border-slate-800 shadow-2xl p-8',
+                confirmButton: 'px-8 py-3 rounded-xl font-bold text-base transition-all active:scale-95',
+                cancelButton: 'px-8 py-3 text-slate-400 font-semibold hover:text-white transition-all',
+                actions: 'mt-4 gap-4'
             }
         }).then(async (result) => {
             if (result.isConfirmed) {
@@ -168,7 +202,14 @@ export default function UserManagement() {
                     });
 
                     if (res.ok) {
-                        Swal.fire({ title: "Deleted!", text: "User has been removed.", icon: "success", background: '#111827', color: '#f1f5f9' });
+                        Swal.fire({ 
+                            title: "Deleted", 
+                            text: "User has been removed successfully.", 
+                            icon: "success", 
+                            background: '#111827', 
+                            color: '#f1f5f9',
+                            customClass: { popup: 'rounded-3xl border border-slate-800 shadow-2xl' }
+                        });
                         fetchUsers();
                     } else {
                         const errText = await res.text();
