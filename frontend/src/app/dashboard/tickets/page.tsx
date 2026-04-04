@@ -8,14 +8,28 @@ export default function TicketingPage() {
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<any>(null);
 
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
     const fetchTickets = async (userId: string) => {
         setLoading(true);
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
             const res = await fetch(`${apiUrl}/api/tickets?userId=${userId}`, { credentials: "include" });
             if (res.ok) {
                 const data = await res.json();
-                setTickets(data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+                const sortedTickets = data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                
+                const ticketsWithAttachments = await Promise.all(
+                    sortedTickets.map(async (ticket: any) => {
+                        const attRes = await fetch(`${apiUrl}/api/tickets/${ticket.id}/attachments`, { credentials: "include" });
+                        if (attRes.ok) {
+                            const attachments = await attRes.json();
+                            return { ...ticket, attachments };
+                        }
+                        return { ...ticket, attachments: [] };
+                    })
+                );
+                
+                setTickets(ticketsWithAttachments);
             }
         } catch (err) {
             console.error("Failed to fetch tickets", err);
@@ -27,7 +41,6 @@ export default function TicketingPage() {
     useEffect(() => {
         const loadUser = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
                 const res = await fetch(`${apiUrl}/api/auth/me`, { credentials: "include" });
                 if (res.ok) {
                     const user = await res.json();
@@ -73,9 +86,12 @@ export default function TicketingPage() {
                         <option value="HIGH">High - Significant disruption</option>
                         <option value="CRITICAL">Critical - Facility unuseable</option>
                     </select>
+                    
+                    <label class="text-sm font-semibold text-slate-300 mt-2">Images (up to 3)</label>
+                    <input id="swal-images" type="file" accept="image/*" multiple class="!w-11/12 !mx-auto text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-pink-500 file:text-white hover:file:bg-pink-600 file:cursor-pointer cursor-pointer">
+                    <div id="swal-preview" class="flex gap-2 justify-center mt-2"></div>
                 </div>
             `,
-            focusConfirm: false,
             showCancelButton: true,
             confirmButtonColor: '#ec4899',
             cancelButtonColor: '#6366f1',
@@ -83,6 +99,136 @@ export default function TicketingPage() {
             background: '#1e293b',
             color: '#fff',
             customClass: { popup: 'swal2-dark' },
+            didOpen: () => {
+                const imagesInput = document.getElementById('swal-images') as HTMLInputElement;
+                imagesInput?.addEventListener('change', () => {
+                    const preview = document.getElementById('swal-preview');
+                    if (preview) {
+                        preview.innerHTML = '';
+                        const files = imagesInput.files;
+                        if (files) {
+                            for (let i = 0; i < Math.min(files.length, 3); i++) {
+                                const url = URL.createObjectURL(files[i]);
+                                const img = document.createElement('img');
+                                img.src = url;
+                                img.className = 'w-16 h-16 object-cover rounded-lg border border-slate-600';
+                                preview.appendChild(img);
+                            }
+                        }
+                    }
+                });
+            },
+            preConfirm: () => {
+                const title = (document.getElementById('swal-title') as HTMLInputElement).value;
+                const desc = (document.getElementById('swal-desc') as HTMLTextAreaElement).value;
+                const resource = (document.getElementById('swal-resource') as HTMLInputElement).value;
+                const priority = (document.getElementById('swal-priority') as HTMLSelectElement).value;
+                const imagesInput = document.getElementById('swal-images') as HTMLInputElement;
+                const files = imagesInput?.files;
+                
+                if (!title || !desc) {
+                    Swal.showValidationMessage("Title and description are required");
+                    return false;
+                }
+                
+                return new Promise((resolve) => {
+                    const formData = new FormData();
+                    formData.append('title', title);
+                    formData.append('description', desc);
+                    formData.append('resourceId', resource);
+                    formData.append('priority', priority);
+                    formData.append('reportedById', currentUser!.id);
+                    
+                    if (files && files.length > 0) {
+                        for (let i = 0; i < Math.min(files.length, 3); i++) {
+                            formData.append('images', files[i]);
+                        }
+                    }
+                    
+                    fetch(`${apiUrl}/api/tickets/with-attachments`, {
+                        method: "POST",
+                        credentials: "include",
+                        body: formData
+                    }).then(res => {
+                        if (res.ok) {
+                            resolve(true);
+                        } else {
+                            resolve(false);
+                            res.text().then(errText => {
+                                Swal.showValidationMessage(errText || "Failed to submit ticket");
+                            });
+                        }
+                    }).catch(() => {
+                        resolve(false);
+                        Swal.showValidationMessage("Network Error");
+                    });
+                });
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({ title: "Issue Reported!", icon: "success", background: '#1e293b', color: '#fff' });
+                fetchTickets(currentUser!.id);
+            }
+        });
+    };
+
+    const handleDelete = (ticketId: string, title: string) => {
+        Swal.fire({
+            title: `Delete ticket "${title}"?`,
+            text: "This action cannot be undone.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ec4899',
+            cancelButtonColor: '#6366f1',
+            confirmButtonText: 'Yes, delete it!',
+            background: '#1e293b',
+            color: '#fff',
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const res = await fetch(`${apiUrl}/api/tickets/${ticketId}`, {
+                    method: "DELETE",
+                    credentials: "include"
+                });
+                if (res.ok) {
+                    Swal.fire({ title: "Deleted!", icon: "success", background: '#1e293b', color: '#fff' });
+                    fetchTickets(currentUser!.id);
+                } else {
+                    Swal.fire({ title: "Error", text: "Failed to delete ticket", icon: "error", background: '#1e293b', color: '#fff' });
+                }
+            }
+        });
+    };
+
+    const handleEdit = (ticket: any) => {
+        Swal.fire({
+            title: 'Edit Ticket',
+            html: `
+                <div class="flex flex-col gap-3 text-left">
+                    <label class="text-sm font-semibold text-slate-300">Ticket Title</label>
+                    <input id="swal-title" class="swal2-input !w-11/12 !mx-auto" value="${ticket.title}">
+                    
+                    <label class="text-sm font-semibold text-slate-300">Description</label>
+                    <textarea id="swal-desc" class="swal2-textarea !w-11/12 !mx-auto">${ticket.description}</textarea>
+                    
+                    <label class="text-sm font-semibold text-slate-300">Resource / Location</label>
+                    <input id="swal-resource" class="swal2-input !w-11/12 !mx-auto" value="${ticket.resourceId || ''}">
+                    
+                    <label class="text-sm font-semibold text-slate-300">Priority</label>
+                    <select id="swal-priority" class="swal2-select !w-11/12 !mx-auto text-sm">
+                        <option value="LOW" ${ticket.priority === 'LOW' ? 'selected' : ''}>Low</option>
+                        <option value="MEDIUM" ${ticket.priority === 'MEDIUM' ? 'selected' : ''}>Medium</option>
+                        <option value="HIGH" ${ticket.priority === 'HIGH' ? 'selected' : ''}>High</option>
+                        <option value="CRITICAL" ${ticket.priority === 'CRITICAL' ? 'selected' : ''}>Critical</option>
+                    </select>
+                </div>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonColor: '#6366f1',
+            cancelButtonColor: '#475569',
+            confirmButtonText: 'Save Changes',
+            background: '#1e293b',
+            color: '#fff',
             preConfirm: () => {
                 const title = (document.getElementById('swal-title') as HTMLInputElement).value;
                 const desc = (document.getElementById('swal-desc') as HTMLTextAreaElement).value;
@@ -91,7 +237,7 @@ export default function TicketingPage() {
                     return false;
                 }
                 return {
-                    title: title,
+                    title,
                     description: desc,
                     resourceId: (document.getElementById('swal-resource') as HTMLInputElement).value,
                     priority: (document.getElementById('swal-priority') as HTMLSelectElement).value,
@@ -99,29 +245,17 @@ export default function TicketingPage() {
             }
         }).then(async (result) => {
             if (result.isConfirmed) {
-                try {
-                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-                    const payload = {
-                        ...result.value,
-                        reportedById: currentUser.id,
-                        status: "OPEN"
-                    };
-                    const res = await fetch(`${apiUrl}/api/tickets`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        credentials: "include",
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (res.ok) {
-                        Swal.fire({ title: "Issue Reported!", icon: "success", background: '#1e293b', color: '#fff' });
-                        fetchTickets(currentUser.id);
-                    } else {
-                        const errText = await res.text();
-                        Swal.fire({ title: "Error", text: errText, icon: "error", background: '#1e293b', color: '#fff' });
-                    }
-                } catch (err) {
-                    Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#1e293b', color: '#fff' });
+                const res = await fetch(`${apiUrl}/api/tickets/${ticket.id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify(result.value)
+                });
+                if (res.ok) {
+                    Swal.fire({ title: "Updated!", icon: "success", background: '#1e293b', color: '#fff' });
+                    fetchTickets(currentUser!.id);
+                } else {
+                    Swal.fire({ title: "Error", text: "Failed to update ticket", icon: "error", background: '#1e293b', color: '#fff' });
                 }
             }
         });
@@ -160,7 +294,21 @@ export default function TicketingPage() {
                                     </span>
                                 </div>
                                 <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">{ticket.title}</h3>
-                                <p className="text-sm text-slate-400 line-clamp-3 mb-4 flex-grow">{ticket.description}</p>
+                                <p className="text-sm text-slate-400 line-clamp-3 mb-2 flex-grow">{ticket.description}</p>
+                                
+                                {ticket.attachments && ticket.attachments.length > 0 && (
+                                    <div className="flex gap-2 mb-4 overflow-x-auto">
+                                        {ticket.attachments.map((att: any, idx: number) => (
+                                            <img 
+                                                key={idx}
+                                                src={`${apiUrl}${att.fileUrl}`}
+                                                alt={`Attachment ${idx + 1}`}
+                                                className="w-16 h-16 object-cover rounded-lg border border-slate-600 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                                onClick={() => window.open(`${apiUrl}${att.fileUrl}`, '_blank')}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
                                 
                                 <div className="text-slate-400 text-xs flex flex-col gap-2 mt-auto">
                                     <div className="flex justify-between border-t border-slate-700/50 pt-3">
@@ -188,6 +336,23 @@ export default function TicketingPage() {
                                 {ticket.rejectionReason && ticket.status === 'REJECTED' && (
                                     <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-300">
                                         <span className="font-bold d-block mb-1">Feedback:</span> {ticket.rejectionReason}
+                                    </div>
+                                )}
+
+                                {ticket.status === 'OPEN' && (
+                                    <div className="flex gap-2 mt-4 pt-4 border-t border-slate-700/50">
+                                        <button 
+                                            onClick={() => handleEdit(ticket)}
+                                            className="flex-1 px-3 py-2 text-sm font-medium bg-slate-700 hover:bg-indigo-500 text-slate-200 rounded-lg transition-colors"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button 
+                                            onClick={() => handleDelete(ticket.id, ticket.title)}
+                                            className="flex-1 px-3 py-2 text-sm font-medium bg-slate-700/50 hover:bg-pink-500 hover:text-white text-pink-400 rounded-lg transition-colors"
+                                        >
+                                            Delete
+                                        </button>
                                     </div>
                                 )}
                             </div>
