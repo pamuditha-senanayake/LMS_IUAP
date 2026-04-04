@@ -3,12 +3,15 @@ package com.lms.backend.controller;
 import com.lms.backend.model.IncidentTicket;
 import com.lms.backend.model.TicketAttachment;
 import com.lms.backend.model.TicketComment;
+import com.lms.backend.service.FileStorageService;
 import com.lms.backend.service.TicketingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -17,6 +20,7 @@ import java.util.List;
 public class TicketingController {
 
     private final TicketingService ticketingService;
+    private final FileStorageService fileStorageService;
 
     @GetMapping
     public ResponseEntity<List<IncidentTicket>> getAllTickets(@RequestParam(required = false) String userId) {
@@ -29,6 +33,47 @@ public class TicketingController {
     @PostMapping
     public ResponseEntity<IncidentTicket> createTicket(@RequestBody IncidentTicket ticket) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ticketingService.createTicket(ticket));
+    }
+
+    @PostMapping("/with-attachments")
+    public ResponseEntity<?> createTicketWithAttachments(
+            @RequestParam String title,
+            @RequestParam String description,
+            @RequestParam(required = false) String resourceId,
+            @RequestParam String priority,
+            @RequestParam String reportedById,
+            @RequestParam(required = false) List<MultipartFile> images) {
+        
+        IncidentTicket ticket = IncidentTicket.builder()
+                .title(title)
+                .description(description)
+                .resourceId(resourceId)
+                .priority(priority)
+                .reportedById(reportedById)
+                .status("OPEN")
+                .build();
+        
+        IncidentTicket createdTicket = ticketingService.createTicket(ticket);
+        
+        List<TicketAttachment> attachments = new ArrayList<>();
+        if (images != null && !images.isEmpty()) {
+            for (MultipartFile image : images) {
+                if (!image.isEmpty()) {
+                    String fileUrl = fileStorageService.storeFile(image);
+                    TicketAttachment attachment = TicketAttachment.builder()
+                            .ticketId(createdTicket.getId())
+                            .fileName(image.getOriginalFilename())
+                            .fileUrl(fileUrl)
+                            .fileType(image.getContentType())
+                            .fileSize(image.getSize())
+                            .uploadedById(reportedById)
+                            .build();
+                    attachments.add(ticketingService.addAttachment(attachment));
+                }
+            }
+        }
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(new TicketWithAttachmentsResponse(createdTicket, attachments));
     }
 
     @PatchMapping("/{ticketId}/status")
@@ -51,6 +96,33 @@ public class TicketingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ticketingService.addAttachment(attachment));
     }
 
+    @PostMapping("/{ticketId}/upload-attachments")
+    public ResponseEntity<List<TicketAttachment>> uploadAttachments(
+            @PathVariable String ticketId,
+            @RequestParam(required = false) List<MultipartFile> images,
+            @RequestParam String uploadedById) {
+        
+        List<TicketAttachment> attachments = new ArrayList<>();
+        if (images != null && !images.isEmpty()) {
+            for (MultipartFile image : images) {
+                if (!image.isEmpty()) {
+                    String fileUrl = fileStorageService.storeFile(image);
+                    TicketAttachment attachment = TicketAttachment.builder()
+                            .ticketId(ticketId)
+                            .fileName(image.getOriginalFilename())
+                            .fileUrl(fileUrl)
+                            .fileType(image.getContentType())
+                            .fileSize(image.getSize())
+                            .uploadedById(uploadedById)
+                            .build();
+                    attachments.add(ticketingService.addAttachment(attachment));
+                }
+            }
+        }
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(attachments);
+    }
+
     @GetMapping("/{ticketId}/comments")
     public ResponseEntity<List<TicketComment>> getComments(@PathVariable String ticketId) {
         return ResponseEntity.ok(ticketingService.getTicketComments(ticketId));
@@ -61,4 +133,19 @@ public class TicketingController {
         comment.setTicketId(ticketId);
         return ResponseEntity.status(HttpStatus.CREATED).body(ticketingService.addComment(comment));
     }
+
+    @DeleteMapping("/{ticketId}")
+    public ResponseEntity<Void> deleteTicket(@PathVariable String ticketId) {
+        ticketingService.deleteTicket(ticketId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{ticketId}")
+    public ResponseEntity<IncidentTicket> updateTicket(
+            @PathVariable String ticketId,
+            @RequestBody IncidentTicket updates) {
+        return ResponseEntity.ok(ticketingService.updateTicket(ticketId, updates));
+    }
+
+    public record TicketWithAttachmentsResponse(IncidentTicket ticket, List<TicketAttachment> attachments) {}
 }

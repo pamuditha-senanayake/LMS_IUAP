@@ -71,4 +71,28 @@ public class TicketingService {
     public TicketComment addComment(TicketComment comment) {
         return commentRepository.save(comment);
     }
+
+    public void deleteTicket(String ticketId) {
+        ticketRepository.deleteById(ticketId);
+    }
+
+    public IncidentTicket updateTicket(String ticketId, IncidentTicket updates) {
+        IncidentTicket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+        
+        if (updates.getTitle() != null) {
+            ticket.setTitle(updates.getTitle());
+        }
+        if (updates.getDescription() != null) {
+            ticket.setDescription(updates.getDescription());
+        }
+        if (updates.getResourceId() != null) {
+            ticket.setResourceId(updates.getResourceId());
+        }
+        if (updates.getPriority() != null) {
+            ticket.setPriority(updates.getPriority());
+        }
+        
+        return ticketRepository.save(ticket);
+    }
 }
