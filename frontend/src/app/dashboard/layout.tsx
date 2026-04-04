@@ -50,8 +50,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
         <div className="flex min-h-screen bg-[#020617] text-slate-100">
             {/* Sidebar */}
-            <div className="group/sidebar flex flex-col items-center relative transition-all duration-[450ms] ease-in-out w-[80px] hover:w-[260px] h-screen sticky top-0 py-4 px-3 z-50">
-                <article className="border border-solid border-slate-700/50 w-full h-full ease-in-out duration-500 rounded-2xl flex flex-col shadow-lg shadow-black/40 bg-slate-900/98 backdrop-blur-xl overflow-hidden">
+            <div className="group/sidebar flex flex-col items-center relative transition-all duration-[450ms] ease-in-out w-[80px] hover:w-[260px] h-screen sticky top-0 py-6 px-3 z-50">
+                <article className="border border-solid border-slate-700/50 w-full h-full ease-in-out duration-500 rounded-2xl flex flex-col shadow-lg shadow-black/40 bg-slate-900/98 backdrop-blur-xl overflow-y-auto overflow-x-hidden scrollbar-none">
                     
                     <div className="flex items-center w-full h-20 shrink-0 px-2 group-hover/sidebar:px-4">
                         <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 mx-auto group-hover/sidebar:mx-0 shadow-lg shadow-indigo-500/10 overflow-hidden border border-slate-700/60">
@@ -125,8 +125,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             {/* Main Content Area */}
-            <main className="flex-1 p-8 overflow-y-auto bg-slate-950/20 backdrop-blur-3xl min-h-screen">
-                <div className="max-w-6xl mx-auto w-full">
+            <main className="flex-1 overflow-y-auto bg-slate-950/20 backdrop-blur-3xl">
+                <div className="max-w-6xl mx-auto w-full p-8 py-12 md:py-20 pb-40">
                     {children}
                 </div>
             </main>

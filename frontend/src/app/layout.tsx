@@ -34,9 +34,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased selection:bg-indigo-500/30 selection:text-indigo-200`}
     >
-      <body className="min-h-full flex flex-col bg-[#020617] text-slate-200">
+      <body className="min-h-screen flex flex-col bg-[#020617] text-slate-200 overflow-x-hidden">
         <FetchInterceptor />
         <GoogleOAuthProvider clientId={clientId}>
           {children}

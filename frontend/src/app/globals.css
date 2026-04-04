@@ -5,25 +5,32 @@
   --foreground: #f1f5f9;
 }
 
+html, 
 body {
+  margin: 0;
+  padding: 0;
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  min-height: 100vh;
-  position: relative;
   overflow-x: hidden;
+  width: 100%;
+}
+
+body {
+  position: relative;
+  min-height: 100vh;
 }
 
 /* Premium Gradient Background animation */
 body::before {
   content: "";
-  position: absolute;
+  position: fixed;
   top: -50%;
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.15) 0%, rgba(15, 23, 42, 0) 50%),
-              radial-gradient(circle at 80% 20%, rgba(236, 72, 153, 0.1) 0%, rgba(15, 23, 42, 0) 40%);
+  background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.1) 0%, rgba(15, 23, 42, 0) 50%),
+              radial-gradient(circle at 80% 20%, rgba(236, 72, 153, 0.08) 0%, rgba(15, 23, 42, 0) 40%);
   animation: bg-pulse 15s ease-in-out infinite alternate;
   z-index: -1;
   pointer-events: none;

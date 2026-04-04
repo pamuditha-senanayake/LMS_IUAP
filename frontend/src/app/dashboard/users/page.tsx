@@ -182,7 +182,7 @@ export default function UserManagement() {
     };
 
     return (
-        <div className="p-6 text-slate-100 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+        <div className="p-6 pb-32 text-slate-100 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
             {/* Hero Banner Section */}
             <div className="relative w-full rounded-3xl overflow-hidden border border-slate-700/50 shadow-2xl bg-slate-900 group/banner">
                 {/* Background Decoration */}
