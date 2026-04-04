@@ -196,11 +196,12 @@ export default function UserManagement() {
                             <Shield size={12} />
                             Administrative Console
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white">
-                            User <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Directory</span>
+                        <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white flex items-center justify-center gap-4">
+                            <img src="/A.png" alt="CourseFlow" className="w-12 h-12 rounded-xl border border-slate-700/50 shadow-lg" />
+                            <span>Course<span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Flow</span></span>
                         </h1>
-                        <p className="text-slate-400 text-sm md:text-base font-medium max-w-lg mx-auto leading-relaxed">
-                            Efficiently manage campus access, monitor registry status, and maintain secure platform permissions from one central hub.
+                        <p className="text-slate-400 text-sm md:text-base font-medium max-w-lg mx-auto leading-relaxed mt-4">
+                            Efficiently manage institution-wide access, monitor registry status, and maintain secure platform permissions from one unified platform.
                         </p>
                     </div>
 
