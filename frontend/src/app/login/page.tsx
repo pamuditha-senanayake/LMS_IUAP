@@ -69,81 +69,123 @@ export default function Login() {
     };
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-transparent">
-            <div className="glass-card w-full max-w-md rounded-2xl p-8 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500 rounded-full mix-blend-screen filter blur-[50px] opacity-20 animate-pulse"></div>
-                <div className="absolute bottom-0 left-0 w-32 h-32 bg-pink-500 rounded-full mix-blend-screen filter blur-[50px] opacity-20 animate-pulse" style={{ animationDelay: "2s" }}></div>
+        <div className="flex h-screen bg-[#020617] overflow-hidden">
+            {/* Left Side: Branding & Form */}
+            <div 
+                className="flex-1 h-full overflow-y-auto scrollbar-none z-10 relative"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+                <div className="min-h-full w-full flex flex-col items-center justify-center p-8 md:p-12 py-12 text-slate-100">
+                    {/* Background Glows */}
+                    <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full" />
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-pink-500/5 blur-[100px] rounded-full" />
 
-                <div className="relative z-10">
-                    <div className="mb-8 text-center">
-                        <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
-                        <p className="text-slate-400">Sign in to your account to continue</p>
-                    </div>
-
-                    <form onSubmit={handleLogin} className="flex flex-col gap-5">
-                        {error && <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm text-center">{error}</div>}
-
-                        <div className="flex flex-col gap-2">
-                            <label className="text-sm font-medium text-slate-300" htmlFor="email">Email address</label>
-                            <input
-                                id="email"
-                                type="email"
-                                required
-                                className="input-field rounded-xl px-4 py-3 placeholder-slate-500"
-                                placeholder="you@example.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="flex flex-col gap-2">
-                            <label className="text-sm font-medium text-slate-300" htmlFor="password">Password</label>
-                            <input
-                                id="password"
-                                type="password"
-                                required
-                                className="input-field rounded-xl px-4 py-3 placeholder-slate-500"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="mt-4 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 active:scale-[0.98] transition-all text-white py-3 font-semibold shadow-lg shadow-indigo-500/25 disabled:opacity-50 disabled:active:scale-100"
-                        >
-                            {loading ? "Signing in..." : "Sign in"}
-                        </button>
-                    </form>
-
-                    <div className="mt-6">
-                        <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-slate-700"></div>
+                    <div className="w-full max-w-md space-y-6 relative animate-in fade-in slide-in-from-left-4 duration-700">
+                        {/* Branding Section */}
+                        <div className="flex flex-col items-center gap-4 text-center">
+                            <div className="w-16 h-16 rounded-2xl bg-slate-950 border border-slate-800 shadow-2xl flex items-center justify-center p-2">
+                                <img src="/A.png" alt="CourseFlow" className="w-full h-full object-contain" />
                             </div>
-                            <div className="relative flex justify-center text-sm">
-                                <span className="bg-transparent px-2 text-slate-400">Or continue with</span>
+                            <div className="space-y-1">
+                                <h2 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase">
+                                    Course<span className="text-indigo-400">Flow</span>
+                                </h2>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.3em]">Management Console</p>
                             </div>
                         </div>
-                        <div className="mt-6 flex justify-center">
-                            <GoogleLogin
-                                onSuccess={handleGoogleLogin}
-                                onError={() => setError("Google Sign-In failed.")}
-                                theme="filled_black"
-                                shape="pill"
-                                text="signin_with"
-                                width="100%"
-                            />
+
+                        <div className="glass-card rounded-3xl p-6 md:p-8 border border-slate-700/50 shadow-2xl shadow-black/40 bg-slate-900/40 backdrop-blur-xl">
+                            <div className="mb-8 text-left">
+                                <h3 className="text-2xl font-bold text-white mb-2">Welcome Back</h3>
+                                <p className="text-slate-400 text-sm font-medium">Please enter your credentials to access the hub.</p>
+                            </div>
+
+                            <form onSubmit={handleLogin} className="flex flex-col gap-5">
+                                {error && <div className="p-3 bg-rose-500/10 border border-rose-500/50 rounded-xl text-rose-400 text-xs font-bold text-center">{error}</div>}
+
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1" htmlFor="email">Email Address</label>
+                                    <input
+                                        id="email"
+                                        type="email"
+                                        required
+                                        className="px-5 py-4 bg-slate-950/50 border border-slate-800 focus:border-indigo-500/50 rounded-2xl outline-none text-white text-sm font-medium transition-all"
+                                        placeholder="your@email.com"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1" htmlFor="password">Security Code</label>
+                                    <input
+                                        id="password"
+                                        type="password"
+                                        required
+                                        className="px-5 py-4 bg-slate-950/50 border border-slate-800 focus:border-indigo-500/50 rounded-2xl outline-none text-white text-sm font-medium transition-all"
+                                        placeholder="••••••••"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                    />
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="mt-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 active:scale-95 transition-all text-white py-4 font-black text-sm shadow-xl shadow-indigo-500/20 disabled:opacity-50"
+                                >
+                                    {loading ? "Authenticating..." : "Sign in to Platform"}
+                                </button>
+                            </form>
+
+                            <div className="mt-8">
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <div className="w-full border-t border-slate-800"></div>
+                                    </div>
+                                    <div className="relative flex justify-center text-xs">
+                                        <span className="bg-transparent px-4 text-slate-500 font-bold uppercase tracking-widest">Or access with</span>
+                                    </div>
+                                </div>
+                                <div className="mt-6 flex justify-center">
+                                    <GoogleLogin
+                                        onSuccess={handleGoogleLogin}
+                                        onError={() => setError("Google Access Denied")}
+                                        theme="filled_black"
+                                        shape="pill"
+                                        width="100%"
+                                    />
+                                </div>
+                            </div>
+
+                            <p className="mt-8 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">
+                                New to the directory?{" "}
+                                <Link href="/register" className="text-indigo-400 hover:text-indigo-300 transition-colors underline underline-offset-4">
+                                    Request Access
+                                </Link>
+                            </p>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <p className="mt-8 text-center text-sm text-slate-400">
-                        Don't have an account?{" "}
-                        <Link href="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
-                            Sign up
-                        </Link>
+            {/* Right Side: Immersive Imagery (Hidden on Mobile) */}
+            <div className="hidden lg:flex flex-[1.2] h-full bg-slate-900 overflow-hidden relative">
+                <img 
+                    src="/login-bg.png" 
+                    alt="CourseFlow Ecosystem" 
+                    className="absolute inset-0 w-full h-full object-cover opacity-60 scale-110 animate-pulse duration-[12s]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#020617] via-transparent to-transparent z-10" />
+                <div className="absolute inset-0 bg-indigo-500/10 mix-blend-overlay z-10" />
+                
+                <div className="relative z-20 flex flex-col justify-end p-12 md:p-20 w-full mb-12 space-y-4">
+                    <div className="w-20 h-1 bg-indigo-500 rounded-full" />
+                    <h2 className="text-5xl font-black text-white leading-tight max-w-lg">
+                        Simplify Your Campus Workflow
+                    </h2>
+                    <p className="text-slate-300 text-lg font-medium max-w-md leading-relaxed opacity-80">
+                        Join thousands of academics and students in a unified learning management ecosystem.
                     </p>
                 </div>
             </div>

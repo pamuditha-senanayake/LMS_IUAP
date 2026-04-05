@@ -44,6 +44,7 @@ public class AuthService {
                                 .message("User registered successfully")
                                 .name(user.getName())
                                 .email(user.getEmail())
+                                .roles(user.getRoles())
                                 .build();
         }
 
@@ -60,6 +61,7 @@ public class AuthService {
                                 .message("Login successful")
                                 .name(user.getName())
                                 .email(user.getEmail())
+                                .roles(user.getRoles())
                                 .build();
         }
 
@@ -97,6 +99,7 @@ public class AuthService {
                                         .message("Google Login successful")
                                         .name(user.getName())
                                         .email(user.getEmail())
+                                        .roles(user.getRoles())
                                         .build();
                 } else {
                         throw new RuntimeException("Invalid ID token.");

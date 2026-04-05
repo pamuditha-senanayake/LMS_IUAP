@@ -8,14 +8,28 @@ export default function AdminTickets() {
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<any>(null);
 
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
     const fetchTickets = async () => {
         setLoading(true);
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
             const res = await fetch(`${apiUrl}/api/tickets`, { credentials: "include" });
             if (res.ok) {
                 const data = await res.json();
-                setTickets(data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+                const sortedTickets = data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                
+                const ticketsWithAttachments = await Promise.all(
+                    sortedTickets.map(async (ticket: any) => {
+                        const attRes = await fetch(`${apiUrl}/api/tickets/${ticket.id}/attachments`, { credentials: "include" });
+                        if (attRes.ok) {
+                            const attachments = await attRes.json();
+                            return { ...ticket, attachments };
+                        }
+                        return { ...ticket, attachments: [] };
+                    })
+                );
+                
+                setTickets(ticketsWithAttachments);
             } else {
                 Swal.fire("Error", "Failed to load tickets", "error");
             }
@@ -29,7 +43,6 @@ export default function AdminTickets() {
     useEffect(() => {
         const loadUser = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
                 const res = await fetch(`${apiUrl}/api/auth/me`, { credentials: "include" });
                 if (res.ok) {
                     const user = await res.json();
@@ -43,7 +56,6 @@ export default function AdminTickets() {
 
     const processStatusChange = async (id: string, status: string, note: string) => {
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
             const url = new URL(`${apiUrl}/api/tickets/${id}/status`);
             url.searchParams.append("status", status);
             url.searchParams.append("adminId", currentUser?.id || "N/A");
@@ -90,6 +102,71 @@ export default function AdminTickets() {
         });
     };
 
+    const handleViewDetails = (ticket: any) => {
+        const attachmentsHtml = ticket.attachments && ticket.attachments.length > 0
+            ? `
+                <div class="mt-4">
+                    <h4 class="text-sm font-semibold text-slate-300 mb-2">Attachments (${ticket.attachments.length})</h4>
+                    <div class="flex gap-2 flex-wrap justify-center">
+                        ${ticket.attachments.map((att: any) => `
+                            <img 
+                                src="${apiUrl}${att.fileUrl}" 
+                                alt="${att.fileName}" 
+                                class="w-24 h-24 object-cover rounded-lg border border-slate-600 cursor-pointer hover:opacity-80 transition-opacity"
+                                onclick="window.open('${apiUrl}${att.fileUrl}', '_blank')"
+                            >
+                        `).join('')}
+                    </div>
+                </div>
+            `
+            : '<div class="mt-4 text-sm text-slate-400">No attachments</div>';
+
+        Swal.fire({
+            title: `Ticket #${ticket.id?.substring(0,6).toUpperCase()}`,
+            html: `
+                <div class="text-left">
+                    <div class="mb-3">
+                        <span class="text-xs font-bold px-2 py-1 rounded ${
+                            ticket.priority === 'CRITICAL' ? 'bg-red-500/20 text-red-400' :
+                            ticket.priority === 'HIGH' ? 'bg-orange-500/20 text-orange-400' :
+                            ticket.priority === 'MEDIUM' ? 'bg-blue-500/20 text-blue-400' :
+                            'bg-slate-500/20 text-slate-400'
+                        }">${ticket.priority || 'LOW'}</span>
+                        <span class="ml-2 text-xs font-semibold px-2 py-1 rounded-full ${
+                            ticket.status === 'RESOLVED' ? 'bg-emerald-500/20 text-emerald-400' :
+                            ticket.status === 'REJECTED' || ticket.status === 'CLOSED' ? 'bg-red-500/20 text-red-400' :
+                            ticket.status === 'IN_PROGRESS' ? 'bg-indigo-500/20 text-indigo-400' :
+                            'bg-amber-500/20 text-amber-400'
+                        }">${(ticket.status || 'OPEN').replace('_', ' ')}</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2">${ticket.title}</h3>
+                    <p class="text-sm text-slate-300 mb-3">${ticket.description}</p>
+                    <div class="text-xs text-slate-400 space-y-1">
+                        <div><span class="font-semibold text-slate-300">Resource:</span> ${ticket.resourceId || 'General'}</div>
+                        <div><span class="font-semibold text-slate-300">Reported By:</span> ${ticket.reportedById || 'Unknown'}</div>
+                        <div><span class="font-semibold text-slate-300">Created:</span> ${new Date(ticket.createdAt).toLocaleString()}</div>
+                    </div>
+                    ${attachmentsHtml}
+                    ${ticket.rejectionReason ? `
+                        <div class="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-300">
+                            <span class="font-bold">Rejection Reason:</span> ${ticket.rejectionReason}
+                        </div>
+                    ` : ''}
+                    ${ticket.resolutionNotes ? `
+                        <div class="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-xs text-emerald-300">
+                            <span class="font-bold">Resolution:</span> ${ticket.resolutionNotes}
+                        </div>
+                    ` : ''}
+                </div>
+            `,
+            width: '600px',
+            background: '#1e293b',
+            color: '#fff',
+            confirmButtonColor: '#6366f1',
+            confirmButtonText: 'Close',
+        });
+    };
+
     return (
         <div className="p-6 text-white max-w-6xl mx-auto">
             <div className="flex justify-between items-center mb-10">
@@ -113,15 +190,15 @@ export default function AdminTickets() {
                             <thead>
                                 <tr className="bg-slate-800/50 border-b border-slate-700">
                                     <th className="p-4 font-semibold text-slate-300">Issue Details</th>
-                                    <th className="p-4 font-semibold text-slate-300 w-32">Priority</th>
+                                    <th className="p-4 font-semibold text-slate-300 w-28">Priority</th>
                                     <th className="p-4 font-semibold text-slate-300 w-32">Status</th>
-                                    <th className="p-4 font-semibold text-slate-300 text-right min-w-[280px]">Actions</th>
+                                    <th className="p-4 font-semibold text-slate-300 text-right min-w-[300px]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {tickets.length === 0 ? (
                                     <tr>
-                                        <td colSpan={4} className="p-4 text-center text-slate-400">
+                                        <td colSpan={5} className="p-4 text-center text-slate-400">
                                             No incident tickets on the system.
                                         </td>
                                     </tr>
@@ -130,16 +207,24 @@ export default function AdminTickets() {
                                         <tr key={t.id} className="border-b border-slate-700/50 hover:bg-slate-800/30 transition-colors">
                                             <td className="p-4">
                                                 <div className="font-semibold text-slate-200">{t.title}</div>
-                                                <div className="text-sm text-slate-400 mt-1">{t.description}</div>
+                                                <div className="text-sm text-slate-400 mt-1 line-clamp-2">{t.description}</div>
                                                 <div className="text-xs text-indigo-400 mt-2 font-mono">Resource: {t.resourceId || 'General'}</div>
-                                                {t.rejectionReason && (
-                                                    <div className="mt-2 text-xs text-red-400 bg-red-400/10 p-2 rounded-lg border border-red-500/20">
-                                                        Note: {t.rejectionReason}
-                                                    </div>
-                                                )}
-                                                {t.resolutionNotes && (
-                                                    <div className="mt-2 text-xs text-emerald-400 bg-emerald-400/10 p-2 rounded-lg border border-emerald-500/20">
-                                                        Note: {t.resolutionNotes}
+                                                {t.attachments && t.attachments.length > 0 && (
+                                                    <div className="flex gap-1 mt-2">
+                                                        {t.attachments.slice(0, 3).map((att: any, idx: number) => (
+                                                            <img 
+                                                                key={idx}
+                                                                src={`${apiUrl}${att.fileUrl}`}
+                                                                alt={`Attachment ${idx + 1}`}
+                                                                className="w-10 h-10 object-cover rounded border border-slate-600 cursor-pointer hover:opacity-80 transition-opacity"
+                                                                onClick={() => window.open(`${apiUrl}${att.fileUrl}`, '_blank')}
+                                                            />
+                                                        ))}
+                                                        {t.attachments.length > 3 && (
+                                                            <span className="w-10 h-10 flex items-center justify-center text-xs bg-slate-700 rounded border border-slate-600">
+                                                                +{t.attachments.length - 3}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 )}
                                             </td>
@@ -164,33 +249,39 @@ export default function AdminTickets() {
                                                 </span>
                                             </td>
                                             <td className="p-4 text-right">
-                                                {(t.status === "OPEN" || t.status === "PENDING" || !t.status) ? (
-                                                    <div className="flex justify-end gap-2 flex-wrap">
-                                                        <button 
-                                                            onClick={() => handleAction(t.id, "IN_PROGRESS", true)}
-                                                            className="px-3 py-1.5 text-xs font-medium bg-indigo-500/20 hover:bg-indigo-500 hover:text-white text-indigo-400 rounded-lg transition-colors"
-                                                        >
-                                                            Start Work
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleAction(t.id, "REJECTED", false)}
-                                                            className="px-3 py-1.5 text-xs font-medium bg-red-500/20 hover:bg-red-500 hover:text-white text-red-400 rounded-lg transition-colors"
-                                                        >
-                                                            Reject
-                                                        </button>
-                                                    </div>
-                                                ) : (t.status === "IN_PROGRESS") ? (
-                                                    <div className="flex justify-end gap-2 flex-wrap">
+                                                <div className="flex justify-end gap-2 flex-wrap">
+                                                    <button 
+                                                        onClick={() => handleViewDetails(t)}
+                                                        className="px-3 py-1.5 text-xs font-medium bg-slate-600/50 hover:bg-slate-500 text-slate-200 rounded-lg transition-colors"
+                                                    >
+                                                        View
+                                                    </button>
+                                                    {(t.status === "OPEN" || t.status === "PENDING" || !t.status) ? (
+                                                        <>
+                                                            <button 
+                                                                onClick={() => handleAction(t.id, "IN_PROGRESS", true)}
+                                                                className="px-3 py-1.5 text-xs font-medium bg-indigo-500/20 hover:bg-indigo-500 hover:text-white text-indigo-400 rounded-lg transition-colors"
+                                                            >
+                                                                Start Work
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleAction(t.id, "REJECTED", false)}
+                                                                className="px-3 py-1.5 text-xs font-medium bg-red-500/20 hover:bg-red-500 hover:text-white text-red-400 rounded-lg transition-colors"
+                                                            >
+                                                                Reject
+                                                            </button>
+                                                        </>
+                                                    ) : (t.status === "IN_PROGRESS") ? (
                                                         <button 
                                                             onClick={() => handleAction(t.id, "RESOLVED", true)}
                                                             className="px-3 py-1.5 text-xs font-medium bg-emerald-500/20 hover:bg-emerald-500 hover:text-white text-emerald-400 rounded-lg transition-colors"
                                                         >
                                                             Resolve Issue
                                                         </button>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-xs text-slate-500 italic">No further actions available</span>
-                                                )}
+                                                    ) : (
+                                                        <span className="text-xs text-slate-500 italic">Closed</span>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
