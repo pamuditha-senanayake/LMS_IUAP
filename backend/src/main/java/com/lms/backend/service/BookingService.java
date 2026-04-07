@@ -30,6 +30,10 @@ public class BookingService {
         return bookingRepository.findByRequestedByUserId(userId);
     }
 
+    public List<Booking> getBookingsByResourceId(String resourceId) {
+        return bookingRepository.findByResourceId(resourceId);
+    }
+
     // Checking overlap correctly is critical
     public Booking createBooking(Booking booking) {
         validateBookingData(booking);
