@@ -1,5 +1,6 @@
 package com.lms.backend.service;
 
+import com.lms.backend.exception.BookingConflictException;
 import com.lms.backend.model.Booking;
 import com.lms.backend.model.BookingStatusHistory;
 import com.lms.backend.repository.BookingRepository;
@@ -34,8 +35,18 @@ public class BookingService {
     public Booking createBooking(Booking booking) {
         validateBookingData(booking);
 
-        if (hasConflict(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), null)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Resource is already booked during this time range");
+        Booking conflicting = findConflictingBooking(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), null);
+        if (conflicting != null) {
+            String message = String.format(
+                "Resource is already booked during this time range. The resource will be available from %s",
+                conflicting.getEndTime().toString()
+            );
+            throw new BookingConflictException(
+                message,
+                conflicting.getId(),
+                conflicting.getStartTime().toString(),
+                conflicting.getEndTime().toString()
+            );
         }
 
         // Set timestamps properly
@@ -65,8 +76,18 @@ public class BookingService {
         if ("APPROVED".equals(newStatus)) {
             validateBookingData(booking);
 
-            if (hasConflict(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), booking.getId())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Resource is already booked during this time range");
+            Booking conflicting = findConflictingBooking(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), booking.getId());
+            if (conflicting != null) {
+                String message = String.format(
+                    "Resource is already booked during this time range. The resource will be available from %s",
+                    conflicting.getEndTime().toString()
+                );
+                throw new BookingConflictException(
+                    message,
+                    conflicting.getId(),
+                    conflicting.getStartTime().toString(),
+                    conflicting.getEndTime().toString()
+                );
             }
 
             booking.setApprovedAt(LocalDateTime.now());
@@ -93,12 +114,13 @@ public class BookingService {
         historyRepository.save(history);
         
         // Trigger notification
+        String notificationMessage = buildNotificationMessage(booking, newStatus, reason);
         Notification notif = Notification.builder()
                 .recipientUserId(booking.getRequestedBy() != null ? booking.getRequestedBy().getUserId() : null)
                 .createdById(adminId)
                 .notificationType("BOOKING_STATUS_UPDATE")
                 .title("Booking " + newStatus)
-                .message("Your booking for resource " + booking.getResourceId() + " was " + newStatus + (reason != null && !reason.isEmpty() ? ". Notes: " + reason : ""))
+                .message(notificationMessage)
                 .relatedEntityType("BOOKING")
                 .relatedEntityId(bookingId)
                 .build();
@@ -122,8 +144,18 @@ public class BookingService {
 
         validateBookingData(booking);
         
-        if (hasConflict(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), bookingId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Resource is already booked during this time range");
+        Booking conflicting = findConflictingBooking(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), bookingId);
+        if (conflicting != null) {
+            String message = String.format(
+                "Resource is already booked during this time range. The resource will be available from %s",
+                conflicting.getEndTime().toString()
+            );
+            throw new BookingConflictException(
+                message,
+                conflicting.getId(),
+                conflicting.getStartTime().toString(),
+                conflicting.getEndTime().toString()
+            );
         }
 
         booking.setPurpose(booking.getPurpose().trim());
@@ -179,11 +211,63 @@ public class BookingService {
                         endTime.isAfter(b.getStartTime())
                 );
     }
+    
+    private Booking findConflictingBooking(String resourceId, LocalDateTime startTime, LocalDateTime endTime, String excludeBookingId) {
+        List<Booking> existingBookings = bookingRepository.findByResourceId(resourceId);
+
+        return existingBookings.stream()
+                .filter(b -> excludeBookingId == null || !b.getId().equals(excludeBookingId))
+                .filter(b -> "APPROVED".equals(b.getStatus()) || "PENDING".equals(b.getStatus()))
+                .filter(b ->
+                        startTime.isBefore(b.getEndTime()) &&
+                        endTime.isAfter(b.getStartTime())
+                )
+                .findFirst()
+                .orElse(null);
+    }
 
     private boolean isValidStatus(String status) {
         return "PENDING".equals(status)
                 || "APPROVED".equals(status)
                 || "REJECTED".equals(status)
                 || "CANCELLED".equals(status);
+    }
+    
+    private String buildNotificationMessage(Booking booking, String status, String reason) {
+        StringBuilder message = new StringBuilder();
+        
+        message.append("Your booking for ");
+        
+        // Try to get resource name if available
+        String resourceInfo = booking.getResourceId();
+        message.append(resourceInfo);
+        
+        message.append(" has been ").append(status.toLowerCase()).append(".\n\n");
+        message.append("Booking Details:\n");
+        message.append("- Purpose: ").append(booking.getPurpose()).append("\n");
+        message.append("- Start Time: ").append(formatDateTime(booking.getStartTime())).append("\n");
+        message.append("- End Time: ").append(formatDateTime(booking.getEndTime())).append("\n");
+        message.append("- Expected Attendees: ").append(booking.getExpectedAttendees()).append("\n");
+        
+        if ("APPROVED".equals(status)) {
+            message.append("\n✅ Your booking is confirmed!");
+        } else if ("REJECTED".equals(status)) {
+            message.append("\n❌ Your booking was not approved.");
+            if (reason != null && !reason.isEmpty()) {
+                message.append("\nReason: ").append(reason);
+            }
+            message.append("\nPlease check the resource availability and submit a new request if needed.");
+        } else if ("CANCELLED".equals(status)) {
+            message.append("\n⚠️ Your booking has been cancelled.");
+        }
+        
+        return message.toString();
+    }
+    
+    private String formatDateTime(LocalDateTime dateTime) {
+        if (dateTime == null) {
+            return "N/A";
+        }
+        return dateTime.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' HH:mm"));
     }
 }

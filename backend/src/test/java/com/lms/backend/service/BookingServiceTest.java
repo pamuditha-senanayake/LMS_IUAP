@@ -1,5 +1,6 @@
 package com.lms.backend.service;
 
+import com.lms.backend.exception.BookingConflictException;
 import com.lms.backend.model.Booking;
 import com.lms.backend.repository.BookingRepository;
 import com.lms.backend.repository.BookingStatusHistoryRepository;
@@ -69,7 +70,7 @@ public class BookingServiceTest {
 
         when(bookingRepository.findByResourceId(anyString())).thenReturn(List.of(existingBooking));
 
-        assertThrows(ResponseStatusException.class, () -> {
+        assertThrows(BookingConflictException.class, () -> {
             bookingService.createBooking(sampleBooking);
         });
     }

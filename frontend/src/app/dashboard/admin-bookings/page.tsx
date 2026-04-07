@@ -7,6 +7,25 @@ export default function AdminBookings() {
     const [bookings, setBookings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<any>(null);
+    const [resources, setResources] = useState<any[]>([]);
+
+    const fetchResources = async () => {
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+            const res = await fetch(`${apiUrl}/api/resources`, { credentials: "include" });
+            if (res.ok) {
+                const data = await res.json();
+                setResources(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch resources", err);
+        }
+    };
+
+    const getResourceName = (resourceId: string) => {
+        const resource = resources.find(r => r.id === resourceId);
+        return resource ? resource.resourceName : resourceId;
+    };
 
     const fetchBookings = async () => {
         setLoading(true);
@@ -17,10 +36,31 @@ export default function AdminBookings() {
                 const data = await res.json();
                 setBookings(data);
             } else {
-                Swal.fire("Error", "Failed to fetch bookings", "error");
+                let errorMsg = "Failed to load bookings";
+                try {
+                    const errorData = await res.json();
+                    errorMsg = errorData.message || errorMsg;
+                } catch {
+                    errorMsg = await res.text() || errorMsg;
+                }
+                Swal.fire({ 
+                    title: "Error Loading Bookings", 
+                    html: `<div class="text-slate-300">${errorMsg}</div>`,
+                    icon: "error", 
+                    background: '#1e293b', 
+                    color: '#fff',
+                    confirmButtonColor: '#ef4444'
+                });
             }
         } catch (err) {
-            Swal.fire("Error", "Network error", "error");
+            Swal.fire({ 
+                title: "Network Error", 
+                text: "Unable to connect to the server. Please try again.",
+                icon: "error", 
+                background: '#1e293b', 
+                color: '#fff',
+                confirmButtonColor: '#ef4444'
+            });
         } finally {
             setLoading(false);
         }
@@ -39,6 +79,7 @@ export default function AdminBookings() {
             fetchBookings();
         };
         loadUser();
+        fetchResources();
     }, []);
 
     const processStatusChange = async (id: string, status: string, reason: string) => {
@@ -55,19 +96,48 @@ export default function AdminBookings() {
             });
 
             if (res.ok) {
-                Swal.fire({ title: "Success!", icon: "success", background: '#1e293b', color: '#fff' });
+                Swal.fire({ 
+                    title: "Success!", 
+                    text: "Booking status has been updated successfully.",
+                    icon: "success", 
+                    background: '#1e293b', 
+                    color: '#fff',
+                    confirmButtonColor: '#10b981'
+                });
                 fetchBookings();
             } else {
-                Swal.fire({ title: "Error", text: await res.text(), icon: "error", background: '#1e293b', color: '#fff' });
+                let errorMsg = "An error occurred";
+                try {
+                    const errorData = await res.json();
+                    errorMsg = errorData.message || errorMsg;
+                } catch {
+                    errorMsg = await res.text() || errorMsg;
+                }
+                Swal.fire({ 
+                    title: "Action Failed", 
+                    html: `<div class="text-slate-300">${errorMsg}</div>`,
+                    icon: "error", 
+                    background: '#1e293b', 
+                    color: '#fff',
+                    confirmButtonColor: '#ef4444'
+                });
             }
         } catch (err) {
-            Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#1e293b', color: '#fff' });
+            Swal.fire({ 
+                title: "Network Error", 
+                text: "Unable to connect to the server. Please check your connection.",
+                icon: "error", 
+                background: '#1e293b', 
+                color: '#fff',
+                confirmButtonColor: '#ef4444'
+            });
         }
     };
 
     const handleApprove = (id: string, name: string) => {
         Swal.fire({
             title: `Approve booking for ${name}?`,
+            text: "This will approve the booking request.",
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#10b981',
@@ -85,6 +155,7 @@ export default function AdminBookings() {
     const handleReject = (id: string, name: string) => {
         Swal.fire({
             title: `Reject booking for ${name}?`,
+            text: "Please provide a reason for rejection.",
             input: 'textarea',
             inputPlaceholder: 'Reason for rejection...',
             icon: 'warning',
@@ -106,11 +177,11 @@ export default function AdminBookings() {
             title: `Send Note to ${name}?`,
             text: "This will retain their PENDING status but notify them.",
             input: 'textarea',
-            inputPlaceholder: 'Type message...',
+            inputPlaceholder: 'Type your message here...',
             icon: 'info',
             showCancelButton: true,
             confirmButtonColor: '#6366f1',
-            cancelButtonColor: '#ec4899',
+            cancelButtonColor: '#64748b',
             confirmButtonText: 'Send Note',
             background: '#1e293b',
             color: '#fff',
@@ -165,7 +236,7 @@ export default function AdminBookings() {
                                                 <div>{b.requestedBy?.name || 'N/A'}</div>
                                                 <div className="text-xs text-slate-400">{b.requestedBy?.email}</div>
                                             </td>
-                                            <td className="p-4 font-medium text-slate-200">{b.resourceId}</td>
+                                            <td className="p-4 font-medium text-slate-200">{getResourceName(b.resourceId)}</td>
                                             <td className="p-4 text-slate-400">
                                                 <div>{b.purpose}</div>
                                                 <div className="text-xs">Attendees: {b.expectedAttendees}</div>
