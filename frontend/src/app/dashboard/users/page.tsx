@@ -102,7 +102,7 @@ export default function UserManagement() {
                         <label class="text-sm font-semibold text-slate-400 ml-1">Role Selection</label>
                         <select id="swal-input3" 
                             class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-indigo-500 transition-all text-base cursor-pointer">
-                            <option value="ROLE_USER" ${user.roles?.includes('ROLE_USER') ? 'selected' : ''}>User</option>
+
                             <option value="ROLE_STUDENT" ${user.roles?.includes('ROLE_STUDENT') ? 'selected' : ''}>Student</option>
                             <option value="ROLE_LECTURER" ${user.roles?.includes('ROLE_LECTURER') ? 'selected' : ''}>Lecturer</option>
                             <option value="ROLE_ADMIN" ${user.roles?.includes('ROLE_ADMIN') ? 'selected' : ''}>Admin</option>
@@ -339,7 +339,7 @@ export default function UserManagement() {
                                         </td>
                                         <td className="p-5">
                                             <div className="inline-flex flex-wrap gap-2">
-                                                {(user.roles || ["ROLE_USER"]).map((role: string) => (
+                                                {(user.roles || ["ROLE_STUDENT"]).map((role: string) => (
                                                     <span 
                                                         key={role} 
                                                         className={`text-[10px] font-black px-2.5 py-1 rounded-[10px] border uppercase tracking-widest ${getRoleStyles(role)}`}

@@ -33,7 +33,11 @@ export default function Login() {
 
             const data = await res.json();
             localStorage.setItem("user", JSON.stringify(data));
-            router.push("/dashboard");
+            if (data.roles?.includes("ROLE_ADMIN")) {
+                router.push("/dashboard");
+            } else {
+                router.push("/");
+            }
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -60,7 +64,11 @@ export default function Login() {
 
             const data = await res.json();
             localStorage.setItem("user", JSON.stringify(data));
-            router.push("/dashboard");
+            if (data.roles?.includes("ROLE_ADMIN")) {
+                router.push("/dashboard");
+            } else {
+                router.push("/");
+            }
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -88,9 +96,9 @@ export default function Login() {
                             </div>
                             <div className="space-y-1">
                                 <h2 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase">
-                                    Course<span className="text-indigo-400">Flow</span>
+                                    IUAP<span className="text-emerald-400">CORE</span>
                                 </h2>
-                                <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.3em]">Management Console</p>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.3em]">Institutional Portal</p>
                             </div>
                         </div>
 

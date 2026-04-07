@@ -5,6 +5,10 @@
   --foreground: #f1f5f9;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html, 
 body {
   margin: 0;
