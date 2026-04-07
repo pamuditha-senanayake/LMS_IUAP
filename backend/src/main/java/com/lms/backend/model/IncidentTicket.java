@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -27,9 +29,17 @@ public class IncidentTicket {
     private String rejectedById;
     
     private String ticketCode;
+    @NotBlank(message = "Category is required")
     private String category;
+
+    @NotBlank(message = "Title is required")
+    @Size(max = 100, message = "Title must not exceed 100 characters")
     private String title;
+
+    @NotBlank(message = "Description is required")
     private String description;
+
+    @NotBlank(message = "Priority is required")
     private String priority; // LOW, MEDIUM, HIGH, CRITICAL
     private String status; // OPEN, IN_PROGRESS, RESOLVED, CLOSED, REJECTED
     

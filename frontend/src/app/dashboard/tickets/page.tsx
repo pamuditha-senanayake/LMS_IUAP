@@ -7,6 +7,11 @@ export default function TicketingPage() {
     const [tickets, setTickets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<any>(null);
+    const [filters, setFilters] = useState({
+        status: '',
+        priority: '',
+        search: ''
+    });
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -64,6 +69,60 @@ export default function TicketingPage() {
         if (status === 'REJECTED' || status === 'CLOSED') return 'border-red-500/50 bg-red-500/10 text-red-400';
         return 'border-slate-500/50 bg-slate-500/10 text-slate-400';
     };
+
+    const isOverdue = (ticket: any) => {
+        if (!ticket.createdAt || ticket.status === 'RESOLVED' || ticket.status === 'REJECTED' || ticket.status === 'CLOSED') {
+            return false;
+        }
+        const createdAt = new Date(ticket.createdAt).getTime();
+        const now = Date.now();
+        const hoursElapsed = (now - createdAt) / (1000 * 60 * 60);
+        
+        const thresholds: Record<string, number> = {
+            'CRITICAL': 1,
+            'HIGH': 4,
+            'MEDIUM': 24,
+            'LOW': 72
+        };
+        
+        const threshold = thresholds[ticket.priority] || 24;
+        return hoursElapsed > threshold;
+    };
+
+    const getOverdueLabel = (ticket: any) => {
+        if (!ticket.createdAt) return '';
+        const createdAt = new Date(ticket.createdAt);
+        const now = new Date();
+        const hoursElapsed = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+        const thresholds: Record<string, number> = { 'CRITICAL': 1, 'HIGH': 4, 'MEDIUM': 24, 'LOW': 72 };
+        const threshold = thresholds[ticket.priority] || 24;
+        const overdueHours = Math.floor(hoursElapsed - threshold);
+        if (overdueHours < 1) return `${Math.floor((hoursElapsed - threshold) * 60)}m overdue`;
+        return `${overdueHours}h overdue`;
+    };
+
+    const filteredTickets = tickets.filter(ticket => {
+        if (filters.status && ticket.status !== filters.status) return false;
+        if (filters.priority && ticket.priority !== filters.priority) return false;
+        if (filters.search) {
+            const searchTerm = filters.search.trim();
+            const searchLower = searchTerm.toLowerCase();
+            const matchesSearch = 
+                ticket.title?.toLowerCase().includes(searchLower) ||
+                ticket.description?.toLowerCase().includes(searchLower) ||
+                ticket.resourceId?.toLowerCase().includes(searchLower) ||
+                ticket.id?.toLowerCase().includes(searchLower) ||
+                ticket.id?.substring(0, 6).toLowerCase().includes(searchLower);
+            if (!matchesSearch) return false;
+        }
+        return true;
+    });
+
+    const clearFilters = () => {
+        setFilters({ status: '', priority: '', search: '' });
+    };
+
+    const hasActiveFilters = filters.status || filters.priority || filters.search;
 
     const handleReport = () => {
         Swal.fire({
@@ -263,7 +322,7 @@ export default function TicketingPage() {
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto p-4 md:p-6 text-white">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-pink-500 mb-2">My Tickets</h1>
                     <p className="text-slate-400">Report facility issues and track their resolution progress.</p>
@@ -276,19 +335,87 @@ export default function TicketingPage() {
                 </button>
             </div>
 
+            <div className="glass-card rounded-2xl p-4 mb-6 border border-slate-700/50">
+                <div className="flex flex-wrap gap-4 items-end">
+                    <div className="flex-1 min-w-[200px]">
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">Search</label>
+                        <input
+                            type="text"
+                            placeholder="Search tickets..."
+                            value={filters.search}
+                            onChange={(e) => setFilters({...filters, search: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:border-pink-500 focus:outline-none"
+                        />
+                    </div>
+                    <div className="min-w-[130px]">
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">Status</label>
+                        <select
+                            value={filters.status}
+                            onChange={(e) => setFilters({...filters, status: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white focus:border-pink-500 focus:outline-none"
+                        >
+                            <option value="">All</option>
+                            <option value="OPEN">Open</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="RESOLVED">Resolved</option>
+                            <option value="REJECTED">Rejected</option>
+                        </select>
+                    </div>
+                    <div className="min-w-[130px]">
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">Priority</label>
+                        <select
+                            value={filters.priority}
+                            onChange={(e) => setFilters({...filters, priority: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white focus:border-pink-500 focus:outline-none"
+                        >
+                            <option value="">All</option>
+                            <option value="CRITICAL">Critical</option>
+                            <option value="HIGH">High</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="LOW">Low</option>
+                        </select>
+                    </div>
+                    {hasActiveFilters && (
+                        <button
+                            onClick={clearFilters}
+                            className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-lg text-sm font-medium transition-colors"
+                        >
+                            Clear
+                        </button>
+                    )}
+                </div>
+                <div className="mt-3 text-sm text-slate-400">
+                    Showing {filteredTickets.length} of {tickets.length} tickets
+                </div>
+            </div>
+
             {loading ? (
                 <div className="text-center text-slate-400 py-10">Loading tickets...</div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {tickets.length === 0 ? (
+                    {filteredTickets.length === 0 ? (
                         <div className="col-span-full text-center p-10 glass-card rounded-2xl border border-slate-700/50 text-slate-400">
-                            No tickets reported.
+                            {hasActiveFilters ? (
+                                <div>
+                                    <div className="mb-2">No tickets match your filters</div>
+                                    <button onClick={clearFilters} className="text-pink-400 hover:text-pink-300 text-sm">Clear filters</button>
+                                </div>
+                            ) : (
+                                "No tickets reported."
+                            )}
                         </div>
                     ) : (
-                        tickets.map(ticket => (
-                            <div key={ticket.id} className="glass-card flex flex-col p-6 rounded-2xl border-l-4 group transition-all hover:bg-slate-800/50" style={{ borderLeftColor: ticket.priority === 'CRITICAL' ? '#f43f5e' : ticket.priority === 'HIGH' ? '#fb923c' : '#3b82f6' }}>
+                        filteredTickets.map(ticket => (
+                            <div key={ticket.id} className={`glass-card flex flex-col p-6 rounded-2xl border-l-4 group transition-all hover:bg-slate-800/50 ${isOverdue(ticket) ? 'animate-pulse-glow' : ''}`} style={{ borderLeftColor: ticket.priority === 'CRITICAL' ? '#f43f5e' : ticket.priority === 'HIGH' ? '#fb923c' : '#3b82f6' }}>
                                 <div className="flex justify-between items-start mb-4">
-                                    <span className="text-xs font-mono font-medium text-slate-400 bg-slate-800/80 px-2 py-1 rounded">#{ticket.id?.substring(0,6).toUpperCase()}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-mono font-medium text-slate-400 bg-slate-800/80 px-2 py-1 rounded">#{ticket.id?.substring(0,6).toUpperCase()}</span>
+                                        {isOverdue(ticket) && (
+                                            <span className="animate-pulse text-[10px] font-bold px-2 py-1 rounded bg-red-500/20 text-red-400 border border-red-500/30">
+                                                OVERDUE
+                                            </span>
+                                        )}
+                                    </div>
                                     <span className={`px-2 py-1 text-[10px] font-bold rounded-full border ${getStatusColor(ticket.status)}`}>
                                         {(ticket.status || 'OPEN').replace("_", " ")}
                                     </span>
@@ -322,9 +449,15 @@ export default function TicketingPage() {
                                             ticket.priority === 'HIGH' ? 'text-orange-400 font-semibold' : 'text-slate-300'
                                         }>{ticket.priority || 'LOW'}</span>
                                     </div>
+                                    {isOverdue(ticket) && (
+                                        <div className="flex justify-between text-red-400">
+                                            <span className="font-semibold">Overdue:</span>
+                                            <span className="font-bold animate-pulse">{getOverdueLabel(ticket)}</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between">
                                         <span className="font-semibold text-slate-300">Created:</span>
-                                        <span>{new Date(ticket.createdAt).toLocaleDateString()}</span>
+                                        <span>{ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</span>
                                     </div>
                                 </div>
 

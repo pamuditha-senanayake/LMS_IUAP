@@ -7,6 +7,13 @@ export default function AdminTickets() {
     const [tickets, setTickets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<any>(null);
+    const [filters, setFilters] = useState({
+        status: '',
+        priority: '',
+        dateFrom: '',
+        dateTo: '',
+        search: ''
+    });
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -53,6 +60,77 @@ export default function AdminTickets() {
         };
         loadUser();
     }, []);
+
+    const isOverdue = (ticket: any) => {
+        if (!ticket.createdAt || ticket.status === 'RESOLVED' || ticket.status === 'REJECTED' || ticket.status === 'CLOSED') {
+            return false;
+        }
+        const createdAt = new Date(ticket.createdAt).getTime();
+        const now = Date.now();
+        const hoursElapsed = (now - createdAt) / (1000 * 60 * 60);
+        
+        const thresholds: Record<string, number> = {
+            'CRITICAL': 1,
+            'HIGH': 4,
+            'MEDIUM': 24,
+            'LOW': 72
+        };
+        
+        const threshold = thresholds[ticket.priority] || 24;
+        return hoursElapsed > threshold;
+    };
+
+    const getOverdueLabel = (ticket: any) => {
+        if (!ticket.createdAt) return '';
+        const createdAt = new Date(ticket.createdAt);
+        const now = new Date();
+        const hoursElapsed = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+        const thresholds: Record<string, number> = { 'CRITICAL': 1, 'HIGH': 4, 'MEDIUM': 24, 'LOW': 72 };
+        const threshold = thresholds[ticket.priority] || 24;
+        const overdueHours = Math.floor(hoursElapsed - threshold);
+        if (overdueHours < 1) return `${Math.floor((hoursElapsed - threshold) * 60)}m overdue`;
+        return `${overdueHours}h overdue`;
+    };
+
+    const filteredTickets = tickets.filter(ticket => {
+        if (filters.status && ticket.status !== filters.status) return false;
+        if (filters.priority && ticket.priority !== filters.priority) return false;
+        
+        if (filters.search) {
+            const searchTerm = filters.search.trim();
+            const searchLower = searchTerm.toLowerCase();
+            const matchesSearch = 
+                ticket.title?.toLowerCase().includes(searchLower) ||
+                ticket.description?.toLowerCase().includes(searchLower) ||
+                ticket.id?.toLowerCase().includes(searchLower) ||
+                ticket.ticketCode?.toLowerCase().includes(searchLower) ||
+                ticket.resourceId?.toLowerCase().includes(searchLower) ||
+                ticket.id?.substring(0, 6).toLowerCase().includes(searchLower);
+            if (!matchesSearch) return false;
+        }
+        
+        if (filters.dateFrom) {
+            const ticketDate = new Date(ticket.createdAt);
+            const fromDate = new Date(filters.dateFrom);
+            fromDate.setHours(0, 0, 0, 0);
+            if (ticketDate < fromDate) return false;
+        }
+        
+        if (filters.dateTo) {
+            const ticketDate = new Date(ticket.createdAt);
+            const toDate = new Date(filters.dateTo);
+            toDate.setHours(23, 59, 59, 999);
+            if (ticketDate > toDate) return false;
+        }
+        
+        return true;
+    });
+
+    const clearFilters = () => {
+        setFilters({ status: '', priority: '', dateFrom: '', dateTo: '', search: '' });
+    };
+
+    const hasActiveFilters = filters.status || filters.priority || filters.dateFrom || filters.dateTo || filters.search;
 
     const processStatusChange = async (id: string, status: string, note: string) => {
         try {
@@ -144,7 +222,7 @@ export default function AdminTickets() {
                     <div class="text-xs text-slate-400 space-y-1">
                         <div><span class="font-semibold text-slate-300">Resource:</span> ${ticket.resourceId || 'General'}</div>
                         <div><span class="font-semibold text-slate-300">Reported By:</span> ${ticket.reportedById || 'Unknown'}</div>
-                        <div><span class="font-semibold text-slate-300">Created:</span> ${new Date(ticket.createdAt).toLocaleString()}</div>
+                        <div><span class="font-semibold text-slate-300">Created:</span> ${ticket.createdAt ? new Date(ticket.createdAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</div>
                     </div>
                     ${attachmentsHtml}
                     ${ticket.rejectionReason ? `
@@ -168,8 +246,8 @@ export default function AdminTickets() {
     };
 
     return (
-        <div className="p-6 text-white max-w-6xl mx-auto">
-            <div className="flex justify-between items-center mb-10">
+        <div className="p-6 text-white max-w-7xl mx-auto">
+            <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-indigo-500">
                     Admin Tickets View
                 </h1>
@@ -179,6 +257,79 @@ export default function AdminTickets() {
                 >
                     Refresh
                 </button>
+            </div>
+
+            <div className="glass-card rounded-2xl p-4 mb-6 border border-slate-700/50">
+                <div className="flex flex-wrap gap-4 items-end">
+                    <div className="flex-1 min-w-[200px]">
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">Search</label>
+                        <input
+                            type="text"
+                            placeholder="Search title, description, ID..."
+                            value={filters.search}
+                            onChange={(e) => setFilters({...filters, search: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                        />
+                    </div>
+                    <div className="min-w-[140px]">
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">Status</label>
+                        <select
+                            value={filters.status}
+                            onChange={(e) => setFilters({...filters, status: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white focus:border-indigo-500 focus:outline-none"
+                        >
+                            <option value="">All Status</option>
+                            <option value="OPEN">Open</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="RESOLVED">Resolved</option>
+                            <option value="REJECTED">Rejected</option>
+                            <option value="CLOSED">Closed</option>
+                        </select>
+                    </div>
+                    <div className="min-w-[140px]">
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">Priority</label>
+                        <select
+                            value={filters.priority}
+                            onChange={(e) => setFilters({...filters, priority: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white focus:border-indigo-500 focus:outline-none"
+                        >
+                            <option value="">All Priorities</option>
+                            <option value="CRITICAL">Critical</option>
+                            <option value="HIGH">High</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="LOW">Low</option>
+                        </select>
+                    </div>
+                    <div className="min-w-[150px]">
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">From Date</label>
+                        <input
+                            type="date"
+                            value={filters.dateFrom}
+                            onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white focus:border-indigo-500 focus:outline-none"
+                        />
+                    </div>
+                    <div className="min-w-[150px]">
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">To Date</label>
+                        <input
+                            type="date"
+                            value={filters.dateTo}
+                            onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white focus:border-indigo-500 focus:outline-none"
+                        />
+                    </div>
+                    {hasActiveFilters && (
+                        <button
+                            onClick={clearFilters}
+                            className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-lg text-sm font-medium transition-colors"
+                        >
+                            Clear
+                        </button>
+                    )}
+                </div>
+                <div className="mt-3 text-sm text-slate-400">
+                    Showing {filteredTickets.length} of {tickets.length} tickets
+                </div>
             </div>
 
             {loading ? (
@@ -196,19 +347,36 @@ export default function AdminTickets() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {tickets.length === 0 ? (
+                                {filteredTickets.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="p-4 text-center text-slate-400">
-                                            No incident tickets on the system.
+                                        <td colSpan={5} className="p-8 text-center text-slate-400">
+                                            {hasActiveFilters ? (
+                                                <div>
+                                                    <div className="text-lg mb-2">No tickets match your filters</div>
+                                                    <button onClick={clearFilters} className="text-indigo-400 hover:text-indigo-300 text-sm">Clear filters</button>
+                                                </div>
+                                            ) : (
+                                                "No incident tickets on the system."
+                                            )}
                                         </td>
                                     </tr>
                                 ) : (
-                                    tickets.map((t) => (
-                                        <tr key={t.id} className="border-b border-slate-700/50 hover:bg-slate-800/30 transition-colors">
+                                    filteredTickets.map((t) => (
+                                        <tr key={t.id} className={`border-b border-slate-700/50 hover:bg-slate-800/30 transition-colors ${isOverdue(t) ? 'bg-red-500/5' : ''}`}>
                                             <td className="p-4">
-                                                <div className="font-semibold text-slate-200">{t.title}</div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="font-semibold text-slate-200">{t.title}</div>
+                                                    {isOverdue(t) && (
+                                                        <span className="animate-pulse text-[10px] font-bold px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">
+                                                            OVERDUE
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <div className="text-sm text-slate-400 mt-1 line-clamp-2">{t.description}</div>
                                                 <div className="text-xs text-indigo-400 mt-2 font-mono">Resource: {t.resourceId || 'General'}</div>
+                                                {isOverdue(t) && (
+                                                    <div className="text-xs text-red-400 mt-1 font-semibold animate-pulse">{getOverdueLabel(t)}</div>
+                                                )}
                                                 {t.attachments && t.attachments.length > 0 && (
                                                     <div className="flex gap-1 mt-2">
                                                         {t.attachments.slice(0, 3).map((att: any, idx: number) => (
