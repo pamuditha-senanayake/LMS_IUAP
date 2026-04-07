@@ -172,7 +172,13 @@ export default function AdminBookings() {
             title: `Reject booking for ${name}?`,
             text: "Please provide a reason for rejection.",
             input: 'textarea',
-            inputPlaceholder: 'Reason for rejection...',
+            inputPlaceholder: 'Enter reason for rejection...',
+            inputValidator: (value) => {
+                if (!value || value.trim() === '') {
+                    return 'Please enter a reason for rejection';
+                }
+                return null;
+            },
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
@@ -181,8 +187,8 @@ export default function AdminBookings() {
             background: '#1e293b',
             color: '#fff',
         }).then((result) => {
-            if (result.isConfirmed) {
-                processStatusChange(id, "REJECTED", result.value || "");
+            if (result.isConfirmed && result.value) {
+                processStatusChange(id, "REJECTED", result.value);
             }
         });
     };
@@ -309,32 +315,46 @@ export default function AdminBookings() {
                                                 <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${
                                                     b.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                                                     b.status === 'REJECTED' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                                    b.status === 'CANCELLED' ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' :
                                                     'bg-amber-500/10 text-amber-400 border-amber-500/20'
                                                 }`}>
                                                     {b.status || 'PENDING'}
                                                 </span>
                                             </td>
                                             <td className="p-4 text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <button 
-                                                        onClick={() => handleApprove(b.id, b.requestedBy?.name)}
-                                                        className="px-3 py-1.5 text-sm font-medium bg-emerald-500/20 hover:bg-emerald-500 hover:text-white text-emerald-400 rounded-lg transition-colors"
-                                                    >
-                                                        Approve
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleReject(b.id, b.requestedBy?.name)}
-                                                        className="px-3 py-1.5 text-sm font-medium bg-red-500/20 hover:bg-red-500 hover:text-white text-red-400 rounded-lg transition-colors"
-                                                    >
-                                                        Reject
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleMessage(b.id, b.requestedBy?.name)}
-                                                        className="px-3 py-1.5 text-sm font-medium bg-slate-700/50 hover:bg-indigo-500 hover:text-white text-indigo-400 rounded-lg transition-colors"
-                                                    >
-                                                        Note
-                                                    </button>
-                                                </div>
+                                                {b.status === "PENDING" && (
+                                                    <div className="flex justify-end gap-2">
+                                                        <button 
+                                                            onClick={() => handleApprove(b.id, b.requestedBy?.name)}
+                                                            className="px-3 py-1.5 text-sm font-medium bg-emerald-500/20 hover:bg-emerald-500 hover:text-white text-emerald-400 rounded-lg transition-colors"
+                                                        >
+                                                            Approve
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleReject(b.id, b.requestedBy?.name)}
+                                                            className="px-3 py-1.5 text-sm font-medium bg-red-500/20 hover:bg-red-500 hover:text-white text-red-400 rounded-lg transition-colors"
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleMessage(b.id, b.requestedBy?.name)}
+                                                            className="px-3 py-1.5 text-sm font-medium bg-slate-700/50 hover:bg-indigo-500 hover:text-white text-indigo-400 rounded-lg transition-colors"
+                                                        >
+                                                            Note
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                {b.status === "APPROVED" && (
+                                                    <span className="text-xs text-emerald-400">Approved</span>
+                                                )}
+                                                {b.status === "REJECTED" && (
+                                                    <div className="text-xs text-red-400 max-w-[150px] truncate" title={b.rejectionReason}>
+                                                        Reason: {b.rejectionReason}
+                                                    </div>
+                                                )}
+                                                {b.status === "CANCELLED" && (
+                                                    <span className="text-xs text-slate-400">Cancelled</span>
+                                                )}
                                             </td>
                                         </tr>
                                     ))
