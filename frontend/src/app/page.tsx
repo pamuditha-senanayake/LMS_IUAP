@@ -14,20 +14,49 @@ import {
     Globe,
     Cpu,
     ShieldCheck,
-    Clock
+    Clock,
+    ChevronRight
 } from "lucide-react";
 
 export default function Home() {
-    const [user, setUser] = useState<{ name: string, email: string, roles: string[] } | null>(null);
+    const [user, setUser] = useState<{ id: string, name: string, email: string, roles: string[] } | null>(null);
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const [loadingNotifications, setLoadingNotifications] = useState(false);
 
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
             try {
-                setUser(JSON.parse(storedUser));
+                const userData = JSON.parse(storedUser);
+                setUser(userData);
+                
+                if (userData.id) {
+                    fetchNotifications(userData.id);
+                }
             } catch (e) {}
         }
     }, []);
+
+    const fetchNotifications = async (userId: string) => {
+        setLoadingNotifications(true);
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+            const res = await fetch(`${apiUrl}/api/notifications/user/${userId}`, { credentials: "include" });
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    // Get latest 5
+                    setNotifications(data.sort((a, b) => 
+                        new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime()
+                    ).slice(0, 5));
+                }
+            }
+        } catch (e) {
+            console.error("Failed to fetch notifications", e);
+        } finally {
+            setLoadingNotifications(false);
+        }
+    };
 
     const features = [
         {
@@ -68,7 +97,8 @@ export default function Home() {
 
             <main className="relative z-10 pt-32">
                 {user && (
-                    <div className="max-w-7xl mx-auto px-8 mb-20 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+                    <div className="max-w-7xl mx-auto px-8 mb-20 space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+                        {/* Welcome Compartment */}
                         <div className="relative rounded-[2.5rem] p-8 md:p-10 border border-slate-800/60 bg-slate-900/40 backdrop-blur-3xl shadow-xl overflow-hidden group">
                             <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
                                 <div className="flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
@@ -95,7 +125,7 @@ export default function Home() {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col items-center md:items-end gap-3">
+                                <div className="flex flex-col items-center md:items-end gap-3 text-center md:text-right">
                                     <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-950/50 border border-slate-800/60">
                                         <ShieldCheck size={14} className="text-indigo-400" />
                                         <span className="text-[11px] font-bold text-slate-300 uppercase tracking-widest leading-none">
@@ -129,15 +159,7 @@ export default function Home() {
 
                     <div className="flex flex-col sm:flex-row gap-6 animate-in fade-in slide-in-from-bottom-16 duration-700 delay-300">
                         {user ? (
-                            <Link 
-                                href="/dashboard"
-                                className="group relative bg-indigo-600 hover:bg-indigo-500 text-white px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all duration-300 shadow-2xl shadow-indigo-500/20 overflow-hidden"
-                            >
-                                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                                <span className="relative flex items-center gap-2">
-                                    Access Your Console <ArrowRight size={18} />
-                                </span>
-                            </Link>
+                            null
                         ) : (
                             <>
                                 <Link 
@@ -172,6 +194,64 @@ export default function Home() {
                         ))}
                     </div>
                 </section>
+
+                {/* Notifications Compartment */}
+                {user && (
+                    <div className="max-w-7xl mx-auto px-8 mb-20 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+                        <div className="relative rounded-[2.5rem] border border-slate-800/60 bg-slate-900/40 backdrop-blur-3xl shadow-xl overflow-hidden p-8 md:p-10">
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                                        <Bell size={18} className="text-indigo-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white">Latest Notifications</h3>
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Stay updated with your activities</p>
+                                    </div>
+                                </div>
+                                <Link href="/dashboard/notifications" className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-[0.2em] flex items-center gap-2 group">
+                                    View All <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                                </Link>
+                            </div>
+
+                            {loadingNotifications ? (
+                                <div className="flex flex-col items-center justify-center py-10 gap-4 opacity-50">
+                                    <div className="w-8 h-8 border-2 border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Syncing Feed...</span>
+                                </div>
+                            ) : notifications.length > 0 ? (
+                                <div className="space-y-4">
+                                    {notifications.map((notif, i) => (
+                                        <div key={i} className="flex items-start gap-4 p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/[0.08] transition-all group">
+                                            <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${notif.isRead ? 'bg-slate-700' : 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]'}`} />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm text-slate-200 font-medium leading-relaxed">{notif.message}</p>
+                                                <div className="flex items-center gap-3 mt-2">
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                                        {notif.type || 'Activity'}
+                                                    </span>
+                                                    <span className="w-1 h-1 rounded-full bg-slate-700" />
+                                                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest flex items-center gap-1.5">
+                                                        <Clock size={10} />
+                                                        {new Date(notif.createdAt || notif.date).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="py-20 flex flex-col items-center justify-center text-center">
+                                    <div className="w-16 h-16 rounded-3xl bg-slate-950 border border-slate-800 flex items-center justify-center mb-4 text-slate-600">
+                                        <Bell size={24} />
+                                    </div>
+                                    <h4 className="text-white font-bold mb-1">All Caught Up!</h4>
+                                    <p className="text-sm text-slate-500">You don't have any recent notifications.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Features Section */}
                 <section id="features" className="px-8 py-32 bg-slate-950/30 border-y border-white/5">
@@ -245,7 +325,6 @@ export default function Home() {
                                     </li>
                                 ))}
                             </ul>
-
                             <button className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-indigo-500/20 active:scale-95">
                                 Explore Architecture
                             </button>
