@@ -74,3 +74,29 @@ cd LMS_IUAP
    The Next.js application will boot up at `http://localhost:3000`. Open this URL in your browser to see the live app!
 
 ---
+
+---
+
+## ✅ Quality Assurance & Security
+
+This project is reinforced with automated quality guardrails and security scanning to ensure a robust and reliable application.
+
+### 1. CI/CD Pipeline (GitHub Actions)
+The project includes a **GitHub Actions** workflow that triggers on every push or pull request to the `main` branch.
+- **Frontend Job:** Runs type-checking, linting, unit tests, security audits, and production builds.
+- **Backend Job:** Executes a full Maven build, runs JUnit tests, and performs security analysis with SpotBugs and OWASP Dependency Check.
+
+### 2. Automated Testing
+- **Frontend:** Powered by **Vitest** and **React Testing Library**. 
+  - To run tests: `cd frontend && npm run test`
+- **Backend:** Powered by **JUnit 5** and **Mockito**.
+  - To run tests: `cd backend && ./mvnw test`
+
+### 3. Security Infrastructure
+- **Dependency Scanning:** We use `npm audit` (frontend) and **OWASP Dependency Check** (backend) to automatically block the introduction of vulnerable third-party libraries.
+- **Static Analysis (SAST):**
+  - **ESLint Security Plugin:** Scans frontend code for potential injection or insecure syntax.
+  - **SpotBugs (FindSecBugs):** Analyzes Java bytecode for OWASP Top 10 vulnerabilities.
+- **Input Validation:** All backend endpoints are secured with **Jakarta Validation** (`@Valid`) and a **Global Exception Handler** to prevent data corruption and sensitive information leakage.
+
+---
