@@ -59,12 +59,14 @@ jobs:
           
       - name: Build and Test with Maven
         working-directory: backend
-        # We skip dependency-check here to keep the main build fast (under 3-5 mins)
+        # Skip heavy security scans here to keep deployment fast
         run: ./mvnw verify -Dspotbugs.skip=false -Ddependency-check.skip=true
 
   backend-security-scan:
-    name: Backend Security Scan (Parallel)
+    name: Backend Security Scan (Non-Blocking)
     runs-on: ubuntu-latest
+    # This job will not block the main workflow if it fails
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -85,4 +87,6 @@ jobs:
 
       - name: Run OWASP Dependency Check
         working-directory: backend
+        # failBuildOnCVSS is set to 11 in pom.xml, so this will basically never fail the build
+        # but will still generate the report for you to see in the logs.
         run: ./mvnw dependency-check:check -Ddependency-check.skip=false

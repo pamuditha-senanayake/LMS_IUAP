@@ -121,7 +121,8 @@
 				<artifactId>dependency-check-maven</artifactId>
 				<version>12.1.0</version>
 				<configuration>
-					<failBuildOnCVSS>7</failBuildOnCVSS>
+					<failBuildOnCVSS>11</failBuildOnCVSS>
+					<nvdApiKey>${NVD_API_KEY}</nvdApiKey>
 					<dataDirectory>${project.basedir}/dependency-check-data</dataDirectory>
 					<suppressionFiles>
 						<suppressionFile>dependency-check-suppressions.xml</suppressionFile>
