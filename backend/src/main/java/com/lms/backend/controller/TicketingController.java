@@ -5,6 +5,7 @@ import com.lms.backend.model.TicketAttachment;
 import com.lms.backend.model.TicketComment;
 import com.lms.backend.service.FileStorageService;
 import com.lms.backend.service.TicketingService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,7 @@ public class TicketingController {
     }
 
     @PostMapping
-    public ResponseEntity<IncidentTicket> createTicket(@RequestBody IncidentTicket ticket) {
+    public ResponseEntity<IncidentTicket> createTicket(@Valid @RequestBody IncidentTicket ticket) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ticketingService.createTicket(ticket));
     }
 
@@ -91,7 +92,7 @@ public class TicketingController {
     }
 
     @PostMapping("/{ticketId}/attachments")
-    public ResponseEntity<TicketAttachment> addAttachment(@PathVariable String ticketId, @RequestBody TicketAttachment attachment) {
+    public ResponseEntity<TicketAttachment> addAttachment(@PathVariable String ticketId, @Valid @RequestBody TicketAttachment attachment) {
         attachment.setTicketId(ticketId);
         return ResponseEntity.status(HttpStatus.CREATED).body(ticketingService.addAttachment(attachment));
     }
@@ -129,7 +130,7 @@ public class TicketingController {
     }
 
     @PostMapping("/{ticketId}/comments")
-    public ResponseEntity<TicketComment> addComment(@PathVariable String ticketId, @RequestBody TicketComment comment) {
+    public ResponseEntity<TicketComment> addComment(@PathVariable String ticketId, @Valid @RequestBody TicketComment comment) {
         comment.setTicketId(ticketId);
         return ResponseEntity.status(HttpStatus.CREATED).body(ticketingService.addComment(comment));
     }
@@ -143,7 +144,7 @@ public class TicketingController {
     @PutMapping("/{ticketId}")
     public ResponseEntity<IncidentTicket> updateTicket(
             @PathVariable String ticketId,
-            @RequestBody IncidentTicket updates) {
+            @Valid @RequestBody IncidentTicket updates) {
         return ResponseEntity.ok(ticketingService.updateTicket(ticketId, updates));
     }
 

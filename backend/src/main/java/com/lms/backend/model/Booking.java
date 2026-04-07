@@ -4,6 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -20,14 +23,22 @@ public class Booking {
     @Id
     private String id;
     
+    @NotBlank(message = "Resource ID is required")
     private String resourceId;
     private UserSummary requestedBy;
     private UserSummary reviewedBy;
     
+    @NotBlank(message = "Purpose is required")
     private String purpose;
+
+    @NotNull(message = "Expected attendees count is required")
+    @Positive(message = "Expected attendees must be a positive number")
     private Integer expectedAttendees;
     
+    @NotNull(message = "Start time is required")
     private LocalDateTime startTime;
+
+    @NotNull(message = "End time is required")
     private LocalDateTime endTime;
 
     @Data

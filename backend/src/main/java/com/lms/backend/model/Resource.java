@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Min;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -25,10 +27,17 @@ public class Resource {
     private ResourceLocation location;
     
     private String resourceCode;
+    @NotBlank(message = "Resource name is required")
     private String resourceName;
+
+    @NotBlank(message = "Resource type is required")
     private String resourceType; 
+
     private String description;
+
+    @Min(value = 0, message = "Capacity cannot be negative")
     private Integer capacity;
+
     private String status; // active, out_of_service
     private Boolean requiresAttendanceCount;
     

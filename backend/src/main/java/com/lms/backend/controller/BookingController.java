@@ -2,6 +2,7 @@ package com.lms.backend.controller;
 
 import com.lms.backend.model.Booking;
 import com.lms.backend.service.BookingService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +26,7 @@ public class BookingController {
     }
 
     @PostMapping
-    public ResponseEntity<Booking> createBooking(@RequestBody Booking booking) {
+    public ResponseEntity<Booking> createBooking(@Valid @RequestBody Booking booking) {
         return ResponseEntity.status(HttpStatus.CREATED).body(bookingService.createBooking(booking));
     }
 
@@ -41,7 +42,7 @@ public class BookingController {
     @PutMapping("/{bookingId}")
     public ResponseEntity<Booking> updateBooking(
             @PathVariable String bookingId,
-            @RequestBody Booking booking) {
+            @Valid @RequestBody Booking booking) {
         return ResponseEntity.ok(bookingService.updateBooking(bookingId, booking));
     }
 

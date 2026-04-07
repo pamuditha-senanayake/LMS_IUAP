@@ -115,6 +115,50 @@
 					</excludes>
 				</configuration>
 			</plugin>
+			<!-- OWASP Dependency Check -->
+			<plugin>
+				<groupId>org.owasp</groupId>
+				<artifactId>dependency-check-maven</artifactId>
+				<version>12.1.0</version>
+				<configuration>
+					<failBuildOnCVSS>7</failBuildOnCVSS>
+					<suppressionFiles>
+						<suppressionFile>dependency-check-suppressions.xml</suppressionFile>
+					</suppressionFiles>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- SpotBugs for Static Analysis -->
+			<plugin>
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-maven-plugin</artifactId>
+				<version>4.9.2.0</version>
+				<configuration>
+					<effort>Max</effort>
+					<threshold>High</threshold>
+					<failOnError>false</failOnError>
+					<plugins>
+						<plugin>
+							<groupId>com.h3xstream.findsecbugs</groupId>
+							<artifactId>findsecbugs-plugin</artifactId>
+							<version>1.13.0</version>
+						</plugin>
+					</plugins>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 

@@ -2,6 +2,7 @@ package com.lms.backend.controller;
 
 import com.lms.backend.model.Resource;
 import com.lms.backend.service.FacilitiesService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,12 +31,12 @@ public class FacilitiesController {
     }
 
     @PostMapping("/resources")
-    public ResponseEntity<Resource> createResource(@RequestBody Resource resource) {
+    public ResponseEntity<Resource> createResource(@Valid @RequestBody Resource resource) {
         return ResponseEntity.status(HttpStatus.CREATED).body(facilitiesService.createResource(resource));
     }
 
     @PutMapping("/resources/{id}")
-    public ResponseEntity<Resource> updateResource(@PathVariable String id, @RequestBody Resource resource) {
+    public ResponseEntity<Resource> updateResource(@PathVariable String id, @Valid @RequestBody Resource resource) {
         Resource r = facilitiesService.updateResource(id, resource);
         return r != null ? ResponseEntity.ok(r) : ResponseEntity.notFound().build();
     }
