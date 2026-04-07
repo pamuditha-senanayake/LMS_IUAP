@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Swal from "sweetalert2";
+import { X, Upload, AlertTriangle, MapPin, Type, FileText, Zap, Image as ImageIcon, Loader2, CheckCircle2 } from "lucide-react";
 
 export default function TicketingPage() {
     const [tickets, setTickets] = useState<any[]>([]);
@@ -12,6 +13,11 @@ export default function TicketingPage() {
         priority: '',
         search: ''
     });
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [selectedImages, setSelectedImages] = useState<File[]>([]);
+    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -125,110 +131,72 @@ export default function TicketingPage() {
     const hasActiveFilters = filters.status || filters.priority || filters.search;
 
     const handleReport = () => {
-        Swal.fire({
-            title: 'Report Incident',
-            html: `
-                <div class="flex flex-col gap-3 text-left">
-                    <label class="text-sm font-semibold text-slate-300">Ticket Title</label>
-                    <input id="swal-title" class="swal2-input !w-11/12 !mx-auto" placeholder="e.g. Projector broken">
-                    
-                    <label class="text-sm font-semibold text-slate-300">Description</label>
-                    <textarea id="swal-desc" class="swal2-textarea !w-11/12 !mx-auto" placeholder="Detailed description of the issue..."></textarea>
-                    
-                    <label class="text-sm font-semibold text-slate-300">Resource / Location</label>
-                    <input id="swal-resource" class="swal2-input !w-11/12 !mx-auto" placeholder="e.g. Auditorium A">
-                    
-                    <label class="text-sm font-semibold text-slate-300">Priority</label>
-                    <select id="swal-priority" class="swal2-select !w-11/12 !mx-auto text-sm">
-                        <option value="LOW">Low - No immediate impact</option>
-                        <option value="MEDIUM" selected>Medium - Partially blocking</option>
-                        <option value="HIGH">High - Significant disruption</option>
-                        <option value="CRITICAL">Critical - Facility unuseable</option>
-                    </select>
-                    
-                    <label class="text-sm font-semibold text-slate-300 mt-2">Images (up to 3)</label>
-                    <input id="swal-images" type="file" accept="image/*" multiple class="!w-11/12 !mx-auto text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-pink-500 file:text-white hover:file:bg-pink-600 file:cursor-pointer cursor-pointer">
-                    <div id="swal-preview" class="flex gap-2 justify-center mt-2"></div>
-                </div>
-            `,
-            showCancelButton: true,
-            confirmButtonColor: '#ec4899',
-            cancelButtonColor: '#6366f1',
-            confirmButtonText: 'Submit Ticket',
-            background: '#1e293b',
-            color: '#fff',
-            customClass: { popup: 'swal2-dark' },
-            didOpen: () => {
-                const imagesInput = document.getElementById('swal-images') as HTMLInputElement;
-                imagesInput?.addEventListener('change', () => {
-                    const preview = document.getElementById('swal-preview');
-                    if (preview) {
-                        preview.innerHTML = '';
-                        const files = imagesInput.files;
-                        if (files) {
-                            for (let i = 0; i < Math.min(files.length, 3); i++) {
-                                const url = URL.createObjectURL(files[i]);
-                                const img = document.createElement('img');
-                                img.src = url;
-                                img.className = 'w-16 h-16 object-cover rounded-lg border border-slate-600';
-                                preview.appendChild(img);
-                            }
-                        }
-                    }
-                });
-            },
-            preConfirm: () => {
-                const title = (document.getElementById('swal-title') as HTMLInputElement).value;
-                const desc = (document.getElementById('swal-desc') as HTMLTextAreaElement).value;
-                const resource = (document.getElementById('swal-resource') as HTMLInputElement).value;
-                const priority = (document.getElementById('swal-priority') as HTMLSelectElement).value;
-                const imagesInput = document.getElementById('swal-images') as HTMLInputElement;
-                const files = imagesInput?.files;
-                
-                if (!title || !desc) {
-                    Swal.showValidationMessage("Title and description are required");
-                    return false;
-                }
-                
-                return new Promise((resolve) => {
-                    const formData = new FormData();
-                    formData.append('title', title);
-                    formData.append('description', desc);
-                    formData.append('resourceId', resource);
-                    formData.append('priority', priority);
-                    formData.append('reportedById', currentUser!.id);
-                    
-                    if (files && files.length > 0) {
-                        for (let i = 0; i < Math.min(files.length, 3); i++) {
-                            formData.append('images', files[i]);
-                        }
-                    }
-                    
-                    fetch(`${apiUrl}/api/tickets/with-attachments`, {
-                        method: "POST",
-                        credentials: "include",
-                        body: formData
-                    }).then(res => {
-                        if (res.ok) {
-                            resolve(true);
-                        } else {
-                            resolve(false);
-                            res.text().then(errText => {
-                                Swal.showValidationMessage(errText || "Failed to submit ticket");
-                            });
-                        }
-                    }).catch(() => {
-                        resolve(false);
-                        Swal.showValidationMessage("Network Error");
-                    });
-                });
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({ title: "Issue Reported!", icon: "success", background: '#1e293b', color: '#fff' });
+        setShowReportModal(true);
+    };
+
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files) {
+            const newFiles = Array.from(files).slice(0, 3 - selectedImages.length);
+            setSelectedImages(prev => [...prev, ...newFiles].slice(0, 3));
+            
+            const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+            setImagePreviews(prev => [...prev, ...newPreviews].slice(0, 3));
+        }
+    };
+
+    const removeImage = (index: number) => {
+        setSelectedImages(prev => prev.filter((_, i) => i !== index));
+        setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleSubmitReport = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        const formData = new FormData(form);
+        
+        if (!formData.get('title') || !formData.get('description')) {
+            Swal.fire({ title: "Error", text: "Title and description are required", icon: "error", background: '#1e293b', color: '#fff' });
+            return;
+        }
+
+        setSubmitting(true);
+        
+        const submitData = new FormData();
+        submitData.append('title', formData.get('title') as string);
+        submitData.append('description', formData.get('description') as string);
+        submitData.append('resourceId', formData.get('resourceId') as string || '');
+        submitData.append('priority', formData.get('priority') as string);
+        submitData.append('reportedById', currentUser!.id);
+        
+        if (selectedImages.length > 0) {
+            selectedImages.forEach(file => {
+                submitData.append('images', file);
+            });
+        }
+
+        try {
+            const res = await fetch(`${apiUrl}/api/tickets/with-attachments`, {
+                method: "POST",
+                credentials: "include",
+                body: submitData
+            });
+
+            if (res.ok) {
+                Swal.fire({ title: "Issue Reported!", text: "Your ticket has been submitted successfully.", icon: "success", background: '#1e293b', color: '#fff' });
+                setShowReportModal(false);
+                setSelectedImages([]);
+                setImagePreviews([]);
+                form.reset();
                 fetchTickets(currentUser!.id);
+            } else {
+                Swal.fire({ title: "Error", text: "Failed to submit ticket", icon: "error", background: '#1e293b', color: '#fff' });
             }
-        });
+        } catch {
+            Swal.fire({ title: "Error", text: "Network error. Please try again.", icon: "error", background: '#1e293b', color: '#fff' });
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handleDelete = (ticketId: string, title: string) => {
@@ -329,11 +297,197 @@ export default function TicketingPage() {
                 </div>
                 <button 
                     onClick={handleReport} 
-                    className="rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-medium px-6 py-3 transition-all active:scale-95 shadow-[0_0_15px_rgba(236,72,153,0.4)]"
+                    className="group relative rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white font-medium px-6 py-3 transition-all active:scale-95 shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50 overflow-hidden"
                 >
-                    + Report Issue
+                    <span className="relative z-10 flex items-center gap-2">
+                        <Zap size={18} className="group-hover:rotate-12 transition-transform" />
+                        Report Issue
+                    </span>
                 </button>
             </div>
+
+            {showReportModal && (
+                <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-[5vh]">
+                    <div 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        onClick={() => setShowReportModal(false)}
+                    />
+                    <div className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-slate-900 rounded-3xl border border-slate-700/50 shadow-2xl shadow-pink-500/10 animate-in slide-in-from-top-4 duration-300">
+                        <div className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50 p-6 rounded-t-3xl">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-pink-500/10 rounded-xl">
+                                        <AlertTriangle size={24} className="text-pink-400" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-bold text-white">Report New Incident</h2>
+                                        <p className="text-sm text-slate-400">Describe the issue you are experiencing</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => setShowReportModal(false)}
+                                    className="p-2 hover:bg-slate-800 rounded-xl transition-colors"
+                                >
+                                    <X size={20} className="text-slate-400" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleSubmitReport} className="p-6 space-y-6">
+                            <div className="space-y-2">
+                                <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
+                                    <Type size={16} className="text-pink-400" />
+                                    Issue Title
+                                    <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                    name="title"
+                                    type="text"
+                                    placeholder="Brief title describing the issue..."
+                                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all"
+                                    required
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
+                                    <FileText size={16} className="text-pink-400" />
+                                    Description
+                                    <span className="text-red-400">*</span>
+                                </label>
+                                <textarea
+                                    name="description"
+                                    rows={4}
+                                    placeholder="Provide detailed information about the issue, including location, time, and impact..."
+                                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all resize-none"
+                                    required
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
+                                        <MapPin size={16} className="text-pink-400" />
+                                        Location / Resource
+                                    </label>
+                                    <input
+                                        name="resourceId"
+                                        type="text"
+                                        placeholder="e.g., Auditorium A, Lab 204..."
+                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
+                                        <Zap size={16} className="text-pink-400" />
+                                        Priority Level
+                                    </label>
+                                    <select
+                                        name="priority"
+                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all cursor-pointer"
+                                        defaultValue="MEDIUM"
+                                    >
+                                        <option value="LOW">Low - Minor inconvenience</option>
+                                        <option value="MEDIUM">Medium - Partially affected</option>
+                                        <option value="HIGH">High - Significantly disrupted</option>
+                                        <option value="CRITICAL">Critical - Unusable / Emergency</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
+                                    <ImageIcon size={16} className="text-pink-400" />
+                                    Attach Images
+                                    <span className="text-xs text-slate-500 font-normal">(up to 3)</span>
+                                </label>
+                                
+                                <div 
+                                    className="relative border-2 border-dashed border-slate-700 hover:border-pink-500/50 rounded-xl p-6 transition-colors cursor-pointer"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        className="hidden"
+                                        onChange={handleImageSelect}
+                                        disabled={selectedImages.length >= 3}
+                                    />
+                                    <div className="flex flex-col items-center justify-center text-center">
+                                        <div className="p-3 bg-slate-800 rounded-xl mb-3">
+                                            <Upload size={24} className="text-slate-400" />
+                                        </div>
+                                        <p className="text-sm text-slate-400">
+                                            <span className="text-pink-400 font-medium">Click to upload</span> or drag and drop
+                                        </p>
+                                        <p className="text-xs text-slate-500 mt-1">PNG, JPG, GIF up to 10MB</p>
+                                    </div>
+                                </div>
+
+                                {imagePreviews.length > 0 && (
+                                    <div className="flex gap-3 flex-wrap">
+                                        {imagePreviews.map((preview, index) => (
+                                            <div key={index} className="relative group">
+                                                <img 
+                                                    src={preview} 
+                                                    alt={`Preview ${index + 1}`}
+                                                    className="w-20 h-20 object-cover rounded-xl border border-slate-700"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeImage(index)}
+                                                    className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {selectedImages.length < 3 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className="w-20 h-20 flex items-center justify-center rounded-xl border-2 border-dashed border-slate-700 hover:border-pink-500/50 text-slate-500 hover:text-pink-400 transition-colors"
+                                            >
+                                                <Upload size={20} />
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex gap-3 pt-4 border-t border-slate-800">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowReportModal(false)}
+                                    className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="flex-1 px-4 py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-pink-500/30"
+                                >
+                                    {submitting ? (
+                                        <>
+                                            <Loader2 size={18} className="animate-spin" />
+                                            Submitting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle2 size={18} />
+                                            Submit Ticket
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             <div className="glass-card rounded-2xl p-4 mb-6 border border-slate-700/50">
                 <div className="flex flex-wrap gap-4 items-end">

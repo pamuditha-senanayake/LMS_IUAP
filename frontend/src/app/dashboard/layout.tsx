@@ -15,7 +15,8 @@ import {
     ChevronDown,
     Menu,
     X,
-    Home as HomeIcon
+    Home as HomeIcon,
+    BarChart3
 } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -64,6 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const adminLinks = [
         { name: "Overview", path: "/dashboard", icon: LayoutDashboard },
         { name: "Ticketing", path: "/dashboard/tickets", icon: Ticket },
+        { name: "Ticket Statistics", path: "/dashboard/ticket-statistics", icon: BarChart3 },
         { name: "User Management", path: "/dashboard/users", icon: Users },
         { name: "Admin Tickets", path: "/dashboard/admin-tickets", icon: Ticket },
         { name: "Admin Facilities", path: "/dashboard/admin-facilities", icon: Building },
