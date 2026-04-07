@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/tickets")
@@ -149,4 +150,20 @@ public class TicketingController {
     }
 
     public record TicketWithAttachmentsResponse(IncidentTicket ticket, List<TicketAttachment> attachments) {}
+
+    @GetMapping("/statistics")
+    public ResponseEntity<Map<String, Object>> getStatistics() {
+        Map<String, Object> stats = ticketingService.getTicketStatistics();
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/statistics/volume")
+    public ResponseEntity<Map<String, Object>> getVolumeByDay(@RequestParam(defaultValue = "30") int days) {
+        return ResponseEntity.ok(ticketingService.getTicketVolumeByDay(days));
+    }
+
+    @GetMapping("/statistics/staff")
+    public ResponseEntity<Map<String, Long>> getStaffPerformance() {
+        return ResponseEntity.ok(ticketingService.getTicketCountByAssignedStaff());
+    }
 }
