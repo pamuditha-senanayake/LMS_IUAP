@@ -1,8 +1,11 @@
 package com.lms.backend.service;
 
+import com.lms.backend.enums.ResourceStatus;
 import com.lms.backend.model.Booking;
+import com.lms.backend.model.Resource;
 import com.lms.backend.repository.BookingRepository;
 import com.lms.backend.repository.BookingStatusHistoryRepository;
+import com.lms.backend.repository.ResourceRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,10 +17,13 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 public class BookingServiceTest {
@@ -30,6 +36,9 @@ public class BookingServiceTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private ResourceRepository resourceRepository;
 
     @InjectMocks
     private BookingService bookingService;
@@ -45,6 +54,8 @@ public class BookingServiceTest {
         sampleBooking.setStartTime(LocalDateTime.now().plusDays(1));
         sampleBooking.setEndTime(LocalDateTime.now().plusDays(1).plusHours(2));
         sampleBooking.setExpectedAttendees(10);
+
+        lenient().when(resourceRepository.findById(anyString())).thenReturn(Optional.empty());
     }
 
     @Test
@@ -75,9 +86,22 @@ public class BookingServiceTest {
     }
 
     @Test
+    void createBooking_ThrowsException_WhenResourceOutOfService() {
+        Resource outOfServiceResource = new Resource();
+        outOfServiceResource.setId("resource-1");
+        outOfServiceResource.setStatus(ResourceStatus.OUT_OF_SERVICE);
+
+        when(resourceRepository.findById("resource-1")).thenReturn(Optional.of(outOfServiceResource));
+
+        assertThrows(ResponseStatusException.class, () -> {
+            bookingService.createBooking(sampleBooking);
+        });
+    }
+
+    @Test
     void validateBookingData_ThrowsException_WhenTimeInvalid() {
         sampleBooking.setStartTime(LocalDateTime.now().plusDays(1));
-        sampleBooking.setEndTime(LocalDateTime.now()); // End before start
+        sampleBooking.setEndTime(LocalDateTime.now());
 
         assertThrows(ResponseStatusException.class, () -> {
             bookingService.createBooking(sampleBooking);
