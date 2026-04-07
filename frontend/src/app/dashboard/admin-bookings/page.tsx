@@ -101,6 +101,24 @@ export default function AdminBookings() {
         });
     };
 
+    const handleCancel = (id: string, name: string) => {
+        Swal.fire({
+            title: `Cancel booking for ${name}?`,
+            text: "This will mark it as CANCELLED.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#64748b',
+            cancelButtonColor: '#6366f1',
+            confirmButtonText: 'Yes, cancel it',
+            background: '#1e293b',
+            color: '#fff',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                processStatusChange(id, "CANCELLED", "");
+            }
+        });
+    };
+
     const handleMessage = (id: string, name: string) => {
         Swal.fire({
             title: `Send Note to ${name}?`,
@@ -178,6 +196,7 @@ export default function AdminBookings() {
                                                 <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${
                                                     b.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                                                     b.status === 'REJECTED' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                                    b.status === 'CANCELLED' ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' :
                                                     'bg-amber-500/10 text-amber-400 border-amber-500/20'
                                                 }`}>
                                                     {b.status || 'PENDING'}
@@ -185,21 +204,33 @@ export default function AdminBookings() {
                                             </td>
                                             <td className="p-4 text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <button 
-                                                        onClick={() => handleApprove(b.id, b.requestedBy?.name)}
-                                                        className="px-3 py-1.5 text-sm font-medium bg-emerald-500/20 hover:bg-emerald-500 hover:text-white text-emerald-400 rounded-lg transition-colors"
-                                                    >
-                                                        Approve
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleReject(b.id, b.requestedBy?.name)}
-                                                        className="px-3 py-1.5 text-sm font-medium bg-red-500/20 hover:bg-red-500 hover:text-white text-red-400 rounded-lg transition-colors"
-                                                    >
-                                                        Reject
-                                                    </button>
+                                                    {b.status === 'PENDING' && (
+                                                        <>
+                                                            <button 
+                                                                onClick={() => handleApprove(b.id, b.requestedBy?.name)}
+                                                                className="px-3 py-1.5 text-sm font-medium bg-emerald-500/20 hover:bg-emerald-500 hover:text-white text-emerald-400 rounded-lg transition-colors"
+                                                            >
+                                                                Approve
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleReject(b.id, b.requestedBy?.name)}
+                                                                className="px-3 py-1.5 text-sm font-medium bg-red-500/20 hover:bg-red-500 hover:text-white text-red-400 rounded-lg transition-colors"
+                                                            >
+                                                                Reject
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {(b.status === 'PENDING' || b.status === 'APPROVED') && (
+                                                        <button 
+                                                            onClick={() => handleCancel(b.id, b.requestedBy?.name)}
+                                                            className="px-3 py-1.5 text-sm font-medium bg-slate-700/50 hover:bg-slate-600 hover:text-white text-slate-300 rounded-lg transition-colors"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    )}
                                                     <button 
                                                         onClick={() => handleMessage(b.id, b.requestedBy?.name)}
-                                                        className="px-3 py-1.5 text-sm font-medium bg-slate-700/50 hover:bg-indigo-500 hover:text-white text-indigo-400 rounded-lg transition-colors"
+                                                        className="px-3 py-1.5 text-sm font-medium bg-indigo-500/10 hover:bg-indigo-500 hover:text-white text-indigo-400 rounded-lg transition-colors"
                                                     >
                                                         Note
                                                     </button>
@@ -214,5 +245,6 @@ export default function AdminBookings() {
                 </div>
             )}
         </div>
+
     );
 }
