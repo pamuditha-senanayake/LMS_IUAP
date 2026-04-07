@@ -33,6 +33,7 @@ public class TicketingService {
 
     public IncidentTicket createTicket(IncidentTicket ticket) {
         ticket.setStatus("OPEN");
+        ticket.setCreatedAt(LocalDateTime.now());
         return ticketRepository.save(ticket);
     }
 
