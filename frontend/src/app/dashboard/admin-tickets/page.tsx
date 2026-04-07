@@ -85,7 +85,8 @@ export default function AdminTickets() {
         const createdAt = new Date(ticket.createdAt);
         const now = new Date();
         const hoursElapsed = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-        const threshold = { 'CRITICAL': 1, 'HIGH': 4, 'MEDIUM': 24, 'LOW': 72 }[ticket.priority] || 24;
+        const thresholds: Record<string, number> = { 'CRITICAL': 1, 'HIGH': 4, 'MEDIUM': 24, 'LOW': 72 };
+        const threshold = thresholds[ticket.priority] || 24;
         const overdueHours = Math.floor(hoursElapsed - threshold);
         if (overdueHours < 1) return `${Math.floor((hoursElapsed - threshold) * 60)}m overdue`;
         return `${overdueHours}h overdue`;
