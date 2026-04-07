@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Calendar, Clock, Users, MapPin, CheckCircle, AlertCircle } from "lucide-react";
+import { X, Calendar, Clock, Users, MapPin, CheckCircle, AlertCircle, Wrench } from "lucide-react";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
 
@@ -23,6 +23,7 @@ interface Resource {
     campusName?: string;
     building?: string;
     roomNumber?: string;
+    storageLocation?: string;
     resourceCode?: string;
     description?: string;
     amenities?: string[];
@@ -37,6 +38,8 @@ interface Booking {
     status?: string;
     purpose?: string;
     expectedAttendees?: number;
+    supportNotes?: string;
+    quantity?: number;
 }
 
 interface FacilityDetailsModalProps {
@@ -57,6 +60,10 @@ const TIME_SLOTS = [
     "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"
 ];
 
+const UTILITY_TYPES = [
+    "PROJECTOR", "SOUND_SYSTEM", "MICROPHONE", "WHITEBOARD", "FLAGS", "OTHER"
+];
+
 export default function FacilityDetailsModal({ resource, isOpen, onClose }: FacilityDetailsModalProps) {
     const router = useRouter();
     const resourceId = resource.id || resource._id;
@@ -64,6 +71,11 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
     const resourceType = resource.resourceType || resource.type || "GENERAL";
     const status = resource.status || "ACTIVE";
     const capacity = resource.capacity || 0;
+    const category = resource.category || "FACILITY";
+
+    const isUtility = category === "UTILITY" || UTILITY_TYPES.includes(resourceType);
+    const isOutOfService = status === "OUT_OF_SERVICE";
+    const isAvailable = status === "ACTIVE";
 
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [loadingBookings, setLoadingBookings] = useState(false);
@@ -72,6 +84,8 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
     const [selectedEndTime, setSelectedEndTime] = useState<string>("");
     const [purpose, setPurpose] = useState("");
     const [attendees, setAttendees] = useState<number>(1);
+    const [supportNotes, setSupportNotes] = useState("");
+    const [quantity, setQuantity] = useState<number>(1);
     const [isBooking, setIsBooking] = useState(false);
 
     useEffect(() => {
@@ -79,6 +93,18 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
             fetchBookings();
         }
     }, [isOpen, resourceId]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setSelectedDate("");
+            setSelectedStartTime("");
+            setSelectedEndTime("");
+            setPurpose("");
+            setAttendees(1);
+            setSupportNotes("");
+            setQuantity(1);
+        }
+    }, [isOpen]);
 
     const fetchBookings = async () => {
         setLoadingBookings(true);
@@ -99,17 +125,30 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
     };
 
     const getLocationDisplay = () => {
-        const parts = [];
-        if (resource.location?.campusName || resource.campusName) {
-            parts.push(resource.location?.campusName || resource.campusName);
+        if (!isUtility) {
+            const parts = [];
+            if (resource.location?.campusName || resource.campusName) {
+                parts.push(resource.location?.campusName || resource.campusName);
+            }
+            if (resource.location?.buildingName || resource.building) {
+                parts.push(resource.location?.buildingName || resource.building);
+            }
+            if (resource.location?.roomNumber || resource.roomNumber) {
+                parts.push(resource.location?.roomNumber || resource.roomNumber);
+            }
+            return parts.length > 0 ? parts.join(' - ') : "N/A";
+        } else {
+            const storageLoc = resource.location?.buildingName || resource.building || resource.storageLocation;
+            const campus = resource.location?.campusName || resource.campusName;
+            if (storageLoc && campus) {
+                return `${campus} - ${storageLoc}`;
+            } else if (storageLoc) {
+                return storageLoc;
+            } else if (campus) {
+                return campus;
+            }
+            return "N/A";
         }
-        if (resource.location?.buildingName || resource.building) {
-            parts.push(resource.location?.buildingName || resource.building);
-        }
-        if (resource.location?.roomNumber || resource.roomNumber) {
-            parts.push(resource.location?.roomNumber || resource.roomNumber);
-        }
-        return parts.length > 0 ? parts.join(' - ') : "N/A";
     };
 
     const getBookedSlotsForDate = (date: string): { start: string; end: string }[] => {
@@ -145,7 +184,14 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
         return end > start;
     };
 
+    const canBook = isAvailable && !isOutOfService;
+
     const handleBook = async () => {
+        if (!canBook) {
+            Swal.fire("Error", "This facility is currently not available for booking", "error");
+            return;
+        }
+
         if (!selectedDate || !selectedStartTime || !selectedEndTime || !purpose.trim()) {
             Swal.fire("Error", "Please fill in all booking details", "error");
             return;
@@ -168,7 +214,7 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
             const startDateTime = `${selectedDate}T${selectedStartTime}:00`;
             const endDateTime = `${selectedDate}T${selectedEndTime}:00`;
 
-            const bookingData = {
+            const bookingData: any = {
                 resourceId: resourceId,
                 requestedBy: {
                     userId: user.userId || user.id,
@@ -176,10 +222,16 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
                     email: user.email
                 },
                 purpose: purpose,
-                expectedAttendees: attendees,
                 startTime: startDateTime,
                 endTime: endDateTime
             };
+
+            if (isUtility) {
+                bookingData.quantity = quantity;
+                bookingData.supportNotes = supportNotes;
+            } else {
+                bookingData.expectedAttendees = attendees;
+            }
 
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
             const res = await fetch(`${apiUrl}/api/bookings`, {
@@ -201,6 +253,9 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
             } else if (res.status === 409) {
                 const data = await res.json();
                 Swal.fire("Error", data.message || "Time slot already booked", "error");
+            } else if (res.status === 400) {
+                const data = await res.json();
+                Swal.fire("Error", data.message || "Cannot book this resource", "error");
             } else {
                 Swal.fire("Error", "Failed to create booking", "error");
             }
@@ -215,6 +270,12 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
     const getMinDate = (): string => {
         const today = new Date();
         return today.toISOString().split('T')[0];
+    };
+
+    const isFormValid = (): boolean => {
+        if (!selectedDate || !selectedStartTime || !selectedEndTime || !purpose.trim()) return false;
+        if (!isEndTimeValid()) return false;
+        return true;
     };
 
     if (!isOpen) return null;
@@ -233,17 +294,38 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
 
                 <div className="p-6 space-y-6">
                     <div className="flex flex-wrap gap-3">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
+                            isUtility 
+                                ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' 
+                                : 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
+                        }`}>
                             {formatType(resourceType)}
                         </span>
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
-                            status === "ACTIVE" 
-                                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                                : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                            isOutOfService 
+                                ? "bg-red-500/20 text-red-400 border-red-500/30"
+                                : isAvailable 
+                                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                    : "bg-amber-500/20 text-amber-400 border-amber-500/30"
                         }`}>
-                            {status === "ACTIVE" ? "Available" : status}
+                            {isOutOfService ? "Out of Service" : isAvailable ? "Available" : status}
                         </span>
+                        {isUtility && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border bg-amber-500/20 text-amber-400 border-amber-500/30">
+                                UTILITY
+                            </span>
+                        )}
                     </div>
+
+                    {isOutOfService && (
+                        <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+                            <AlertCircle className="w-6 h-6 text-red-400 shrink-0" />
+                            <div>
+                                <p className="text-red-400 font-semibold">This facility is currently out of service</p>
+                                <p className="text-red-300/70 text-sm">and cannot be booked at the moment.</p>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex items-center text-slate-300">
@@ -253,13 +335,15 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
                                 <p className="font-medium">{getLocationDisplay()}</p>
                             </div>
                         </div>
-                        <div className="flex items-center text-slate-300">
-                            <Users className="w-5 h-5 mr-3 text-slate-500" />
-                            <div>
-                                <p className="text-xs text-slate-500 uppercase">Capacity</p>
-                                <p className="font-medium">{capacity} seats</p>
+                        {!isUtility && (
+                            <div className="flex items-center text-slate-300">
+                                <Users className="w-5 h-5 mr-3 text-slate-500" />
+                                <div>
+                                    <p className="text-xs text-slate-500 uppercase">Capacity</p>
+                                    <p className="font-medium">{capacity} seats</p>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {resource.description && (
@@ -269,7 +353,7 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
                         </div>
                     )}
 
-                    {resource.amenities && resource.amenities.length > 0 && (
+                    {resource.amenities && resource.amenities.length > 0 && !isUtility && (
                         <div>
                             <p className="text-xs text-slate-500 uppercase mb-2">Amenities</p>
                             <div className="flex flex-wrap gap-2">
@@ -282,83 +366,125 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
                         </div>
                     )}
 
-                    <div className="border-t border-slate-700 pt-6">
-                        <h3 className="text-lg font-semibold text-white mb-4">Book this Facility</h3>
-                        
-                        <div className="space-y-4">
+                    {!canBook && !isOutOfService && (
+                        <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                            <AlertCircle className="w-6 h-6 text-amber-400 shrink-0" />
                             <div>
-                                <label className="block text-sm text-slate-400 mb-2">Date</label>
-                                <input
-                                    type="date"
-                                    value={selectedDate}
-                                    onChange={(e) => setSelectedDate(e.target.value)}
-                                    min={getMinDate()}
-                                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm text-slate-400 mb-2">Start Time</label>
-                                    <select
-                                        value={selectedStartTime}
-                                        onChange={(e) => {
-                                            setSelectedStartTime(e.target.value);
-                                            setSelectedEndTime("");
-                                        }}
-                                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer"
-                                    >
-                                        <option value="">Select start</option>
-                                        {TIME_SLOTS.map(time => (
-                                            <option key={time} value={time} disabled={selectedDate && !isSlotAvailable(time)}>
-                                                {time} {selectedDate && !isSlotAvailable(time) ? '(Booked)' : ''}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-slate-400 mb-2">End Time</label>
-                                    <select
-                                        value={selectedEndTime}
-                                        onChange={(e) => setSelectedEndTime(e.target.value)}
-                                        disabled={!selectedStartTime}
-                                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer disabled:opacity-50"
-                                    >
-                                        <option value="">Select end</option>
-                                        {TIME_SLOTS.filter(t => {
-                                            if (!selectedStartTime) return true;
-                                            return parseInt(t.split(':')[0]) > parseInt(selectedStartTime.split(':')[0]);
-                                        }).map(time => (
-                                            <option key={time} value={time}>{time}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm text-slate-400 mb-2">Purpose</label>
-                                <input
-                                    type="text"
-                                    value={purpose}
-                                    onChange={(e) => setPurpose(e.target.value)}
-                                    placeholder="Enter booking purpose"
-                                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm text-slate-400 mb-2">Expected Attendees</label>
-                                <input
-                                    type="number"
-                                    value={attendees}
-                                    onChange={(e) => setAttendees(parseInt(e.target.value) || 1)}
-                                    min={1}
-                                    max={capacity}
-                                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
-                                />
+                                <p className="text-amber-400 font-semibold">This resource is not available for booking</p>
+                                <p className="text-amber-300/70 text-sm">Current status: {status}</p>
                             </div>
                         </div>
-                    </div>
+                    )}
+
+                    {canBook && (
+                        <div className="border-t border-slate-700 pt-6">
+                            <h3 className="text-lg font-semibold text-white mb-4">
+                                {isUtility ? "Book this Utility" : "Book this Facility"}
+                            </h3>
+                            
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm text-slate-400 mb-2">Date</label>
+                                    <input
+                                        type="date"
+                                        value={selectedDate}
+                                        onChange={(e) => setSelectedDate(e.target.value)}
+                                        min={getMinDate()}
+                                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm text-slate-400 mb-2">Start Time</label>
+                                        <select
+                                            value={selectedStartTime}
+                                            onChange={(e) => {
+                                                setSelectedStartTime(e.target.value);
+                                                setSelectedEndTime("");
+                                            }}
+                                            className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer"
+                                        >
+                                            <option value="">Select start</option>
+                                            {TIME_SLOTS.map(time => (
+                                                <option key={time} value={time} disabled={Boolean(selectedDate && !isSlotAvailable(time))}>
+                                                    {time} {selectedDate && !isSlotAvailable(time) ? '(Booked)' : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-slate-400 mb-2">End Time</label>
+                                        <select
+                                            value={selectedEndTime}
+                                            onChange={(e) => setSelectedEndTime(e.target.value)}
+                                            disabled={!selectedStartTime}
+                                            className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer disabled:opacity-50"
+                                        >
+                                            <option value="">Select end</option>
+                                            {TIME_SLOTS.filter(t => {
+                                                if (!selectedStartTime) return true;
+                                                return parseInt(t.split(':')[0]) > parseInt(selectedStartTime.split(':')[0]);
+                                            }).map(time => (
+                                                <option key={time} value={time}>{time}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm text-slate-400 mb-2">
+                                        {isUtility ? "Purpose of Use" : "Purpose"}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={purpose}
+                                        onChange={(e) => setPurpose(e.target.value)}
+                                        placeholder={isUtility ? "Describe how you will use this equipment" : "Enter booking purpose"}
+                                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                                    />
+                                </div>
+
+                                {isUtility ? (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm text-slate-400 mb-2">Quantity Needed</label>
+                                            <input
+                                                type="number"
+                                                value={quantity}
+                                                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                                                min={1}
+                                                max={10}
+                                                className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-slate-400 mb-2">Setup/Support Notes</label>
+                                            <textarea
+                                                value={supportNotes}
+                                                onChange={(e) => setSupportNotes(e.target.value)}
+                                                placeholder="Any special setup requirements or support needed..."
+                                                rows={2}
+                                                className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none resize-none"
+                                            />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div>
+                                        <label className="block text-sm text-slate-400 mb-2">Expected Attendees</label>
+                                        <input
+                                            type="number"
+                                            value={attendees}
+                                            onChange={(e) => setAttendees(parseInt(e.target.value) || 1)}
+                                            min={1}
+                                            max={capacity}
+                                            className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="sticky bottom-0 flex items-center justify-end gap-3 p-6 border-t border-slate-700 bg-slate-800">
@@ -370,13 +496,22 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
                     </button>
                     <button
                         onClick={handleBook}
-                        disabled={isBooking || !selectedDate || !selectedStartTime || !selectedEndTime || !purpose.trim()}
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isBooking || !canBook || !isFormValid()}
+                        className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
+                            canBook 
+                                ? "bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-indigo-500/25 hover:shadow-indigo-500/40"
+                                : "bg-slate-600 text-slate-400 cursor-not-allowed"
+                        }`}
                     >
                         {isBooking ? (
                             <>
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                 Booking...
+                            </>
+                        ) : !canBook ? (
+                            <>
+                                <AlertCircle className="w-5 h-5" />
+                                Not Available
                             </>
                         ) : (
                             <>

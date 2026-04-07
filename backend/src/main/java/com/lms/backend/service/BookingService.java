@@ -4,6 +4,7 @@ import com.lms.backend.model.Booking;
 import com.lms.backend.model.BookingStatusHistory;
 import com.lms.backend.repository.BookingRepository;
 import com.lms.backend.repository.BookingStatusHistoryRepository;
+import com.lms.backend.repository.ResourceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final BookingStatusHistoryRepository historyRepository;
     private final NotificationService notificationService;
+    private final ResourceRepository resourceRepository;
 
     public List<Booking> getAllBookings() {
         return bookingRepository.findAll();
@@ -37,6 +39,16 @@ public class BookingService {
     // Checking overlap correctly is critical
     public Booking createBooking(Booking booking) {
         validateBookingData(booking);
+
+        if (booking.getResourceId() != null) {
+            var resource = resourceRepository.findById(booking.getResourceId());
+            if (resource.isPresent()) {
+                String resourceStatus = resource.get().getStatus();
+                if ("OUT_OF_SERVICE".equals(resourceStatus)) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This resource is currently out of service and cannot be booked");
+                }
+            }
+        }
 
         if (hasConflict(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), null)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Resource is already booked during this time range");
