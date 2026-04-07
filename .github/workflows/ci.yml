@@ -59,4 +59,30 @@ jobs:
           
       - name: Build and Test with Maven
         working-directory: backend
-        run: ./mvnw verify -Dspotbugs.skip=false -Ddependency-check.skip=false
+        # We skip dependency-check here to keep the main build fast (under 3-5 mins)
+        run: ./mvnw verify -Dspotbugs.skip=false -Ddependency-check.skip=true
+
+  backend-security-scan:
+    name: Backend Security Scan (Parallel)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Cache Dependency Check Data
+        uses: actions/cache@v4
+        with:
+          path: backend/dependency-check-data
+          key: ${{ runner.os }}-dep-check-${{ hashFiles('backend/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-dep-check-
+
+      - name: Run OWASP Dependency Check
+        working-directory: backend
+        run: ./mvnw dependency-check:check -Ddependency-check.skip=false
