@@ -6,6 +6,7 @@ import com.lms.backend.model.BookingStatusHistory;
 import com.lms.backend.repository.BookingRepository;
 import com.lms.backend.repository.BookingStatusHistoryRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -23,12 +24,47 @@ public class BookingService {
     private final BookingStatusHistoryRepository historyRepository;
     private final NotificationService notificationService;
 
-    public List<Booking> getAllBookings() {
-        return bookingRepository.findAll();
+    public List<Booking> getAllBookings(String userId, String status, String sortBy, String sortDir) {
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        String sortField = validateSortBy(sortBy);
+        Sort sort = Sort.by(direction, sortField);
+        
+        if (userId != null && !userId.isEmpty()) {
+            if (status != null && !status.isEmpty() && !"all".equalsIgnoreCase(status)) {
+                return bookingRepository.findByRequestedByUserIdAndStatus(userId, status.toUpperCase(), sort);
+            }
+            return bookingRepository.findByRequestedByUserId(userId, sort);
+        }
+        
+        if (status != null && !status.isEmpty() && !"all".equalsIgnoreCase(status)) {
+            return bookingRepository.findByStatus(status.toUpperCase(), sort);
+        }
+        
+        return bookingRepository.findAll(sort);
     }
 
-    public List<Booking> getUserBookings(String userId) {
-        return bookingRepository.findByRequestedByUserId(userId);
+    public List<Booking> getUserBookings(String userId, String status, String sortBy, String sortDir) {
+        return getAllBookings(userId, status, sortBy, sortDir);
+    }
+
+    private String validateSortBy(String sortBy) {
+        if (sortBy == null || sortBy.isEmpty()) {
+            return "createdAt";
+        }
+        switch (sortBy.toLowerCase()) {
+            case "starttime":
+                return "startTime";
+            case "endtime":
+                return "endTime";
+            case "status":
+                return "status";
+            case "createdat":
+                return "createdAt";
+            case "updatedat":
+                return "updatedAt";
+            default:
+                return "createdAt";
+        }
     }
 
     // Checking overlap correctly is critical

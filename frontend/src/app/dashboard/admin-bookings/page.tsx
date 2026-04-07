@@ -8,6 +8,8 @@ export default function AdminBookings() {
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [resources, setResources] = useState<any[]>([]);
+    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+    const [statusFilter, setStatusFilter] = useState<string>('all');
 
     const fetchResources = async () => {
         try {
@@ -31,7 +33,16 @@ export default function AdminBookings() {
         setLoading(true);
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-            const res = await fetch(`${apiUrl}/api/bookings`, { credentials: "include" });
+            const currentSortDir = sortOrder === 'newest' ? 'desc' : 'asc';
+            const params = new URLSearchParams({
+                sortBy: 'createdAt',
+                sortDir: currentSortDir
+            });
+            if (statusFilter !== 'all') {
+                params.append('status', statusFilter);
+            }
+            const url = `${apiUrl}/api/bookings?${params.toString()}`;
+            const res = await fetch(url, { credentials: "include" });
             if (res.ok) {
                 const data = await res.json();
                 setBookings(data);
@@ -81,6 +92,10 @@ export default function AdminBookings() {
         loadUser();
         fetchResources();
     }, []);
+
+    useEffect(() => {
+        fetchBookings();
+    }, [sortOrder, statusFilter]);
 
     const processStatusChange = async (id: string, status: string, reason: string) => {
         try {
@@ -200,14 +215,59 @@ export default function AdminBookings() {
                 </h1>
                 <button 
                     onClick={fetchBookings}
-                    className="px-4 py-2 bg-slate-800 border border-slate-700 hover:border-emerald-500 rounded-xl transition-all"
+                    className="p-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg transition-colors"
+                    title="Refresh"
                 >
-                    Refresh
+                    <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                 </button>
             </div>
 
+            <div className="flex flex-wrap items-center gap-4 mb-6 p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                <div className="flex items-center gap-2">
+                    <label className="text-sm text-slate-400">Status:</label>
+                    <select 
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    >
+                        <option value="all">All</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="APPROVED">Approved</option>
+                        <option value="REJECTED">Rejected</option>
+                        <option value="CANCELLED">Cancelled</option>
+                    </select>
+                </div>
+                <div className="flex items-center gap-2">
+                    <label className="text-sm text-slate-400">Sort by:</label>
+                    <select 
+                        value={sortOrder}
+                        onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                        className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    >
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                    </select>
+                </div>
+                <div className="ml-auto text-sm text-slate-400">
+                    {bookings.length} booking{bookings.length !== 1 ? 's' : ''}
+                </div>
+            </div>
+
             {loading ? (
-                <div className="text-center text-slate-400 py-10">Loading all bookings...</div>
+                <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="animate-pulse bg-slate-800/30 rounded-xl p-4 border border-slate-700/50">
+                            <div className="flex items-center gap-4">
+                                <div className="w-32 h-6 bg-slate-700 rounded"></div>
+                                <div className="w-24 h-6 bg-slate-700 rounded"></div>
+                                <div className="w-40 h-6 bg-slate-700 rounded"></div>
+                                <div className="w-28 h-6 bg-slate-700 rounded ml-auto"></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             ) : (
                 <div className="glass-card rounded-2xl overflow-hidden border border-slate-700/50">
                     <div className="overflow-x-auto">

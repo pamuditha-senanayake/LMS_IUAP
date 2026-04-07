@@ -8,12 +8,24 @@ export default function MyBookings() {
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [resources, setResources] = useState<any[]>([]);
+    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+    const [statusFilter, setStatusFilter] = useState<string>('all');
 
     const fetchBookings = async (userId: string) => {
         setLoading(true);
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-            const res = await fetch(`${apiUrl}/api/bookings?userId=${userId}`, { credentials: "include" });
+            const currentSortDir = sortOrder === 'newest' ? 'desc' : 'asc';
+            const params = new URLSearchParams({
+                userId: userId,
+                sortBy: 'createdAt',
+                sortDir: currentSortDir
+            });
+            if (statusFilter !== 'all') {
+                params.append('status', statusFilter);
+            }
+            const url = `${apiUrl}/api/bookings?${params.toString()}`;
+            const res = await fetch(url, { credentials: "include" });
             if (res.ok) {
                 const data = await res.json();
                 setBookings(data);
@@ -65,6 +77,12 @@ export default function MyBookings() {
         loadUser();
         fetchResources();
     }, []);
+
+    useEffect(() => {
+        if (currentUser?.id) {
+            fetchBookings(currentUser.id);
+        }
+    }, [sortOrder, statusFilter]);
 
     const handleAdd = (prefillData?: any, currentAttempt: number = 0) => {
         const defaultResourceId = prefillData?.resourceId || "";
@@ -377,16 +395,69 @@ export default function MyBookings() {
                 <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-pink-500">
                     My Bookings
                 </h1>
-                <button 
-                    onClick={() => handleAdd()}
-                    className="px-6 py-2 bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-400 hover:to-pink-400 shadow-lg shadow-indigo-500/25 rounded-xl font-semibold transition-all"
-                >
-                    + Request Booking
-                </button>
+                <div className="flex items-center gap-3">
+                    <button 
+                        onClick={() => currentUser?.id && fetchBookings(currentUser.id)}
+                        className="p-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg transition-colors"
+                        title="Refresh"
+                    >
+                        <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </button>
+                    <button 
+                        onClick={() => handleAdd()}
+                        className="px-6 py-2 bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-400 hover:to-pink-400 shadow-lg shadow-indigo-500/25 rounded-xl font-semibold transition-all"
+                    >
+                        + Request Booking
+                    </button>
+                </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 mb-6 p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                <div className="flex items-center gap-2">
+                    <label className="text-sm text-slate-400">Status:</label>
+                    <select 
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                        <option value="all">All</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="APPROVED">Approved</option>
+                        <option value="REJECTED">Rejected</option>
+                        <option value="CANCELLED">Cancelled</option>
+                    </select>
+                </div>
+                <div className="flex items-center gap-2">
+                    <label className="text-sm text-slate-400">Sort by:</label>
+                    <select 
+                        value={sortOrder}
+                        onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                        className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                    </select>
+                </div>
+                <div className="ml-auto text-sm text-slate-400">
+                    {bookings.length} booking{bookings.length !== 1 ? 's' : ''}
+                </div>
             </div>
 
             {loading ? (
-                <div className="text-center text-slate-400 py-10">Loading bookings...</div>
+                <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="animate-pulse bg-slate-800/30 rounded-xl p-4 border border-slate-700/50">
+                            <div className="flex items-center gap-4">
+                                <div className="w-32 h-6 bg-slate-700 rounded"></div>
+                                <div className="w-48 h-6 bg-slate-700 rounded"></div>
+                                <div className="w-40 h-6 bg-slate-700 rounded"></div>
+                                <div className="w-20 h-6 bg-slate-700 rounded ml-auto"></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             ) : (
                 <div className="glass-card rounded-2xl overflow-hidden border border-slate-700/50">
                     <div className="overflow-x-auto">
@@ -423,6 +494,7 @@ export default function MyBookings() {
                                                 <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${
                                                     b.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                                                     b.status === 'REJECTED' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                                    b.status === 'CANCELLED' ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' :
                                                     'bg-amber-500/10 text-amber-400 border-amber-500/20'
                                                 }`}>
                                                     {b.status || 'PENDING'}
@@ -448,6 +520,11 @@ export default function MyBookings() {
                                                 {b.status === "REJECTED" && (
                                                     <div className="text-xs text-red-400 mt-1 max-w-[150px] truncate ml-auto" title={b.rejectionReason}>
                                                         Reason: {b.rejectionReason}
+                                                    </div>
+                                                )}
+                                                {b.status === "CANCELLED" && (
+                                                    <div className="text-xs text-slate-400 mt-1 ml-auto">
+                                                        Cancelled
                                                     </div>
                                                 )}
                                             </td>
