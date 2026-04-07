@@ -220,9 +220,27 @@ export default function AdminBookings() {
     const handleCancel = (id: string, name: string) => {
         Swal.fire({
             title: `Cancel booking for ${name}?`,
-            text: "This will cancel the approved booking. The user will be notified.",
-            input: 'textarea',
-            inputPlaceholder: 'Optional reason for cancellation...',
+            html: `
+                <div class="text-left space-y-3">
+                    <p class="text-slate-300 text-sm mb-3">This will cancel the approved booking. The user will be notified.</p>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Reason for Cancellation</label>
+                        <select id="swal-cancel-reason" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent">
+                            <option value="">Select a reason...</option>
+                            <option value="Resource no longer available">Resource no longer available</option>
+                            <option value="Emergency maintenance">Emergency maintenance</option>
+                            <option value="Schedule conflict">Schedule conflict</option>
+                            <option value="User request">User request</option>
+                            <option value="No show">No show</option>
+                            <option value="Other">Other (specify below)</option>
+                        </select>
+                    </div>
+                    <div id="swal-other-reason-container" class="hidden">
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Specify Reason</label>
+                        <input id="swal-other-reason" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent" placeholder="Enter reason...">
+                    </div>
+                </div>
+            `,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#64748b',
@@ -230,9 +248,39 @@ export default function AdminBookings() {
             confirmButtonText: 'Cancel Booking',
             background: '#1e293b',
             color: '#fff',
+            didOpen: () => {
+                const reasonSelect = document.getElementById('swal-cancel-reason') as HTMLSelectElement;
+                const otherContainer = document.getElementById('swal-other-reason-container');
+                reasonSelect?.addEventListener('change', function() {
+                    if (this.value === 'Other') {
+                        otherContainer?.classList.remove('hidden');
+                    } else {
+                        otherContainer?.classList.add('hidden');
+                    }
+                });
+            },
+            preConfirm: () => {
+                const reasonSelect = document.getElementById('swal-cancel-reason') as HTMLSelectElement;
+                const otherInput = document.getElementById('swal-other-reason') as HTMLInputElement;
+                
+                if (!reasonSelect?.value) {
+                    Swal.showValidationMessage('Please select a reason for cancellation');
+                    return false;
+                }
+                
+                let finalReason = reasonSelect.value;
+                if (reasonSelect.value === 'Other' && otherInput?.value) {
+                    finalReason = otherInput.value;
+                } else if (reasonSelect.value === 'Other' && !otherInput?.value) {
+                    Swal.showValidationMessage('Please specify the reason');
+                    return false;
+                }
+                
+                return finalReason;
+            }
         }).then((result) => {
-            if (result.isConfirmed) {
-                processStatusChange(id, "CANCELLED", result.value || "Cancelled by admin");
+            if (result.isConfirmed && result.value) {
+                processStatusChange(id, "CANCELLED", result.value);
             }
         });
     };
