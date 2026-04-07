@@ -174,15 +174,27 @@ export default function AdminBookings() {
     const handleReject = (id: string, name: string) => {
         Swal.fire({
             title: `Reject booking for ${name}?`,
-            text: "Please provide a reason for rejection.",
-            input: 'textarea',
-            inputPlaceholder: 'Enter reason for rejection...',
-            inputValidator: (value) => {
-                if (!value || value.trim() === '') {
-                    return 'Please enter a reason for rejection';
-                }
-                return null;
-            },
+            html: `
+                <div class="text-left space-y-3">
+                    <p class="text-slate-300 text-sm mb-3">Please select a reason for rejection.</p>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Reason for Rejection</label>
+                        <select id="swal-reject-reason" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent">
+                            <option value="">Select a reason...</option>
+                            <option value="Resource not available">Resource not available</option>
+                            <option value="Insufficient capacity">Insufficient capacity</option>
+                            <option value="Invalid booking time">Invalid booking time</option>
+                            <option value="Duplicate booking">Duplicate booking</option>
+                            <option value="Policy violation">Policy violation</option>
+                            <option value="Other">Other (specify below)</option>
+                        </select>
+                    </div>
+                    <div id="swal-other-reject-container" class="hidden">
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Specify Reason</label>
+                        <input id="swal-other-reject" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent" placeholder="Enter reason...">
+                    </div>
+                </div>
+            `,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
@@ -190,6 +202,36 @@ export default function AdminBookings() {
             confirmButtonText: 'Reject',
             background: '#1e293b',
             color: '#fff',
+            didOpen: () => {
+                const reasonSelect = document.getElementById('swal-reject-reason') as HTMLSelectElement;
+                const otherContainer = document.getElementById('swal-other-reject-container');
+                reasonSelect?.addEventListener('change', function() {
+                    if (this.value === 'Other') {
+                        otherContainer?.classList.remove('hidden');
+                    } else {
+                        otherContainer?.classList.add('hidden');
+                    }
+                });
+            },
+            preConfirm: () => {
+                const reasonSelect = document.getElementById('swal-reject-reason') as HTMLSelectElement;
+                const otherInput = document.getElementById('swal-other-reject') as HTMLInputElement;
+                
+                if (!reasonSelect?.value) {
+                    Swal.showValidationMessage('Please select a reason for rejection');
+                    return false;
+                }
+                
+                let finalReason = reasonSelect.value;
+                if (reasonSelect.value === 'Other' && otherInput?.value) {
+                    finalReason = otherInput.value;
+                } else if (reasonSelect.value === 'Other' && !otherInput?.value) {
+                    Swal.showValidationMessage('Please specify the reason');
+                    return false;
+                }
+                
+                return finalReason;
+            }
         }).then((result) => {
             if (result.isConfirmed && result.value) {
                 processStatusChange(id, "REJECTED", result.value);
