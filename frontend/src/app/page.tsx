@@ -246,7 +246,7 @@ export default function Home() {
                                         <Bell size={24} />
                                     </div>
                                     <h4 className="text-white font-bold mb-1">All Caught Up!</h4>
-                                    <p className="text-sm text-slate-500">You don't have any recent notifications.</p>
+                                    <p className="text-sm text-slate-500">You don&apos;t have any recent notifications.</p>
                                 </div>
                             )}
                         </div>
