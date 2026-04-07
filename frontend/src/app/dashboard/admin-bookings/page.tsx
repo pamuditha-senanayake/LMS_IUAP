@@ -213,6 +213,26 @@ export default function AdminBookings() {
         });
     };
 
+    const handleCancel = (id: string, name: string) => {
+        Swal.fire({
+            title: `Cancel booking for ${name}?`,
+            text: "This will cancel the approved booking. The user will be notified.",
+            input: 'textarea',
+            inputPlaceholder: 'Optional reason for cancellation...',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#64748b',
+            cancelButtonColor: '#6366f1',
+            confirmButtonText: 'Cancel Booking',
+            background: '#1e293b',
+            color: '#fff',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                processStatusChange(id, "CANCELLED", result.value || "Cancelled by admin");
+            }
+        });
+    };
+
     return (
         <div className="p-6 text-white max-w-6xl mx-auto">
             <div className="flex justify-between items-center mb-10">
@@ -345,7 +365,15 @@ export default function AdminBookings() {
                                                     </div>
                                                 )}
                                                 {b.status === "APPROVED" && (
-                                                    <span className="text-xs text-emerald-400">Approved</span>
+                                                    <div className="flex justify-end gap-2 items-center">
+                                                        <span className="text-xs text-emerald-400">Approved</span>
+                                                        <button 
+                                                            onClick={() => handleCancel(b.id, b.requestedBy?.name)}
+                                                            className="px-3 py-1.5 text-sm font-medium bg-slate-700/50 hover:bg-red-500 hover:text-white text-slate-300 rounded-lg transition-colors"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
                                                 )}
                                                 {b.status === "REJECTED" && (
                                                     <div className="text-xs text-red-400 max-w-[150px] truncate" title={b.rejectionReason}>
