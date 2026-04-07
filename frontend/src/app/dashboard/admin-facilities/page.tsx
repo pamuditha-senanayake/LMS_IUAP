@@ -11,10 +11,20 @@ export default function AdminFacilities() {
         setLoading(true);
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-            const res = await fetch(`${apiUrl}/api/facilities/resources`, { credentials: "include" });
+            const res = await fetch(`${apiUrl}/api/resources`, { credentials: "include" });
             if (res.ok) {
                 const data = await res.json();
-                setResources(data.reverse()); // latest first
+                const transformed = data.reverse().map((r: any) => ({
+                    ...r,
+                    resourceName: r.resourceName || r.name,
+                    resourceType: r.resourceType || r.type,
+                    location: r.location || {
+                        campusName: r.campusName || "",
+                        buildingName: r.building || "",
+                        roomNumber: r.roomNumber || ""
+                    }
+                }));
+                setResources(transformed);
             }
         } catch (err) {
             Swal.fire("Error", "Network error while loading facilities.", "error");
@@ -42,7 +52,7 @@ export default function AdminFacilities() {
             if (result.isConfirmed) {
                 try {
                     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-                    const res = await fetch(`${apiUrl}/api/facilities/resources/${id}`, {
+                    const res = await fetch(`${apiUrl}/api/resources/${id}`, {
                         method: "DELETE",
                         credentials: "include"
                     });
@@ -114,7 +124,7 @@ export default function AdminFacilities() {
             if (result.isConfirmed) {
                 try {
                     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-                    const res = await fetch(`${apiUrl}/api/facilities/resources`, {
+                    const res = await fetch(`${apiUrl}/api/resources`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         credentials: "include",
@@ -133,14 +143,20 @@ export default function AdminFacilities() {
 
     const handleToggleStatus = async (resource: any) => {
         const newStatus = resource.status === "ACTIVE" ? "OUT_OF_SERVICE" : "ACTIVE";
+        const payload = {
+            ...resource,
+            status: newStatus,
+            type: resource.resourceType || resource.type,
+            category: resource.category || (resource.type?.startsWith("PROJECTOR") || resource.type?.startsWith("SOUND") || resource.type?.startsWith("MICROPHONE") || resource.type?.startsWith("WHITEBOARD") || resource.type?.startsWith("FLAGS") || resource.type?.startsWith("OTHER") ? "UTILITY" : "FACILITY"),
+        };
+        delete (payload as any).resourceType;
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-            const updatePayload = { ...resource, status: newStatus };
-            const res = await fetch(`${apiUrl}/api/facilities/resources/${resource.id}`, {
+            const res = await fetch(`${apiUrl}/api/resources/${resource.id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify(updatePayload)
+                body: JSON.stringify(payload)
             });
             if (res.ok) fetchResources();
         } catch (e) {}
