@@ -66,7 +66,13 @@ export default function MyBookings() {
         fetchResources();
     }, []);
 
-    const handleAdd = () => {
+    const handleAdd = (prefillData?: any, currentAttempt: number = 0) => {
+        const defaultResourceId = prefillData?.resourceId || "";
+        const defaultPurpose = prefillData?.purpose || "";
+        const defaultAttendees = prefillData?.expectedAttendees || "";
+        const defaultStart = prefillData?.startTime ? prefillData.startTime.substring(0, 16) : "";
+        const defaultEnd = prefillData?.endTime ? prefillData.endTime.substring(0, 16) : "";
+
         Swal.fire({
             title: 'Request Booking',
             html: `
@@ -75,28 +81,28 @@ export default function MyBookings() {
                         <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Resource</label>
                         <select id="swal-resource" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all cursor-pointer">
                             <option value="">Select resource...</option>
-                            ${resources.map(r => `<option value="${r.id}">${r.resourceName} (${r.type || 'General'})</option>`).join('')}
+                            ${resources.map(r => `<option value="${r.id}" ${r.id === defaultResourceId ? 'selected' : ''}>${r.resourceName} (${r.type || 'General'})</option>`).join('')}
                         </select>
                     </div>
                     
                     <div>
                         <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Purpose</label>
-                        <input id="swal-purpose" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" placeholder="Annual General Meeting">
+                        <input id="swal-purpose" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" placeholder="Annual General Meeting" value="${defaultPurpose}">
                     </div>
                     
                     <div>
                         <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Expected Attendees</label>
-                        <input id="swal-attendees" type="number" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" placeholder="100">
+                        <input id="swal-attendees" type="number" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" placeholder="100" value="${defaultAttendees}">
                     </div>
                     
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Start Time</label>
-                            <input id="swal-start" type="datetime-local" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
+                            <input id="swal-start" type="datetime-local" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" value="${defaultStart}">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">End Time</label>
-                            <input id="swal-end" type="datetime-local" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
+                            <input id="swal-end" type="datetime-local" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" value="${defaultEnd}">
                         </div>
                     </div>
                 </div>
@@ -166,24 +172,58 @@ export default function MyBookings() {
                         } catch {
                             errorMsg = await res.text() || errorMsg;
                         }
+                        const newAttempt = currentAttempt + 1;
+                        
+                        if (newAttempt < 2) {
+                            Swal.fire({ 
+                                title: "Booking Failed", 
+                                html: `<div class="text-slate-300 mb-3">${errorMsg}</div><div class="text-sm text-amber-400">Attempts: ${newAttempt}/2. You can retry to edit your data.</div>`,
+                                icon: "error", 
+                                background: '#1e293b', 
+                                color: '#fff',
+                                confirmButtonColor: '#f59e0b',
+                                confirmButtonText: 'Edit & Retry'
+                            }).then(() => {
+                                handleAdd(result.value, newAttempt);
+                            });
+                        } else {
+                            Swal.fire({ 
+                                title: "Booking Failed", 
+                                html: `<div class="text-slate-300">${errorMsg}</div>`,
+                                icon: "error", 
+                                background: '#1e293b', 
+                                color: '#fff',
+                                confirmButtonColor: '#ef4444',
+                                showCancelButton: false
+                            });
+                        }
+                    }
+                } catch (err) {
+                    const newAttempt = currentAttempt + 1;
+                    
+                    if (newAttempt < 2) {
                         Swal.fire({ 
-                            title: "Booking Failed", 
-                            html: `<div class="text-slate-300">${errorMsg}</div>`,
+                            title: "Network Error", 
+                            html: `<div class="text-slate-300 mb-3">Unable to connect to the server. Please check your connection.</div><div class="text-sm text-amber-400">Attempts: ${newAttempt}/2. You can retry to edit your data.</div>`,
                             icon: "error", 
                             background: '#1e293b', 
                             color: '#fff',
-                            confirmButtonColor: '#ef4444'
+                            confirmButtonColor: '#f59e0b',
+                            confirmButtonText: 'Edit & Retry'
+                        }).then(() => {
+                            handleAdd(result.value, newAttempt);
+                        });
+                    } else {
+                        Swal.fire({ 
+                            title: "Network Error", 
+                            text: "Unable to connect to the server. Maximum retry attempts reached.",
+                            icon: "error", 
+                            background: '#1e293b', 
+                            color: '#fff',
+                            confirmButtonColor: '#ef4444',
+                            showCancelButton: false
                         });
                     }
-                } catch (err) {
-                    Swal.fire({ 
-                        title: "Network Error", 
-                        text: "Unable to connect to the server. Please check your connection.",
-                        icon: "error", 
-                        background: '#1e293b', 
-                        color: '#fff',
-                        confirmButtonColor: '#ef4444'
-                    });
                 }
             }
         });
@@ -338,7 +378,7 @@ export default function MyBookings() {
                     My Bookings
                 </h1>
                 <button 
-                    onClick={handleAdd}
+                    onClick={() => handleAdd()}
                     className="px-6 py-2 bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-400 hover:to-pink-400 shadow-lg shadow-indigo-500/25 rounded-xl font-semibold transition-all"
                 >
                     + Request Booking
