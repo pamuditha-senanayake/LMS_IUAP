@@ -1,5 +1,6 @@
 package com.lms.backend.service;
 
+import com.lms.backend.enums.ResourceStatus;
 import com.lms.backend.model.Booking;
 import com.lms.backend.model.BookingStatusHistory;
 import com.lms.backend.repository.BookingRepository;
@@ -43,8 +44,8 @@ public class BookingService {
         if (booking.getResourceId() != null) {
             var resource = resourceRepository.findById(booking.getResourceId());
             if (resource.isPresent()) {
-                String resourceStatus = resource.get().getStatus();
-                if ("OUT_OF_SERVICE".equals(resourceStatus)) {
+                ResourceStatus resourceStatus = resource.get().getStatus();
+                if (ResourceStatus.OUT_OF_SERVICE.equals(resourceStatus)) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This resource is currently out of service and cannot be booked");
                 }
             }
