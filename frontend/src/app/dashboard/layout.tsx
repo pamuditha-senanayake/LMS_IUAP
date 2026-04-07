@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Building, BookOpen, Ticket, Bell, Users, LogOut } from "lucide-react";
+import { LayoutDashboard, Building, BookOpen, Ticket, Bell, Users, LogOut, BarChart3 } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -42,6 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (isAdmin) {
         navLinks.push({ name: "User Management", path: "/dashboard/users", icon: Users });
         navLinks.push({ name: "Admin Tickets", path: "/dashboard/admin-tickets", icon: Ticket });
+        navLinks.push({ name: "Ticket Statistics", path: "/dashboard/ticket-statistics", icon: BarChart3 });
         navLinks.push({ name: "Admin Facilities", path: "/dashboard/admin-facilities", icon: Building });
     }
 
