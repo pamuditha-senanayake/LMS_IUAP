@@ -10,6 +10,7 @@ export default function MyBookings() {
     const [resources, setResources] = useState<any[]>([]);
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
     const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [submitting, setSubmitting] = useState(false);
 
     const fetchBookings = async (userId: string) => {
         setLoading(true);
@@ -264,10 +265,17 @@ export default function MyBookings() {
             `,
             focusConfirm: false,
             showCancelButton: true,
+            confirmButtonText: submitting ? 'Updating...' : 'Save Changes',
             confirmButtonColor: '#6366f1',
             cancelButtonColor: '#ec4899',
             background: '#1e293b',
             color: '#fff',
+            didOpen: () => {
+                const confirmBtn = Swal.getConfirmButton();
+                if (confirmBtn) {
+                    confirmBtn.disabled = submitting;
+                }
+            },
             preConfirm: () => {
                 return {
                     purpose: (document.getElementById('swal-purpose') as HTMLInputElement).value,
@@ -278,6 +286,7 @@ export default function MyBookings() {
             }
         }).then(async (result) => {
             if (result.isConfirmed) {
+                setSubmitting(true);
                 try {
                     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
                     const res = await fetch(`${apiUrl}/api/bookings/${booking.id}`, {
@@ -323,6 +332,8 @@ export default function MyBookings() {
                         color: '#fff',
                         confirmButtonColor: '#ef4444'
                     });
+                } finally {
+                    setSubmitting(false);
                 }
             }
         });
@@ -505,9 +516,14 @@ export default function MyBookings() {
                                                     <div className="flex justify-end gap-2">
                                                         <button 
                                                             onClick={() => handleEdit(b)}
-                                                            className="px-3 py-1.5 text-sm font-medium bg-slate-700 hover:bg-indigo-500 hover:text-white text-slate-200 rounded-lg transition-colors"
+                                                            disabled={submitting}
+                                                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                                                                submitting 
+                                                                    ? 'bg-slate-600 text-slate-400 cursor-not-allowed' 
+                                                                    : 'bg-slate-700 hover:bg-indigo-500 hover:text-white text-slate-200'
+                                                            }`}
                                                         >
-                                                            Edit
+                                                            {submitting ? 'Updating...' : 'Edit'}
                                                         </button>
                                                         <button 
                                                             onClick={() => handleDelete(b.id)}
