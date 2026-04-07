@@ -252,24 +252,43 @@ export default function MyBookings() {
         Swal.fire({
             title: 'Edit Booking Request',
             html: `
-                <div class="flex flex-col gap-3 text-left">
-                    <label class="text-sm text-slate-300">Purpose</label>
-                    <input id="swal-purpose" class="swal2-input !w-11/12 !mx-auto" value="${booking.purpose}">
-                    <label class="text-sm text-slate-300">Expected Attendees</label>
-                    <input id="swal-attendees" type="number" class="swal2-input !w-11/12 !mx-auto" value="${booking.expectedAttendees}">
-                    <label class="text-sm text-slate-300">Start Time</label>
-                    <input id="swal-start" type="datetime-local" class="swal2-input !w-11/12 !mx-auto" value="${booking.startTime ? booking.startTime.substring(0, 16) : ''}">
-                    <label class="text-sm text-slate-300">End Time</label>
-                    <input id="swal-end" type="datetime-local" class="swal2-input !w-11/12 !mx-auto" value="${booking.endTime ? booking.endTime.substring(0, 16) : ''}">
+                <div class="space-y-4 text-left">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Purpose</label>
+                        <input id="swal-purpose" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" value="${booking.purpose}">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Expected Attendees</label>
+                        <input id="swal-attendees" type="number" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" value="${booking.expectedAttendees}">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Start Time</label>
+                            <input id="swal-start" type="datetime-local" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" value="${booking.startTime ? booking.startTime.substring(0, 16) : ''}">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">End Time</label>
+                            <input id="swal-end" type="datetime-local" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" value="${booking.endTime ? booking.endTime.substring(0, 16) : ''}">
+                        </div>
+                    </div>
                 </div>
             `,
             focusConfirm: false,
             showCancelButton: true,
             confirmButtonText: submitting ? 'Updating...' : 'Save Changes',
             confirmButtonColor: '#6366f1',
-            cancelButtonColor: '#ec4899',
-            background: '#1e293b',
+            cancelButtonColor: '#475569',
+            cancelButtonText: 'Cancel',
+            background: '#0f172a',
             color: '#fff',
+            buttonsStyling: false,
+            customClass: {
+                popup: 'rounded-xl border border-slate-700',
+                confirmButton: 'px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg transition-colors shadow-lg shadow-indigo-500/20 mr-3',
+                cancelButton: 'px-6 py-2.5 bg-transparent hover:bg-slate-700 text-slate-300 font-medium rounded-lg border border-slate-600 transition-colors'
+            },
             didOpen: () => {
                 const confirmBtn = Swal.getConfirmButton();
                 if (confirmBtn) {
