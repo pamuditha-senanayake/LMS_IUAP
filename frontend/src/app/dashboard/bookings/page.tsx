@@ -308,7 +308,8 @@ export default function MyBookings() {
                 setSubmitting(true);
                 try {
                     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-                    const res = await fetch(`${apiUrl}/api/bookings/${booking.id}`, {
+                    const url = `${apiUrl}/api/bookings/${booking.id}?userId=${currentUser.id}`;
+                    const res = await fetch(url, {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
                         credentials: "include",
@@ -373,7 +374,8 @@ export default function MyBookings() {
             if (result.isConfirmed) {
                 try {
                     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-                    const res = await fetch(`${apiUrl}/api/bookings/${id}`, {
+                    const url = `${apiUrl}/api/bookings/${id}?userId=${currentUser.id}`;
+                    const res = await fetch(url, {
                         method: "DELETE",
                         credentials: "include"
                     });

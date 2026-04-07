@@ -1,6 +1,7 @@
 package com.lms.backend.controller;
 
 import com.lms.backend.model.Booking;
+import com.lms.backend.model.BookingStatusHistory;
 import com.lms.backend.service.BookingService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,13 +48,19 @@ public class BookingController {
     @PutMapping("/{bookingId}")
     public ResponseEntity<Booking> updateBooking(
             @PathVariable String bookingId,
+            @RequestParam String userId,
             @Valid @RequestBody Booking booking) {
-        return ResponseEntity.ok(bookingService.updateBooking(bookingId, booking));
+        return ResponseEntity.ok(bookingService.updateBooking(bookingId, booking, userId));
     }
 
     @DeleteMapping("/{bookingId}")
-    public ResponseEntity<?> deleteBooking(@PathVariable String bookingId) {
-        bookingService.deleteBooking(bookingId);
+    public ResponseEntity<?> deleteBooking(@PathVariable String bookingId, @RequestParam String userId) {
+        bookingService.deleteBooking(bookingId, userId);
         return ResponseEntity.ok("Booking deleted successfully");
+    }
+
+    @GetMapping("/{bookingId}/history")
+    public ResponseEntity<List<BookingStatusHistory>> getBookingHistory(@PathVariable String bookingId) {
+        return ResponseEntity.ok(bookingService.getBookingHistory(bookingId));
     }
 }

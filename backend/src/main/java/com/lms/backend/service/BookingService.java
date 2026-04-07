@@ -165,9 +165,14 @@ public class BookingService {
         return updatedBooking;
     }
 
-    public Booking updateBooking(String bookingId, Booking update) {
+    public Booking updateBooking(String bookingId, Booking update, String userId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+        
+        // IDOR Protection: Verify ownership
+        if (booking.getRequestedBy() == null || !booking.getRequestedBy().getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only modify your own bookings");
+        }
         
         if (!"PENDING".equals(booking.getStatus())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can only update pending bookings");
@@ -200,12 +205,29 @@ public class BookingService {
         return bookingRepository.save(booking);
     }
 
-    public void deleteBooking(String bookingId) {
+    public void deleteBooking(String bookingId, String userId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+        
+        // IDOR Protection: Verify ownership
+        if (booking.getRequestedBy() == null || !booking.getRequestedBy().getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only delete your own bookings");
+        }
+        
+        // Only allow delete if PENDING
+        if (!"PENDING".equals(booking.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can only delete pending bookings");
+        }
+        
+        historyRepository.deleteById(bookingId);
+        bookingRepository.deleteById(bookingId);
+    }
+
+    public List<BookingStatusHistory> getBookingHistory(String bookingId) {
         if (!bookingRepository.existsById(bookingId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found");
         }
-        historyRepository.deleteById(bookingId); // Try to clear history if bound by FK logic, but since it's mongodb just leave it or clean manually. We'll simply let it drop.
-        bookingRepository.deleteById(bookingId);
+        return historyRepository.findByBookingIdOrderByChangedAtAsc(bookingId);
     }
 
     private void validateBookingData(Booking booking) {
