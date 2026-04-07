@@ -1,4 +1,4 @@
-package com.lms.backend.model;
+package com.lms.backend.dto;
 
 import com.lms.backend.enums.ResourceCategory;
 import com.lms.backend.enums.ResourceStatus;
@@ -6,10 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,62 +14,37 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "resources")
-public class Resource {
+public class ResourceResponseDto {
     
-    @Id
     private String id;
-    
     private String resourceCode;
-    
-    @Builder.Default
-    private ResourceCategory category = ResourceCategory.FACILITY;
-    
+    private ResourceCategory category;
     private String type;
-    
-    @Builder.Default
-    private ResourceStatus status = ResourceStatus.ACTIVE;
-    
+    private ResourceStatus status;
     private String resourceName;
-    
     private String description;
-    
     private String campusName;
-    
     private String building;
-    
     private String roomNumber;
-    
     private Integer capacity;
-    
     private String storageLocation;
-    
     private String customType;
-    
     private List<String> amenities;
-    
     private String availableFrom;
-    
     private String availableTo;
-    
-    private List<AvailabilityWindow> availabilityWindows;
-    
+    private List<AvailabilityWindowDto> availabilityWindows;
     private Boolean requiresAttendanceCount;
-
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class AvailabilityWindow {
+    public static class AvailabilityWindowDto {
         private Integer dayOfWeek;
         private String startTime;
         private String endTime;
         private Boolean isAvailable;
     }
-    
-    @CreatedDate
-    private LocalDateTime createdAt;
-    
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
 }

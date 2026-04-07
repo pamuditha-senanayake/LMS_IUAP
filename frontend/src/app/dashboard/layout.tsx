@@ -35,14 +35,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const navLinks = [
         { name: "Overview", path: "/dashboard", icon: LayoutDashboard },
         { name: "Facilities Catalogue", path: "/dashboard/facilities", icon: Building },
-        { name: "My Bookings", path: "/dashboard/bookings", icon: BookOpen },
         { name: "Ticketing", path: "/dashboard/tickets", icon: Ticket },
         { name: "Notifications", path: "/dashboard/notifications", icon: Bell },
     ];
 
     if (isAdmin) {
         navLinks.push({ name: "User Management", path: "/dashboard/users", icon: Users });
-        navLinks.push({ name: "Admin Bookings", path: "/dashboard/admin-bookings", icon: BookOpen });
         navLinks.push({ name: "Admin Tickets", path: "/dashboard/admin-tickets", icon: Ticket });
         navLinks.push({ name: "Admin Facilities", path: "/dashboard/admin-facilities", icon: Building });
     }
