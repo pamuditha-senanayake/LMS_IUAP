@@ -15,7 +15,8 @@ import {
     Menu, 
     X,
     ChevronRight,
-    Zap
+    Zap,
+    Calendar
 } from "lucide-react";
 
 export default function Navbar() {
@@ -72,12 +73,19 @@ export default function Navbar() {
     };
 
     // Configuration for Links
-    const navLinks = [
+    const rawLinks = [
         { name: "Home", path: "/", icon: HomeIcon },
         { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+        { name: "Facilities", path: "/dashboard/facilities", icon: Building },
+        { name: "My Bookings", path: "/dashboard/bookings", icon: Calendar },
         { name: "Support", path: "/dashboard/tickets", icon: Ticket },
         { name: "Alerts", path: "/dashboard/notifications", icon: Bell },
     ];
+
+    // Students/Lecturers don't need "Dashboard" in Navbar (they use the Homepage button/status)
+    const navLinks = isAdmin 
+        ? rawLinks 
+        : rawLinks.filter(link => link.name !== "Dashboard");
 
     if (isAdmin) {
         navLinks.push({ name: "Management", path: "/dashboard/users", icon: Users });
@@ -107,8 +115,8 @@ export default function Navbar() {
                             <img src="/A.png" alt="Logo" className="w-[85%] h-[85%] object-contain" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-xl font-black uppercase tracking-tighter text-white leading-none">
-                                IUAP <span className="text-emerald-400">CORE</span>
+                            <span className="text-xl leading-none brand-text animate-shimmer">
+                                CourseFlow
                             </span>
                             <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500 mt-1">Institutional Portal</span>
                         </div>

@@ -12,11 +12,13 @@ import {
     Users,
     Zap,
     Globe,
-    Cpu
+    Cpu,
+    ShieldCheck,
+    Clock
 } from "lucide-react";
 
 export default function Home() {
-    const [user, setUser] = useState<{ name: string } | null>(null);
+    const [user, setUser] = useState<{ name: string, email: string, roles: string[] } | null>(null);
 
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
@@ -64,9 +66,54 @@ export default function Home() {
             </div>
 
 
-            <main className="relative z-10">
+            <main className="relative z-10 pt-32">
+                {user && (
+                    <div className="max-w-7xl mx-auto px-8 mb-20 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+                        <div className="relative rounded-[2.5rem] p-8 md:p-10 border border-slate-800/60 bg-slate-900/40 backdrop-blur-3xl shadow-xl overflow-hidden group">
+                            <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+                                <div className="flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
+                                    <div className="w-20 h-20 rounded-[1.8rem] bg-slate-950 border border-slate-800 flex items-center justify-center p-1 shadow-xl relative overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 to-sky-500/10" />
+                                        <div className="w-full h-full rounded-[1.6rem] bg-slate-900 flex items-center justify-center overflow-hidden border border-slate-800/50">
+                                            <span className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-tr from-indigo-400 to-sky-400">
+                                                {user.name.charAt(0).toUpperCase()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                        <div className="inline-flex items-center rounded-lg bg-emerald-500/10 px-3 py-1 border border-emerald-500/20">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2.5"></div>
+                                            <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-widest">Service Status: Online</span>
+                                        </div>
+                                        <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-white">
+                                            Welcome back, <span className="text-indigo-400">{user.name.split(' ')[0]}</span>
+                                        </h2>
+                                        <p className="text-slate-400 text-sm font-medium opacity-80">
+                                            Managing institution resources as <span className="text-slate-200">{user.email}</span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col items-center md:items-end gap-3">
+                                    <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-950/50 border border-slate-800/60">
+                                        <ShieldCheck size={14} className="text-indigo-400" />
+                                        <span className="text-[11px] font-bold text-slate-300 uppercase tracking-widest leading-none">
+                                            {user.roles && user.roles.length > 0 ? user.roles[0].replace("ROLE_", "") : "USER"}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                        <Clock size={12} />
+                                        Updated: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Hero Section */}
-                <section className="px-8 pt-40 pb-32 max-w-7xl mx-auto flex flex-col items-center text-center">
+                <section className="px-8 pt-10 pb-32 max-w-7xl mx-auto flex flex-col items-center text-center">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                         <Zap size={14} className="text-indigo-400" />
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">v2.0 Performance Update is Live</span>
@@ -131,7 +178,7 @@ export default function Home() {
                     <div className="max-w-7xl mx-auto">
                         <div className="flex flex-col items-center text-center mb-20">
                             <h2 className="text-3xl md:text-5xl font-black text-white mb-6 uppercase tracking-tight">Core Infrastructure</h2>
-                            <p className="text-slate-400 max-w-xl font-medium">Built on top of a resilient microservices architecture, IUAP CORE provides the backbone for modern academic operations.</p>
+                            <p className="text-slate-400 max-w-xl font-medium">Built on top of a resilient microservices architecture, CourseFlow provides the backbone for modern academic operations.</p>
                         </div>
 
                         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -179,7 +226,7 @@ export default function Home() {
                             <div className="space-y-4">
                                 <h2 className="text-4xl md:text-6xl font-black text-white leading-tight uppercase tracking-tight">Unified <br/><span className="text-indigo-400">Ecosystem</span></h2>
                                 <p className="text-slate-400 text-lg leading-relaxed font-medium">
-                                    Manage everything from one place. IUAP CORE integrates disparate campus services into a single, high-performance interface, reducing operational friction by up to 60%.
+                                    Manage everything from one place. CourseFlow integrates disparate campus services into a single, high-performance interface, reducing operational friction by up to 60%.
                                 </p>
                             </div>
                             

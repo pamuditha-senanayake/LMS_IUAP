@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Montserrat } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,8 +12,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["400", "700", "900"],
+  variable: "--font-montserrat",
+});
+
 export const metadata: Metadata = {
-  title: "IUAP CORE",
+  title: "CourseFlow",
   description: "Modern campus and institutional management platform",
   icons: {
     icon: "/brand-icon.ico",
@@ -36,7 +42,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased selection:bg-indigo-500/30 selection:text-indigo-200`}
+      className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} h-full antialiased selection:bg-indigo-500/30 selection:text-indigo-200`}
     >
       <body className="min-h-screen flex flex-col bg-[#020617] text-slate-200 overflow-x-hidden">
         <FetchInterceptor />

@@ -95,8 +95,8 @@ export default function Login() {
                                 <img src="/A.png" alt="CourseFlow" className="w-full h-full object-contain" />
                             </div>
                             <div className="space-y-1">
-                                <h2 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase">
-                                    IUAP<span className="text-emerald-400">CORE</span>
+                                <h2 className="text-2xl md:text-3xl leading-none brand-text animate-shimmer">
+                                    CourseFlow
                                 </h2>
                                 <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.3em]">Institutional Portal</p>
                             </div>

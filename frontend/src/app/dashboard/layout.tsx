@@ -16,7 +16,8 @@ import {
     Menu,
     X,
     Home as HomeIcon,
-    BarChart3
+    BarChart3,
+    Calendar
 } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -64,6 +65,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const adminLinks = [
         { name: "Overview", path: "/dashboard", icon: LayoutDashboard },
+        { name: "Facilities", path: "/dashboard/facilities", icon: Building },
+        { name: "My Bookings", path: "/dashboard/bookings", icon: Calendar },
+        { name: "Booking Management", path: "/dashboard/admin-bookings", icon: Calendar },
         { name: "Ticketing", path: "/dashboard/tickets", icon: Ticket },
         { name: "Ticket Statistics", path: "/dashboard/ticket-statistics", icon: BarChart3 },
         { name: "User Management", path: "/dashboard/users", icon: Users },
@@ -88,8 +92,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 mx-auto group-hover/sidebar:mx-0 shadow-lg shadow-indigo-500/10 overflow-hidden border border-slate-700/60">
                                 <img src="/A.png" alt="Logo" className="w-[85%] h-[85%] object-contain" />
                             </div>
-                            <h2 className="ml-4 text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-sky-400 to-indigo-500 whitespace-nowrap overflow-hidden transition-all duration-300 max-w-0 opacity-0 group-hover/sidebar:max-w-xs group-hover/sidebar:opacity-100 uppercase tracking-tighter">
-                                IUAP <span className="text-white/90">CORE</span>
+                            <h2 className="ml-4 text-xl brand-text animate-shimmer whitespace-nowrap overflow-hidden transition-all duration-300 max-w-0 opacity-0 group-hover/sidebar:max-w-xs group-hover/sidebar:opacity-100 tracking-tighter">
+                                CourseFlow
                             </h2>
                         </div>
                         
