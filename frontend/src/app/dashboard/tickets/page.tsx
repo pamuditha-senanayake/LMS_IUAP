@@ -203,8 +203,10 @@ export default function TicketingPage() {
                         }
                     }
                     
+                    const token = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!).token : null;
                     fetch(`${apiUrl}/api/tickets/with-attachments`, {
                         method: "POST",
+                        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
                         credentials: "include",
                         body: formData
                     }).then(res => {
