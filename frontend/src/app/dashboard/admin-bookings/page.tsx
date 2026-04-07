@@ -10,6 +10,7 @@ export default function AdminBookings() {
     const [resources, setResources] = useState<any[]>([]);
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
     const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [submitting, setSubmitting] = useState(false);
 
     const fetchResources = async () => {
         try {
@@ -98,6 +99,7 @@ export default function AdminBookings() {
     }, [sortOrder, statusFilter]);
 
     const processStatusChange = async (id: string, status: string, reason: string) => {
+        setSubmitting(true);
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
             const url = new URL(`${apiUrl}/api/bookings/${id}/status`);
@@ -146,6 +148,8 @@ export default function AdminBookings() {
                 color: '#fff',
                 confirmButtonColor: '#ef4444'
             });
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -346,19 +350,34 @@ export default function AdminBookings() {
                                                     <div className="flex justify-end gap-2">
                                                         <button 
                                                             onClick={() => handleApprove(b.id, b.requestedBy?.name)}
-                                                            className="px-3 py-1.5 text-sm font-medium bg-emerald-500/20 hover:bg-emerald-500 hover:text-white text-emerald-400 rounded-lg transition-colors"
+                                                            disabled={submitting}
+                                                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                                                                submitting 
+                                                                    ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                                                                    : 'bg-emerald-500/20 hover:bg-emerald-500 hover:text-white text-emerald-400'
+                                                            }`}
                                                         >
-                                                            Approve
+                                                            {submitting ? 'Approving...' : 'Approve'}
                                                         </button>
                                                         <button 
                                                             onClick={() => handleReject(b.id, b.requestedBy?.name)}
-                                                            className="px-3 py-1.5 text-sm font-medium bg-red-500/20 hover:bg-red-500 hover:text-white text-red-400 rounded-lg transition-colors"
+                                                            disabled={submitting}
+                                                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                                                                submitting 
+                                                                    ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                                                                    : 'bg-red-500/20 hover:bg-red-500 hover:text-white text-red-400'
+                                                            }`}
                                                         >
-                                                            Reject
+                                                            {submitting ? 'Rejecting...' : 'Reject'}
                                                         </button>
                                                         <button 
                                                             onClick={() => handleMessage(b.id, b.requestedBy?.name)}
-                                                            className="px-3 py-1.5 text-sm font-medium bg-slate-700/50 hover:bg-indigo-500 hover:text-white text-indigo-400 rounded-lg transition-colors"
+                                                            disabled={submitting}
+                                                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                                                                submitting 
+                                                                    ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                                                                    : 'bg-slate-700/50 hover:bg-indigo-500 hover:text-white text-indigo-400'
+                                                            }`}
                                                         >
                                                             Note
                                                         </button>
@@ -369,9 +388,14 @@ export default function AdminBookings() {
                                                         <span className="text-xs text-emerald-400">Approved</span>
                                                         <button 
                                                             onClick={() => handleCancel(b.id, b.requestedBy?.name)}
-                                                            className="px-3 py-1.5 text-sm font-medium bg-slate-700/50 hover:bg-red-500 hover:text-white text-slate-300 rounded-lg transition-colors"
+                                                            disabled={submitting}
+                                                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                                                                submitting 
+                                                                    ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                                                                    : 'bg-slate-700/50 hover:bg-red-500 hover:text-white text-slate-300'
+                                                            }`}
                                                         >
-                                                            Cancel
+                                                            {submitting ? 'Cancelling...' : 'Cancel'}
                                                         </button>
                                                     </div>
                                                 )}
