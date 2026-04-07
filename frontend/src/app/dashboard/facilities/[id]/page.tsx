@@ -135,7 +135,7 @@ export default function FacilityDetailPage() {
     const handleSave = async () => {
         if (!resource) return;
         
-        let finalType = editedResource.resourceType || editedResource.type;
+        let finalType = editedResource.resourceType ?? editedResource.type ?? "";
         let finalDescription = editedResource.description;
         
         if (finalType === "OTHER" && customType.trim()) {
