@@ -662,23 +662,34 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                 resetConversation();
                 setIsTyping(false);
                 return;
-            } else if (option.value === "view_alternative" && messages[messages.length - 1]?.alternativeResource) {
-                const altResource = messages[messages.length - 1].alternativeResource;
-                const reason = buildRecommendationReason(altResource, {
-                    category: bookingData.category,
-                    type: bookingData.type,
-                    location: bookingData.location,
-                    capacityLabel: bookingData.capacityLabel,
-                    amenities: selectedAmenities,
-                });
-                botMsg = {
-                    id: (Date.now() + 1).toString(),
-                    text: "Here's an alternative that's available:",
-                    sender: "bot",
-                    timestamp: new Date(),
-                    resource: altResource,
-                    recommendationReason: reason,
-                };
+            } else if (option.value === "view_alternative") {
+                const lastMsg = messages[messages.length - 1];
+                const altResource = lastMsg?.alternativeResource;
+                if (!altResource) {
+                    botMsg = {
+                        id: (Date.now() + 1).toString(),
+                        text: "No alternative available.",
+                        sender: "bot",
+                        timestamp: new Date(),
+                        options: [{ label: "Start over", value: "start" }],
+                    };
+                } else {
+                    const reason = buildRecommendationReason(altResource, {
+                        category: bookingData.category,
+                        type: bookingData.type,
+                        location: bookingData.location,
+                        capacityLabel: bookingData.capacityLabel,
+                        amenities: selectedAmenities,
+                    });
+                    botMsg = {
+                        id: (Date.now() + 1).toString(),
+                        text: "Here's an alternative that's available:",
+                        sender: "bot",
+                        timestamp: new Date(),
+                        resource: altResource,
+                        recommendationReason: reason,
+                    };
+                }
             } else {
                 botMsg = {
                     id: (Date.now() + 1).toString(),
@@ -1056,22 +1067,31 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                                         )}
                                     </div>
                                     
+                                    {msg.resource && (
                                     <div className="p-4 pt-0 flex gap-2">
-                                        <button
-                                            onClick={() => msg.resource && handleViewDetails(msg.resource)}
-                                            className="flex-1 px-3 py-2.5 bg-slate-600 hover:bg-slate-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-                                        >
-                                            <Users className="w-4 h-4" />
-                                            View Details
-                                        </button>
-                                        <button
-                                            onClick={() => msg.resource && handleBookNow(msg.resource)}
-                                            className="flex-1 px-3 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-                                        >
-                                            <Calendar className="w-4 h-4" />
-                                            Book Now
-                                        </button>
+                                        {(() => {
+                                            const resource = msg.resource;
+                                            return (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleViewDetails(resource)}
+                                                        className="flex-1 px-3 py-2.5 bg-slate-600 hover:bg-slate-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                    >
+                                                        <Users className="w-4 h-4" />
+                                                        View Details
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleBookNow(resource)}
+                                                        className="flex-1 px-3 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                    >
+                                                        <Calendar className="w-4 h-4" />
+                                                        Book Now
+                                                    </button>
+                                                </>
+                                            );
+                                        })()}
                                     </div>
+                                    )}
                                     
                                     {msg.isBooked && msg.alternativeResource && (
                                         <div className="p-4 pt-0">
