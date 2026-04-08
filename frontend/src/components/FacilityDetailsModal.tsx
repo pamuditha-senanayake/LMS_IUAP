@@ -221,19 +221,20 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
                     name: user.name || user.fullName,
                     email: user.email
                 },
-                purpose: purpose,
+                purpose: purpose.trim(),
                 startTime: startDateTime,
-                endTime: endDateTime
+                endTime: endDateTime,
+                expectedAttendees: isUtility ? quantity : attendees
             };
 
             if (isUtility) {
-                bookingData.quantity = quantity;
-                bookingData.supportNotes = supportNotes;
-            } else {
-                bookingData.expectedAttendees = attendees;
+                bookingData.supportNotes = supportNotes?.trim() || "";
             }
 
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+            
+            console.log("Booking payload:", JSON.stringify(bookingData, null, 2));
+            
             const res = await fetch(`${apiUrl}/api/bookings`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -250,14 +251,21 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
                 });
                 onClose();
                 router.push("/dashboard/bookings");
-            } else if (res.status === 409) {
-                const data = await res.json();
-                Swal.fire("Error", data.message || "Time slot already booked", "error");
-            } else if (res.status === 400) {
-                const data = await res.json();
-                Swal.fire("Error", data.message || "Cannot book this resource", "error");
             } else {
-                Swal.fire("Error", "Failed to create booking", "error");
+                const errorData = await res.json().catch(() => ({}));
+                console.error("Booking error response:", errorData);
+                
+                let errorMessage = "Booking failed";
+                if (errorData.errors && typeof errorData.errors === 'object') {
+                    const errorMessages = Object.entries(errorData.errors)
+                        .map(([field, msg]) => `${field}: ${msg}`)
+                        .join(", ");
+                    errorMessage = errorMessages || errorData.message || "Validation failed";
+                } else if (errorData.message) {
+                    errorMessage = errorData.message;
+                }
+                
+                Swal.fire("Error", errorMessage, "error");
             }
         } catch (err) {
             console.error("Booking error", err);
