@@ -1,5 +1,6 @@
 package com.lms.backend.service;
 
+import com.lms.backend.config.SseConfig;
 import com.lms.backend.model.Notification;
 import com.lms.backend.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import java.util.List;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final SseConfig sseConfig;
 
     public List<Notification> getUserNotifications(String userId) {
         return notificationRepository.findByRecipientUserId(userId);
@@ -26,7 +28,18 @@ public class NotificationService {
 
     public Notification createNotification(Notification notification) {
         notification.setIsRead(false);
-        return notificationRepository.save(notification);
+        notification.setCreatedAt(LocalDateTime.now());
+        Notification saved = notificationRepository.save(notification);
+        
+        broadcastNotification(saved);
+        
+        return saved;
+    }
+    
+    public void broadcastNotification(Notification notification) {
+        if (notification.getRecipientUserId() != null) {
+            sseConfig.sendToUser(notification.getRecipientUserId(), "notification", notification);
+        }
     }
 
     public Notification markAsRead(String notificationId) {
