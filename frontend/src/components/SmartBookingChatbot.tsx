@@ -35,6 +35,7 @@ interface BookingData {
     startTime: string;
     endTime: string;
     capacity: number;
+    capacityLabel: string;
     amenities: string[];
 }
 
@@ -132,12 +133,10 @@ function validateTimeRange(startTime: string, endTime: string): boolean {
     return end > start;
 }
 
-function getValidEndTimes(startTime: string, allTimes: string[] = TIME_SLOTS): string[] {
-    if (!startTime) return [...allTimes];
+function getValidEndTimes(startTime: string): string[] {
+    if (!startTime) return [];
     const startHour = parseInt(startTime.split(":")[0]);
-    return allTimes
-        .filter(t => parseInt(t.split(":")[0]) > startHour)
-        .filter((value, index, self) => self.indexOf(value) === index);
+    return TIME_SLOTS.filter(t => parseInt(t.split(":")[0]) > startHour);
 }
 
 function getLocationsFromResources(resources: Resource[]): ChatOption[] {
@@ -329,11 +328,16 @@ function getSameCategoryAlternatives(resources: Resource[], excludedId: string, 
     return null;
 }
 
+function buildCapacityRequirementLabel(capacityLabel: string): string {
+    if (!capacityLabel) return "";
+    return capacityLabel.replace(" people", "");
+}
+
 function buildRecommendationReason(resource: Resource, criteria: {
     category?: string;
     type?: string;
     location?: string;
-    capacity?: number;
+    capacityLabel?: string;
     amenities?: string[];
 }): string {
     const reasons: string[] = [];
@@ -344,10 +348,9 @@ function buildRecommendationReason(resource: Resource, criteria: {
         }
         reasons.push("matches your selected facility type");
         
-        if (criteria.capacity && resource.capacity) {
-            if (resource.capacity >= criteria.capacity) {
-                reasons.push(`supports your required capacity of ${criteria.capacity} people`);
-            }
+        if (criteria.capacityLabel) {
+            const requirement = buildCapacityRequirementLabel(criteria.capacityLabel);
+            reasons.push(`fits your requested capacity of ${requirement} people`);
         }
         
         if (criteria.amenities && criteria.amenities.length > 0 && resource.amenities) {
@@ -407,6 +410,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
         startTime: "",
         endTime: "",
         capacity: 0,
+        capacityLabel: "",
         amenities: [],
     });
     const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
@@ -439,7 +443,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
         };
         setMessages([welcomeMsg]);
         setCurrentStep("category");
-        setBookingData({ category: "", type: "", location: "", date: "", startTime: "", endTime: "", capacity: 0, amenities: [] });
+        setBookingData({ category: "", type: "", location: "", date: "", startTime: "", endTime: "", capacity: 0, capacityLabel: "", amenities: [] });
         setSelectedAmenities([]);
         setTimeError(null);
     };
@@ -447,7 +451,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
     const resetConversation = () => {
         setMessages([]);
         setCurrentStep("category");
-        setBookingData({ category: "", type: "", location: "", date: "", startTime: "", endTime: "", capacity: 0, amenities: [] });
+        setBookingData({ category: "", type: "", location: "", date: "", startTime: "", endTime: "", capacity: 0, capacityLabel: "", amenities: [] });
         setSelectedAmenities([]);
         setTimeError(null);
         setTimeout(startConversation, 300);
@@ -514,7 +518,8 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
             setCurrentStep("capacity");
         } 
         else if (currentStep === "capacity") {
-            setBookingData(prev => ({ ...prev, capacity: parseInt(option.value) }));
+            const capacityLabel = option.label;
+            setBookingData(prev => ({ ...prev, capacity: parseInt(option.value), capacityLabel }));
             botMsg = {
                 id: (Date.now() + 1).toString(),
                 text: "Which amenities or equipment do you need? (Select all that apply)",
@@ -556,7 +561,6 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                 sender: "bot",
                 timestamp: new Date(),
                 isEndTimePicker: true,
-                options: getValidEndTimes(startTimeVal).map(t => ({ label: t, value: t })),
             };
             setCurrentStep("endTime");
         } 
@@ -607,7 +611,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                     category: bookingData.category,
                     type: bookingData.type,
                     location: bookingData.location,
-                    capacity: bookingData.capacity,
+                    capacityLabel: bookingData.capacityLabel,
                     amenities: selectedAmenities,
                 });
                 
@@ -664,7 +668,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                     category: bookingData.category,
                     type: bookingData.type,
                     location: bookingData.location,
-                    capacity: bookingData.capacity,
+                    capacityLabel: bookingData.capacityLabel,
                     amenities: selectedAmenities,
                 });
                 botMsg = {
@@ -751,11 +755,11 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
         }, 300);
     };
 
-    const getEndTimeOptions = () => {
+    const getEndTimeOptions = (): string[] => {
         if (bookingData.startTime) {
             return getValidEndTimes(bookingData.startTime);
         }
-        return TIME_SLOTS;
+        return [];
     };
 
     if (!isOpen) return null;
@@ -801,7 +805,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                             </div>
                         </div>
 
-                        {msg.options && msg.options.length > 0 && (
+                        {msg.options && msg.options.length > 0 && !msg.isStartTimePicker && !msg.isEndTimePicker && (
                             <div className="mt-3 ml-10 flex flex-wrap gap-2">
                                 {msg.options.map((opt, idx) => (
                                     <button
