@@ -241,6 +241,58 @@ public class BookingService {
         bookingRepository.deleteById(bookingId);
     }
 
+    public Booking cancelBookingByUser(String bookingId, String userId, String reason) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+        
+        // IDOR Protection: Verify ownership
+        if (booking.getRequestedBy() == null || !booking.getRequestedBy().getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only cancel your own bookings");
+        }
+        
+        // Users can only cancel APPROVED bookings
+        if (!"APPROVED".equals(booking.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can only cancel approved bookings");
+        }
+        
+        // Validate transition (APPROVED -> CANCELLED is valid)
+        validateStatusTransition(booking.getStatus(), "CANCELLED");
+        
+        String oldStatus = booking.getStatus();
+        
+        // Cancel the booking
+        booking.setStatus("CANCELLED");
+        booking.setCancelledAt(LocalDateTime.now());
+        booking.setUpdatedAt(LocalDateTime.now());
+        
+        Booking updatedBooking = bookingRepository.save(booking);
+        
+        // Create history record
+        BookingStatusHistory history = BookingStatusHistory.builder()
+                .bookingId(bookingId)
+                .changedById(userId)
+                .oldStatus(oldStatus)
+                .newStatus("CANCELLED")
+                .note(reason != null ? reason : "Cancelled by user")
+                .build();
+        historyRepository.save(history);
+        
+        // Trigger notification
+        String notificationMessage = buildNotificationMessage(booking, "CANCELLED", reason);
+        Notification notif = Notification.builder()
+                .recipientUserId(userId)
+                .createdById(userId)
+                .notificationType("BOOKING_STATUS_UPDATE")
+                .title("Booking Cancelled")
+                .message(notificationMessage)
+                .relatedEntityType("BOOKING")
+                .relatedEntityId(bookingId)
+                .build();
+        notificationService.createNotification(notif);
+        
+        return updatedBooking;
+    }
+
     public List<BookingStatusHistory> getBookingHistory(String bookingId) {
         if (!bookingRepository.existsById(bookingId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found");

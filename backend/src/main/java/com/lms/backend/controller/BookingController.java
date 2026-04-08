@@ -64,4 +64,12 @@ public class BookingController {
     public ResponseEntity<List<BookingStatusHistory>> getBookingHistory(@PathVariable String bookingId) {
         return ResponseEntity.ok(bookingService.getBookingHistory(bookingId));
     }
+
+    @PatchMapping("/{bookingId}/cancel")
+    public ResponseEntity<Booking> cancelBooking(
+            @PathVariable String bookingId,
+            @RequestParam String userId,
+            @RequestParam(required = false) String reason) {
+        return ResponseEntity.ok(bookingService.cancelBookingByUser(bookingId, userId, reason));
+    }
 }
