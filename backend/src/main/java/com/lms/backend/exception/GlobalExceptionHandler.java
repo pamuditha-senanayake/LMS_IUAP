@@ -1,6 +1,5 @@
 package com.lms.backend.exception;
 
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -23,29 +22,6 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now()
         );
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
-    }
-    
-    @ExceptionHandler(BookingConflictException.class)
-    public ResponseEntity<BookingConflictErrorResponse> handleBookingConflictException(BookingConflictException ex) {
-        BookingConflictErrorResponse error = new BookingConflictErrorResponse(
-                HttpStatus.CONFLICT.value(),
-                ex.getMessage(),
-                LocalDateTime.now(),
-                ex.getConflictingBookingId(),
-                ex.getConflictingStartTime(),
-                ex.getConflictingEndTime()
-        );
-        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
-    }
-    
-    @ExceptionHandler(OptimisticLockingFailureException.class)
-    public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(OptimisticLockingFailureException ex) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.CONFLICT.value(),
-                "The booking was modified by another user. Please refresh and try again.",
-                LocalDateTime.now()
-        );
-        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
     
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -80,7 +56,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                ex.getMessage(),
+                "An unexpected error occurred: " + ex.getMessage(),
                 LocalDateTime.now()
         );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -126,37 +102,5 @@ public class GlobalExceptionHandler {
         public void setErrors(Map<String, String> errors) { this.errors = errors; }
         public LocalDateTime getTimestamp() { return timestamp; }
         public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
-    }
-    
-    public static class BookingConflictErrorResponse {
-        private int status;
-        private String message;
-        private LocalDateTime timestamp;
-        private String conflictingBookingId;
-        private String conflictingStartTime;
-        private String conflictingEndTime;
-        
-        public BookingConflictErrorResponse(int status, String message, LocalDateTime timestamp,
-                                           String conflictingBookingId, String conflictingStartTime, String conflictingEndTime) {
-            this.status = status;
-            this.message = message;
-            this.timestamp = timestamp;
-            this.conflictingBookingId = conflictingBookingId;
-            this.conflictingStartTime = conflictingStartTime;
-            this.conflictingEndTime = conflictingEndTime;
-        }
-        
-        public int getStatus() { return status; }
-        public void setStatus(int status) { this.status = status; }
-        public String getMessage() { return message; }
-        public void setMessage(String message) { this.message = message; }
-        public LocalDateTime getTimestamp() { return timestamp; }
-        public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
-        public String getConflictingBookingId() { return conflictingBookingId; }
-        public void setConflictingBookingId(String conflictingBookingId) { this.conflictingBookingId = conflictingBookingId; }
-        public String getConflictingStartTime() { return conflictingStartTime; }
-        public void setConflictingStartTime(String conflictingStartTime) { this.conflictingStartTime = conflictingStartTime; }
-        public String getConflictingEndTime() { return conflictingEndTime; }
-        public void setConflictingEndTime(String conflictingEndTime) { this.conflictingEndTime = conflictingEndTime; }
     }
 }

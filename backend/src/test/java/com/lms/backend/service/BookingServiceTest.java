@@ -1,7 +1,6 @@
 package com.lms.backend.service;
 
 import com.lms.backend.enums.ResourceStatus;
-import com.lms.backend.exception.BookingConflictException;
 import com.lms.backend.model.Booking;
 import com.lms.backend.model.Resource;
 import com.lms.backend.repository.BookingRepository;
@@ -13,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -61,6 +61,11 @@ public class BookingServiceTest {
 
     @Test
     void createBooking_Successfully() {
+        Resource activeResource = new Resource();
+        activeResource.setId("resource-1");
+        activeResource.setStatus(ResourceStatus.ACTIVE);
+
+        when(resourceRepository.findById("resource-1")).thenReturn(Optional.of(activeResource));
         when(bookingRepository.findByResourceId(anyString())).thenReturn(new ArrayList<>());
         when(bookingRepository.save(any(Booking.class))).thenReturn(sampleBooking);
 
@@ -72,7 +77,24 @@ public class BookingServiceTest {
     }
 
     @Test
+    void createBooking_ThrowsNotFound_WhenResourceNotExists() {
+        when(resourceRepository.findById("resource-1")).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            bookingService.createBooking(sampleBooking);
+        });
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    @Test
     void createBooking_ThrowsConflict_WhenOverlapExists() {
+        Resource activeResource = new Resource();
+        activeResource.setId("resource-1");
+        activeResource.setStatus(ResourceStatus.ACTIVE);
+
+        when(resourceRepository.findById("resource-1")).thenReturn(Optional.of(activeResource));
+
         Booking existingBooking = new Booking();
         existingBooking.setId("existing-id");
         existingBooking.setStatus("APPROVED");
@@ -81,7 +103,7 @@ public class BookingServiceTest {
 
         when(bookingRepository.findByResourceId(anyString())).thenReturn(List.of(existingBooking));
 
-        assertThrows(BookingConflictException.class, () -> {
+        assertThrows(ResponseStatusException.class, () -> {
             bookingService.createBooking(sampleBooking);
         });
     }
@@ -94,13 +116,22 @@ public class BookingServiceTest {
 
         when(resourceRepository.findById("resource-1")).thenReturn(Optional.of(outOfServiceResource));
 
-        assertThrows(ResponseStatusException.class, () -> {
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
             bookingService.createBooking(sampleBooking);
         });
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertEquals("Resource is out of service", exception.getReason());
     }
 
     @Test
     void validateBookingData_ThrowsException_WhenTimeInvalid() {
+        Resource activeResource = new Resource();
+        activeResource.setId("resource-1");
+        activeResource.setStatus(ResourceStatus.ACTIVE);
+
+        when(resourceRepository.findById("resource-1")).thenReturn(Optional.of(activeResource));
+
         sampleBooking.setStartTime(LocalDateTime.now().plusDays(1));
         sampleBooking.setEndTime(LocalDateTime.now());
 
@@ -111,10 +142,10 @@ public class BookingServiceTest {
 
     @Test
     void deleteBooking_ThrowsNotFound_WhenIdInvalid() {
-        when(bookingRepository.findById("invalid")).thenReturn(Optional.empty());
+        when(bookingRepository.existsById("invalid")).thenReturn(false);
 
         assertThrows(ResponseStatusException.class, () -> {
-            bookingService.deleteBooking("invalid", "test-user-id");
+            bookingService.deleteBooking("invalid");
         });
     }
 }

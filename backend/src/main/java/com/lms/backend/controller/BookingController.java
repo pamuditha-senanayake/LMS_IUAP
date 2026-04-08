@@ -1,10 +1,9 @@
 package com.lms.backend.controller;
 
 import com.lms.backend.model.Booking;
-import com.lms.backend.model.BookingStatusHistory;
 import com.lms.backend.service.BookingService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,22 +12,17 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/bookings")
+@RequiredArgsConstructor
 public class BookingController {
 
     private final BookingService bookingService;
 
-    @Autowired
-    public BookingController(BookingService bookingService) {
-        this.bookingService = bookingService;
-    }
-
     @GetMapping
-    public ResponseEntity<List<Booking>> getAllBookings(
-            @RequestParam(required = false) String userId,
-            @RequestParam(required = false) String status,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
-        return ResponseEntity.ok(bookingService.getAllBookings(userId, status, sortBy, sortDir));
+    public ResponseEntity<List<Booking>> getAllBookings(@RequestParam(required = false) String userId) {
+        if (userId != null) {
+            return ResponseEntity.ok(bookingService.getUserBookings(userId));
+        }
+        return ResponseEntity.ok(bookingService.getAllBookings());
     }
 
     @GetMapping("/resource/{resourceId}")
@@ -46,35 +40,20 @@ public class BookingController {
             @PathVariable String bookingId,
             @RequestParam String status,
             @RequestParam String adminId,
-            @RequestParam String adminRole,
             @RequestParam(required = false) String reason) {
-        return ResponseEntity.ok(bookingService.updateBookingStatus(bookingId, status, adminId, adminRole, reason));
+        return ResponseEntity.ok(bookingService.updateBookingStatus(bookingId, status, adminId, reason));
     }
 
     @PutMapping("/{bookingId}")
     public ResponseEntity<Booking> updateBooking(
             @PathVariable String bookingId,
-            @RequestParam String userId,
-            @RequestBody Booking booking) {
-        return ResponseEntity.ok(bookingService.updateBooking(bookingId, booking, userId));
+            @Valid @RequestBody Booking booking) {
+        return ResponseEntity.ok(bookingService.updateBooking(bookingId, booking));
     }
 
     @DeleteMapping("/{bookingId}")
-    public ResponseEntity<?> deleteBooking(@PathVariable String bookingId, @RequestParam String userId) {
-        bookingService.deleteBooking(bookingId, userId);
+    public ResponseEntity<?> deleteBooking(@PathVariable String bookingId) {
+        bookingService.deleteBooking(bookingId);
         return ResponseEntity.ok("Booking deleted successfully");
-    }
-
-    @GetMapping("/{bookingId}/history")
-    public ResponseEntity<List<BookingStatusHistory>> getBookingHistory(@PathVariable String bookingId) {
-        return ResponseEntity.ok(bookingService.getBookingHistory(bookingId));
-    }
-
-    @PatchMapping("/{bookingId}/cancel")
-    public ResponseEntity<Booking> cancelBooking(
-            @PathVariable String bookingId,
-            @RequestParam String userId,
-            @RequestParam(required = false) String reason) {
-        return ResponseEntity.ok(bookingService.cancelBookingByUser(bookingId, userId, reason));
     }
 }
