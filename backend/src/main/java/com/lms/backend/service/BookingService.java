@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import com.lms.backend.model.Notification;
 
@@ -325,6 +326,64 @@ public class BookingService {
         if (!booking.getStartTime().isBefore(booking.getEndTime())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start time must be before end time");
         }
+        
+        // Validate purpose length
+        if (booking.getPurpose().length() > 500) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Purpose must not exceed 500 characters");
+        }
+        
+        // Validate start time is not in the past
+        if (booking.getStartTime().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start time cannot be in the past");
+        }
+        
+        // Sanitize inputs
+        sanitizeBookingInputs(booking);
+    }
+    
+    private void sanitizeBookingInputs(Booking booking) {
+        // Sanitize purpose - remove potentially dangerous characters
+        if (booking.getPurpose() != null) {
+            String sanitized = sanitizeInput(booking.getPurpose());
+            booking.setPurpose(sanitized);
+        }
+        
+        // Sanitize resource ID
+        if (booking.getResourceId() != null) {
+            booking.setResourceId(booking.getResourceId().trim());
+        }
+    }
+    
+    public String sanitizeInput(String input) {
+        if (input == null) {
+            return null;
+        }
+        
+        // Remove null bytes and control characters (except newlines allowed in text)
+        String sanitized = input.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "");
+        
+        // Trim whitespace
+        sanitized = sanitized.trim();
+        
+        // Encode HTML entities to prevent XSS
+        sanitized = sanitized
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#x27;")
+            .replace("/", "&#x2F;");
+        
+        return sanitized;
+    }
+    
+    public String sanitizeReason(String reason) {
+        if (reason == null || reason.isEmpty()) {
+            return null;
+        }
+        
+        // Same sanitization as input but allows empty
+        return sanitizeInput(reason);
     }
 
     private boolean hasConflict(String resourceId, LocalDateTime startTime, LocalDateTime endTime, String excludeBookingId) {
