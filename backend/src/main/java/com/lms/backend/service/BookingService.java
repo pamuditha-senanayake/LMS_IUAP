@@ -1,21 +1,20 @@
 package com.lms.backend.service;
 
-import com.lms.backend.exception.BookingConflictException;
+import com.lms.backend.enums.ResourceStatus;
 import com.lms.backend.model.Booking;
 import com.lms.backend.model.BookingStatusHistory;
+import com.lms.backend.model.Resource;
+import com.lms.backend.model.Notification;
 import com.lms.backend.repository.BookingRepository;
 import com.lms.backend.repository.BookingStatusHistoryRepository;
+import com.lms.backend.repository.ResourceRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.regex.Pattern;
-
-import com.lms.backend.model.Notification;
 
 @Service
 @RequiredArgsConstructor
@@ -24,66 +23,33 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final BookingStatusHistoryRepository historyRepository;
     private final NotificationService notificationService;
+    private final ResourceRepository resourceRepository;
 
-    public List<Booking> getAllBookings(String userId, String status, String sortBy, String sortDir) {
-        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
-        String sortField = validateSortBy(sortBy);
-        Sort sort = Sort.by(direction, sortField);
-        
-        if (userId != null && !userId.isEmpty()) {
-            if (status != null && !status.isEmpty() && !"all".equalsIgnoreCase(status)) {
-                return bookingRepository.findByRequestedByUserIdAndStatus(userId, status.toUpperCase(), sort);
-            }
-            return bookingRepository.findByRequestedByUserId(userId, sort);
-        }
-        
-        if (status != null && !status.isEmpty() && !"all".equalsIgnoreCase(status)) {
-            return bookingRepository.findByStatus(status.toUpperCase(), sort);
-        }
-        
-        return bookingRepository.findAll(sort);
+    public List<Booking> getAllBookings() {
+        return bookingRepository.findAll();
     }
 
-    public List<Booking> getUserBookings(String userId, String status, String sortBy, String sortDir) {
-        return getAllBookings(userId, status, sortBy, sortDir);
+    public List<Booking> getUserBookings(String userId) {
+        return bookingRepository.findByRequestedByUserId(userId);
     }
 
-    private String validateSortBy(String sortBy) {
-        if (sortBy == null || sortBy.isEmpty()) {
-            return "createdAt";
-        }
-        switch (sortBy.toLowerCase()) {
-            case "starttime":
-                return "startTime";
-            case "endtime":
-                return "endTime";
-            case "status":
-                return "status";
-            case "createdat":
-                return "createdAt";
-            case "updatedat":
-                return "updatedAt";
-            default:
-                return "createdAt";
-        }
+    public List<Booking> getBookingsByResourceId(String resourceId) {
+        return bookingRepository.findByResourceId(resourceId);
     }
 
     // Checking overlap correctly is critical
     public Booking createBooking(Booking booking) {
-        validateBookingData(booking, true);
+        validateBookingData(booking);
 
-        Booking conflicting = findConflictingBooking(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), null);
-        if (conflicting != null) {
-            String message = String.format(
-                "Resource is already booked during this time range. The resource will be available from %s",
-                conflicting.getEndTime().toString()
-            );
-            throw new BookingConflictException(
-                message,
-                conflicting.getId(),
-                conflicting.getStartTime().toString(),
-                conflicting.getEndTime().toString()
-            );
+        Resource resource = resourceRepository.findById(booking.getResourceId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource not found"));
+
+        if (resource.getStatus() == ResourceStatus.OUT_OF_SERVICE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resource is out of service");
+        }
+
+        if (hasConflict(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), null)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Resource is already booked during this time range");
         }
 
         // Set timestamps properly
@@ -99,50 +65,22 @@ public class BookingService {
         return bookingRepository.save(booking);
     }
 
-    public Booking updateBookingStatus(String bookingId, String newStatus, String adminId, String adminRole, String reason) {
-        // Authorization: Only ADMIN can approve/reject/cancel
-        // adminRole comes as "ROLE_ADMIN" from frontend
-        boolean isAdmin = adminRole != null && (
-            "ADMIN".equalsIgnoreCase(adminRole) || 
-            adminRole.contains("ADMIN") || 
-            adminRole.contains("ROLE_ADMIN")
-        );
-        
-        if (!isAdmin) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only administrators can approve, reject, or cancel bookings");
-        }
-        
+    public Booking updateBookingStatus(String bookingId, String newStatus, String adminId, String reason) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
         
         String oldStatus = booking.getStatus();
-        if (oldStatus == null) {
-            oldStatus = "PENDING"; // Default to PENDING for new bookings
-        }
 
         if (!isValidStatus(newStatus)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Invalid status. Allowed: PENDING, APPROVED, REJECTED, CANCELLED");
         }
 
-        // Validate status transitions
-        validateStatusTransition(oldStatus, newStatus);
-
         if ("APPROVED".equals(newStatus)) {
-            validateBookingData(booking, false);
+            validateBookingData(booking);
 
-            Booking conflicting = findConflictingBooking(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), booking.getId());
-            if (conflicting != null) {
-                String message = String.format(
-                    "Resource is already booked during this time range. The resource will be available from %s",
-                    conflicting.getEndTime().toString()
-                );
-                throw new BookingConflictException(
-                    message,
-                    conflicting.getId(),
-                    conflicting.getStartTime().toString(),
-                    conflicting.getEndTime().toString()
-                );
+            if (hasConflict(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), booking.getId())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Resource is already booked during this time range");
             }
 
             booking.setApprovedAt(LocalDateTime.now());
@@ -169,13 +107,12 @@ public class BookingService {
         historyRepository.save(history);
         
         // Trigger notification
-        String notificationMessage = buildNotificationMessage(booking, newStatus, reason);
         Notification notif = Notification.builder()
                 .recipientUserId(booking.getRequestedBy() != null ? booking.getRequestedBy().getUserId() : null)
                 .createdById(adminId)
                 .notificationType("BOOKING_STATUS_UPDATE")
                 .title("Booking " + newStatus)
-                .message(notificationMessage)
+                .message("Your booking for resource " + booking.getResourceId() + " was " + newStatus + (reason != null && !reason.isEmpty() ? ". Notes: " + reason : ""))
                 .relatedEntityType("BOOKING")
                 .relatedEntityId(bookingId)
                 .build();
@@ -184,14 +121,9 @@ public class BookingService {
         return updatedBooking;
     }
 
-    public Booking updateBooking(String bookingId, Booking update, String userId) {
+    public Booking updateBooking(String bookingId, Booking update) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
-        
-        // IDOR Protection: Verify ownership
-        if (booking.getRequestedBy() == null || !booking.getRequestedBy().getUserId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only modify your own bookings");
-        }
         
         if (!"PENDING".equals(booking.getStatus())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can only update pending bookings");
@@ -202,20 +134,10 @@ public class BookingService {
         booking.setStartTime(update.getStartTime());
         booking.setEndTime(update.getEndTime());
 
-        validateBookingData(booking, false);
+        validateBookingData(booking);
         
-        Booking conflicting = findConflictingBooking(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), bookingId);
-        if (conflicting != null) {
-            String message = String.format(
-                "Resource is already booked during this time range. The resource will be available from %s",
-                conflicting.getEndTime().toString()
-            );
-            throw new BookingConflictException(
-                message,
-                conflicting.getId(),
-                conflicting.getStartTime().toString(),
-                conflicting.getEndTime().toString()
-            );
+        if (hasConflict(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), bookingId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Resource is already booked during this time range");
         }
 
         booking.setPurpose(booking.getPurpose().trim());
@@ -224,91 +146,21 @@ public class BookingService {
         return bookingRepository.save(booking);
     }
 
-    public void deleteBooking(String bookingId, String userId) {
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
-        
-        // IDOR Protection: Verify ownership
-        if (booking.getRequestedBy() == null || !booking.getRequestedBy().getUserId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only delete your own bookings");
-        }
-        
-        // Only allow delete if PENDING
-        if (!"PENDING".equals(booking.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can only delete pending bookings");
-        }
-        
-        historyRepository.deleteById(bookingId);
-        bookingRepository.deleteById(bookingId);
-    }
-
-    public Booking cancelBookingByUser(String bookingId, String userId, String reason) {
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
-        
-        // IDOR Protection: Verify ownership
-        if (booking.getRequestedBy() == null || !booking.getRequestedBy().getUserId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only cancel your own bookings");
-        }
-        
-        // Users can only cancel APPROVED bookings
-        if (!"APPROVED".equals(booking.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can only cancel approved bookings");
-        }
-        
-        // Validate transition (APPROVED -> CANCELLED is valid)
-        validateStatusTransition(booking.getStatus(), "CANCELLED");
-        
-        String oldStatus = booking.getStatus();
-        
-        // Cancel the booking
-        booking.setStatus("CANCELLED");
-        booking.setCancelledAt(LocalDateTime.now());
-        booking.setUpdatedAt(LocalDateTime.now());
-        
-        Booking updatedBooking = bookingRepository.save(booking);
-        
-        // Create history record
-        BookingStatusHistory history = BookingStatusHistory.builder()
-                .bookingId(bookingId)
-                .changedById(userId)
-                .oldStatus(oldStatus)
-                .newStatus("CANCELLED")
-                .note(reason != null ? reason : "Cancelled by user")
-                .build();
-        historyRepository.save(history);
-        
-        // Trigger notification
-        String notificationMessage = buildNotificationMessage(booking, "CANCELLED", reason);
-        Notification notif = Notification.builder()
-                .recipientUserId(userId)
-                .createdById(userId)
-                .notificationType("BOOKING_STATUS_UPDATE")
-                .title("Booking Cancelled")
-                .message(notificationMessage)
-                .relatedEntityType("BOOKING")
-                .relatedEntityId(bookingId)
-                .build();
-        notificationService.createNotification(notif);
-        
-        return updatedBooking;
-    }
-
-    public List<BookingStatusHistory> getBookingHistory(String bookingId) {
+    public void deleteBooking(String bookingId) {
         if (!bookingRepository.existsById(bookingId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found");
         }
-        return historyRepository.findByBookingIdOrderByChangedAtAsc(bookingId);
+        historyRepository.deleteById(bookingId); // Try to clear history if bound by FK logic, but since it's mongodb just leave it or clean manually. We'll simply let it drop.
+        bookingRepository.deleteById(bookingId);
     }
 
     private void validateBookingData(Booking booking) {
-        validateBookingData(booking, false);
-    }
-    
-    private void validateBookingData(Booking booking, boolean isNewBooking) {
         // Validate required fields
         if (booking == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Booking request must not be null");
+        }
+        if (booking.getResourceId() == null || booking.getResourceId().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resource ID must not be empty");
         }
         if (booking.getStartTime() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start time must not be null");
@@ -327,69 +179,6 @@ public class BookingService {
         if (!booking.getStartTime().isBefore(booking.getEndTime())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start time must be before end time");
         }
-        
-        // Validate purpose length
-        if (booking.getPurpose().length() > 500) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Purpose must not exceed 500 characters");
-        }
-        
-        // Only validate start time not in past for NEW bookings (not edits)
-        if (isNewBooking && booking.getStartTime().isBefore(LocalDateTime.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start time cannot be in the past");
-        }
-        
-        // Only validate resource ID for new bookings (not edits)
-        if (isNewBooking && (booking.getResourceId() == null || booking.getResourceId().trim().isEmpty())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resource ID must not be empty");
-        }
-        
-        // Sanitize inputs
-        sanitizeBookingInputs(booking);
-    }
-    
-    private void sanitizeBookingInputs(Booking booking) {
-        // Sanitize purpose - remove potentially dangerous characters
-        if (booking.getPurpose() != null) {
-            String sanitized = sanitizeInput(booking.getPurpose());
-            booking.setPurpose(sanitized);
-        }
-        
-        // Sanitize resource ID
-        if (booking.getResourceId() != null) {
-            booking.setResourceId(booking.getResourceId().trim());
-        }
-    }
-    
-    public String sanitizeInput(String input) {
-        if (input == null) {
-            return null;
-        }
-        
-        // Remove null bytes and control characters (except newlines allowed in text)
-        String sanitized = input.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "");
-        
-        // Trim whitespace
-        sanitized = sanitized.trim();
-        
-        // Encode HTML entities to prevent XSS
-        sanitized = sanitized
-            .replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace("\"", "&quot;")
-            .replace("'", "&#x27;")
-            .replace("/", "&#x2F;");
-        
-        return sanitized;
-    }
-    
-    public String sanitizeReason(String reason) {
-        if (reason == null || reason.isEmpty()) {
-            return null;
-        }
-        
-        // Same sanitization as input but allows empty
-        return sanitizeInput(reason);
     }
 
     private boolean hasConflict(String resourceId, LocalDateTime startTime, LocalDateTime endTime, String excludeBookingId) {
@@ -404,86 +193,11 @@ public class BookingService {
                         endTime.isAfter(b.getStartTime())
                 );
     }
-    
-    private Booking findConflictingBooking(String resourceId, LocalDateTime startTime, LocalDateTime endTime, String excludeBookingId) {
-        List<Booking> existingBookings = bookingRepository.findByResourceId(resourceId);
-
-        return existingBookings.stream()
-                .filter(b -> excludeBookingId == null || !b.getId().equals(excludeBookingId))
-                .filter(b -> "APPROVED".equals(b.getStatus()) || "PENDING".equals(b.getStatus()))
-                .filter(b ->
-                        startTime.isBefore(b.getEndTime()) &&
-                        endTime.isAfter(b.getStartTime())
-                )
-                .findFirst()
-                .orElse(null);
-    }
 
     private boolean isValidStatus(String status) {
         return "PENDING".equals(status)
                 || "APPROVED".equals(status)
                 || "REJECTED".equals(status)
                 || "CANCELLED".equals(status);
-    }
-
-    private void validateStatusTransition(String oldStatus, String newStatus) {
-        if (oldStatus == null || "PENDING".equals(oldStatus)) {
-            // From PENDING (or null), can go to: APPROVED, REJECTED, CANCELLED
-            if ("APPROVED".equals(newStatus) || "REJECTED".equals(newStatus) || "CANCELLED".equals(newStatus)) {
-                return;
-            }
-        } else if ("APPROVED".equals(oldStatus)) {
-            // From APPROVED, can only go to CANCELLED
-            if ("CANCELLED".equals(newStatus)) {
-                return;
-            }
-        } else if ("REJECTED".equals(oldStatus)) {
-            // From REJECTED, cannot change (terminal state)
-        } else if ("CANCELLED".equals(oldStatus)) {
-            // From CANCELLED, cannot change (terminal state)
-        }
-        
-        // Invalid transition
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "Invalid status transition from " + oldStatus + " to " + newStatus + 
-                ". Allowed transitions: PENDING→APPROVED, PENDING→REJECTED, PENDING→CANCELLED, APPROVED→CANCELLED");
-    }
-    
-    private String buildNotificationMessage(Booking booking, String status, String reason) {
-        StringBuilder message = new StringBuilder();
-        
-        message.append("Your booking for ");
-        
-        // Try to get resource name if available
-        String resourceInfo = booking.getResourceId();
-        message.append(resourceInfo);
-        
-        message.append(" has been ").append(status.toLowerCase()).append(".\n\n");
-        message.append("Booking Details:\n");
-        message.append("- Purpose: ").append(booking.getPurpose()).append("\n");
-        message.append("- Start Time: ").append(formatDateTime(booking.getStartTime())).append("\n");
-        message.append("- End Time: ").append(formatDateTime(booking.getEndTime())).append("\n");
-        message.append("- Expected Attendees: ").append(booking.getExpectedAttendees()).append("\n");
-        
-        if ("APPROVED".equals(status)) {
-            message.append("\n✅ Your booking is confirmed!");
-        } else if ("REJECTED".equals(status)) {
-            message.append("\n❌ Your booking was not approved.");
-            if (reason != null && !reason.isEmpty()) {
-                message.append("\nReason: ").append(reason);
-            }
-            message.append("\nPlease check the resource availability and submit a new request if needed.");
-        } else if ("CANCELLED".equals(status)) {
-            message.append("\n⚠️ Your booking has been cancelled.");
-        }
-        
-        return message.toString();
-    }
-    
-    private String formatDateTime(LocalDateTime dateTime) {
-        if (dateTime == null) {
-            return "N/A";
-        }
-        return dateTime.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' HH:mm"));
     }
 }
