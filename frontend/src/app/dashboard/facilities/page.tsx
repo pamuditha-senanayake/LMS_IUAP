@@ -27,6 +27,7 @@ interface Resource {
 export default function FacilitiesCatalogue() {
     const [resources, setResources] = useState<Resource[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedType, setSelectedType] = useState("ALL");
     const [selectedStatus, setSelectedStatus] = useState("ALL");
@@ -47,8 +48,11 @@ export default function FacilitiesCatalogue() {
     }, []);
 
     const fetchResources = async () => {
+        setLoading(true);
+        setError(null);
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+            console.log("Fetching from:", `${apiUrl}/api/resources`);
             const res = await fetch(`${apiUrl}/api/resources`, {
                 credentials: "include"
             });
@@ -66,9 +70,13 @@ export default function FacilitiesCatalogue() {
                     }
                 }));
                 setResources(transformed);
+            } else {
+                console.error("Failed to fetch resources:", res.status, res.statusText);
+                setError("Failed to load resources");
             }
         } catch (err) {
             console.error("Failed to fetch resources", err);
+            setError("Backend not reachable. Please start server.");
         } finally {
             setLoading(false);
         }
@@ -207,6 +215,18 @@ export default function FacilitiesCatalogue() {
             {loading ? (
                 <div className="flex w-full justify-center p-12">
                     <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            ) : error ? (
+                <div className="text-center py-16">
+                    <div className="text-5xl mb-4">⚠️</div>
+                    <h3 className="text-xl font-semibold text-white mb-2">Connection Error</h3>
+                    <p className="text-slate-400 mb-6">{error}</p>
+                    <button 
+                        onClick={fetchResources}
+                        className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-xl transition-colors"
+                    >
+                        Retry
+                    </button>
                 </div>
             ) : filteredResources.length === 0 ? (
                 <div className="text-center py-16">

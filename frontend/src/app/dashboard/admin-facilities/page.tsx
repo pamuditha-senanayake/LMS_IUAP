@@ -6,11 +6,14 @@ import Swal from "sweetalert2";
 export default function AdminFacilities() {
     const [resources, setResources] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchResources = async () => {
         setLoading(true);
+        setError(null);
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+            console.log("Fetching from:", `${apiUrl}/api/resources`);
             const res = await fetch(`${apiUrl}/api/resources`, { credentials: "include" });
             if (res.ok) {
                 const data = await res.json();
@@ -25,9 +28,12 @@ export default function AdminFacilities() {
                     }
                 }));
                 setResources(transformed);
+            } else {
+                setError("Failed to load resources");
             }
         } catch (err) {
-            Swal.fire("Error", "Network error while loading facilities.", "error");
+            console.error("Failed to fetch resources", err);
+            setError("Backend not reachable. Please start server.");
         } finally {
             setLoading(false);
         }
@@ -186,6 +192,18 @@ export default function AdminFacilities() {
 
             {loading ? (
                 <div className="text-center text-slate-400 py-10">Syncing resources...</div>
+            ) : error ? (
+                <div className="text-center py-16">
+                    <div className="text-5xl mb-4">⚠️</div>
+                    <h3 className="text-xl font-semibold text-white mb-2">Connection Error</h3>
+                    <p className="text-slate-400 mb-6">{error}</p>
+                    <button 
+                        onClick={fetchResources}
+                        className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-xl transition-colors"
+                    >
+                        Retry
+                    </button>
+                </div>
             ) : (
                 <div className="glass-card rounded-2xl overflow-hidden border border-slate-700/50">
                     <table className="w-full text-left border-collapse min-w-[800px]">

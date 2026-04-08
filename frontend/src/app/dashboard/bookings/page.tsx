@@ -76,6 +76,7 @@ export default function MyBookings() {
                     expectedAttendees: parseInt((document.getElementById('swal-attendees') as HTMLInputElement).value),
                     startTime: (document.getElementById('swal-start') as HTMLInputElement).value,
                     endTime: (document.getElementById('swal-end') as HTMLInputElement).value,
+                    type: "FACILITY"
                 }
             }
         }).then(async (result) => {
@@ -138,17 +139,22 @@ export default function MyBookings() {
                     expectedAttendees: parseInt((document.getElementById('swal-attendees') as HTMLInputElement).value),
                     startTime: (document.getElementById('swal-start') as HTMLInputElement).value,
                     endTime: (document.getElementById('swal-end') as HTMLInputElement).value,
+                    type: booking.type || "FACILITY"
                 }
             }
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
                     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+                    const payload = {
+                        ...result.value,
+                        type: result.value.type || "FACILITY"
+                    };
                     const res = await fetch(`${apiUrl}/api/bookings/${booking.id}`, {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
                         credentials: "include",
-                        body: JSON.stringify(result.value)
+                        body: JSON.stringify(payload)
                     });
 
                     if (res.ok) {
