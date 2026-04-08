@@ -14,12 +14,37 @@ export default function AdminTickets() {
         dateTo: '',
         search: ''
     });
+    const [resources, setResources] = useState<any[]>([]);
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
-    const fetchTickets = async (isRefresh = false) => {
-        if (isRefresh) setRefreshing(true);
-        else setLoading(true);
+    useEffect(() => {
+        const fetchResources = async () => {
+            try {
+                const res = await fetch(`${apiUrl}/api/resources`, { credentials: "include" });
+                if (res.ok) {
+                    const resourceData = await res.json();
+                    setResources(resourceData);
+                    return resourceData;
+                }
+            } catch (err) {
+                console.error("Failed to fetch resources", err);
+            }
+            return [];
+        };
+
+        const init = async () => {
+            const resourceData = await fetchResources();
+            await fetchTickets(resourceData);
+        };
+        init();
+    }, []);
+
+    const fetchTickets = async (resourceData?: any[]) => {
+        if (resourceData === undefined) {
+            resourceData = resources;
+        }
+        setRefreshing(true);
         
         try {
             const res = await fetch(`${apiUrl}/api/tickets`, { credentials: "include" });
@@ -32,9 +57,13 @@ export default function AdminTickets() {
                 const ticketsWithAttachments = await Promise.all(
                     sortedTickets.map(async (ticket: any) => {
                         const attRes = await fetch(`${apiUrl}/api/tickets/${ticket.id}/attachments`, { credentials: "include" });
+                        const resourceDisplay = (resourceData || []).find((r: any) => r.id === ticket.resourceId);
                         return { 
                             ...ticket, 
-                            attachments: attRes.ok ? await attRes.json() : [] 
+                            attachments: attRes.ok ? await attRes.json() : [],
+                            resourceDisplay: resourceDisplay 
+                                ? `${resourceDisplay.resourceCode} - ${resourceDisplay.resourceName}` 
+                                : ticket.resourceId || 'General'
                         };
                     })
                 );
@@ -47,10 +76,6 @@ export default function AdminTickets() {
             setRefreshing(false);
         }
     };
-
-    useEffect(() => {
-        fetchTickets();
-    }, []);
 
     const stats = {
         total: tickets.length,
@@ -177,7 +202,7 @@ export default function AdminTickets() {
                     <h3 class="text-lg font-bold text-white mb-2">${ticket.title}</h3>
                     <p class="text-sm text-slate-300 mb-3">${ticket.description}</p>
                     <div class="text-xs text-slate-400 space-y-1">
-                        <div><span class="font-semibold text-slate-300">Resource:</span> ${ticket.resourceId || 'General'}</div>
+                        <div><span class="font-semibold text-slate-300">Resource:</span> ${ticket.resourceDisplay || 'General'}</div>
                         <div><span class="font-semibold text-slate-300">Reported By:</span> ${ticket.reportedById || 'Unknown'}</div>
                         <div><span class="font-semibold text-slate-300">Created:</span> ${ticket.createdAt ? new Date(ticket.createdAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</div>
                     </div>
@@ -253,7 +278,7 @@ export default function AdminTickets() {
 
                     {/* Refresh Button */}
                     <button 
-                        onClick={() => fetchTickets(true)}
+                        onClick={() => fetchTickets()}
                         disabled={refreshing}
                         className="flex items-center justify-center gap-3 px-8 py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-500/30 active:scale-95 transition-all disabled:opacity-50"
                     >
@@ -382,7 +407,7 @@ export default function AdminTickets() {
                                                     )}
                                                 </div>
                                                 <div className="text-sm text-slate-400 mt-1 line-clamp-2">{t.description}</div>
-                                                <div className="text-xs text-indigo-400 mt-2 font-mono">Resource: {t.resourceId || 'General'}</div>
+                                                <div className="text-xs text-indigo-400 mt-2 font-mono">Resource: {t.resourceDisplay || 'General'}</div>
                                                 {t.attachments && t.attachments.length > 0 && (
                                                     <div className="flex gap-1 mt-2">
                                                         {t.attachments.slice(0, 3).map((att: any, idx: number) => (
