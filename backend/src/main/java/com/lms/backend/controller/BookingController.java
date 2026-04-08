@@ -41,8 +41,9 @@ public class BookingController {
             @PathVariable String bookingId,
             @RequestParam String status,
             @RequestParam String adminId,
+            @RequestParam String adminRole,
             @RequestParam(required = false) String reason) {
-        return ResponseEntity.ok(bookingService.updateBookingStatus(bookingId, status, adminId, reason));
+        return ResponseEntity.ok(bookingService.updateBookingStatus(bookingId, status, adminId, adminRole, reason));
     }
 
     @PutMapping("/{bookingId}")

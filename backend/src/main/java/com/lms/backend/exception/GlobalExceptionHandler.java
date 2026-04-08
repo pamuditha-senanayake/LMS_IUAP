@@ -1,5 +1,6 @@
 package com.lms.backend.exception;
 
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -33,6 +34,16 @@ public class GlobalExceptionHandler {
                 ex.getConflictingBookingId(),
                 ex.getConflictingStartTime(),
                 ex.getConflictingEndTime()
+        );
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+    
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(OptimisticLockingFailureException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                "The booking was modified by another user. Please refresh and try again.",
+                LocalDateTime.now()
         );
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
