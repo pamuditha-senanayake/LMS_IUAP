@@ -4,8 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import ResourceCard from "@/components/ResourceCard";
 import AddResourceModal from "@/components/AddResourceModal";
 import FacilityDetailsModal from "@/components/FacilityDetailsModal";
-import BookingChatbotToggle from "@/components/BookingChatbotToggle";
-import FacilityBookingChatbot from "@/components/FacilityBookingChatbot";
+import SmartChatbotToggle from "@/components/SmartChatbotToggle";
+import SmartBookingChatbot from "@/components/SmartBookingChatbot";
 import { Search, Filter, X, Plus } from "lucide-react";
 
 interface Resource {
@@ -285,18 +285,18 @@ export default function FacilitiesCatalogue() {
             />
         )}
 
-        <BookingChatbotToggle
+        <SmartChatbotToggle
             isOpen={isChatbotOpen}
             onToggle={() => setIsChatbotOpen(!isChatbotOpen)}
         />
-        <FacilityBookingChatbot
+        <SmartBookingChatbot
             isOpen={isChatbotOpen}
             onClose={() => setIsChatbotOpen(false)}
             onViewResource={(resource) => {
                 setSelectedResource(resource);
                 setIsDetailsModalOpen(true);
             }}
-            onBookResource={(resource) => {
+            onBookResource={(resource, bookingData) => {
                 setSelectedResource(resource);
                 setIsDetailsModalOpen(true);
             }}
