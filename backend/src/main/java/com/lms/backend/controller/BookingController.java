@@ -50,7 +50,7 @@ public class BookingController {
     public ResponseEntity<Booking> updateBooking(
             @PathVariable String bookingId,
             @RequestParam String userId,
-            @Valid @RequestBody Booking booking) {
+            @RequestBody Booking booking) {
         return ResponseEntity.ok(bookingService.updateBooking(bookingId, booking, userId));
     }
 

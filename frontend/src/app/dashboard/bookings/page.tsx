@@ -296,11 +296,22 @@ export default function MyBookings() {
                 }
             },
             preConfirm: () => {
+                const startInput = (document.getElementById('swal-start') as HTMLInputElement).value;
+                const endInput = (document.getElementById('swal-end') as HTMLInputElement).value;
+                const attendeesInput = (document.getElementById('swal-attendees') as HTMLInputElement).value;
+                
+                // Add seconds to datetime-local format (YYYY-MM-DDTHH:MM -> YYYY-MM-DDTHH:mm:00)
+                const startTimeWithSeconds = startInput ? startInput + ":00" : "";
+                const endTimeWithSeconds = endInput ? endInput + ":00" : "";
+                
+                // Handle empty or invalid attendees
+                const attendees = attendeesInput ? parseInt(attendeesInput) : 0;
+                
                 return {
                     purpose: (document.getElementById('swal-purpose') as HTMLInputElement).value,
-                    expectedAttendees: parseInt((document.getElementById('swal-attendees') as HTMLInputElement).value),
-                    startTime: (document.getElementById('swal-start') as HTMLInputElement).value,
-                    endTime: (document.getElementById('swal-end') as HTMLInputElement).value,
+                    expectedAttendees: isNaN(attendees) ? 0 : attendees,
+                    startTime: startTimeWithSeconds,
+                    endTime: endTimeWithSeconds
                 }
             }
         }).then(async (result) => {
@@ -330,10 +341,11 @@ export default function MyBookings() {
                         let errorMsg = "An error occurred";
                         try {
                             const errorData = await res.json();
-                            errorMsg = errorData.message || errorMsg;
+                            errorMsg = errorData.message || errorData.error || JSON.stringify(errorData);
                         } catch {
                             errorMsg = await res.text() || errorMsg;
                         }
+                        console.error("Update failed:", errorMsg);
                         Swal.fire({ 
                             title: "Update Failed", 
                             html: `<div class="text-slate-300">${errorMsg}</div>`,

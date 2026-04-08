@@ -70,7 +70,7 @@ public class BookingService {
 
     // Checking overlap correctly is critical
     public Booking createBooking(Booking booking) {
-        validateBookingData(booking);
+        validateBookingData(booking, true);
 
         Booking conflicting = findConflictingBooking(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), null);
         if (conflicting != null) {
@@ -129,7 +129,7 @@ public class BookingService {
         validateStatusTransition(oldStatus, newStatus);
 
         if ("APPROVED".equals(newStatus)) {
-            validateBookingData(booking);
+            validateBookingData(booking, false);
 
             Booking conflicting = findConflictingBooking(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), booking.getId());
             if (conflicting != null) {
@@ -202,7 +202,7 @@ public class BookingService {
         booking.setStartTime(update.getStartTime());
         booking.setEndTime(update.getEndTime());
 
-        validateBookingData(booking);
+        validateBookingData(booking, false);
         
         Booking conflicting = findConflictingBooking(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), bookingId);
         if (conflicting != null) {
@@ -302,12 +302,13 @@ public class BookingService {
     }
 
     private void validateBookingData(Booking booking) {
+        validateBookingData(booking, false);
+    }
+    
+    private void validateBookingData(Booking booking, boolean isNewBooking) {
         // Validate required fields
         if (booking == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Booking request must not be null");
-        }
-        if (booking.getResourceId() == null || booking.getResourceId().trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resource ID must not be empty");
         }
         if (booking.getStartTime() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start time must not be null");
@@ -332,9 +333,14 @@ public class BookingService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Purpose must not exceed 500 characters");
         }
         
-        // Validate start time is not in the past
-        if (booking.getStartTime().isBefore(LocalDateTime.now())) {
+        // Only validate start time not in past for NEW bookings (not edits)
+        if (isNewBooking && booking.getStartTime().isBefore(LocalDateTime.now())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start time cannot be in the past");
+        }
+        
+        // Only validate resource ID for new bookings (not edits)
+        if (isNewBooking && (booking.getResourceId() == null || booking.getResourceId().trim().isEmpty())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resource ID must not be empty");
         }
         
         // Sanitize inputs
