@@ -25,9 +25,17 @@ public class FileStorageService {
     @PostConstruct
     public void init() {
         this.uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+        
+        // If running from root on Railway, ./uploads might point to PROJECT_ROOT/uploads.
+        // If that doesn't exist but backend/uploads does, use that.
+        if (!Files.exists(this.uploadPath) && Files.exists(Paths.get("./backend/uploads"))) {
+            this.uploadPath = Paths.get("./backend/uploads").toAbsolutePath().normalize();
+            log.info("Using backend/uploads as fallback for storage: {}", uploadPath);
+        }
+
         try {
             Files.createDirectories(uploadPath);
-            log.info("Upload directory created at: {}", uploadPath);
+            log.info("Upload directory ready at: {}", uploadPath);
         } catch (IOException e) {
             throw new RuntimeException("Could not create upload directory", e);
         }

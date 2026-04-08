@@ -7,7 +7,6 @@ export default function AdminTickets() {
     const [tickets, setTickets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [currentUser, setCurrentUser] = useState<any>(null);
     const [filters, setFilters] = useState({
         status: '',
         priority: '',
@@ -19,34 +18,30 @@ export default function AdminTickets() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
     const fetchTickets = async (isRefresh = false) => {
-        if (isRefresh) {
-            setRefreshing(true);
-        } else {
-            setLoading(true);
-        }
+        if (isRefresh) setRefreshing(true);
+        else setLoading(true);
+        
         try {
             const res = await fetch(`${apiUrl}/api/tickets`, { credentials: "include" });
             if (res.ok) {
                 const data = await res.json();
-                const sortedTickets = data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                const sortedTickets = data.sort((a: any, b: any) => 
+                    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                );
                 
                 const ticketsWithAttachments = await Promise.all(
                     sortedTickets.map(async (ticket: any) => {
                         const attRes = await fetch(`${apiUrl}/api/tickets/${ticket.id}/attachments`, { credentials: "include" });
-                        if (attRes.ok) {
-                            const attachments = await attRes.json();
-                            return { ...ticket, attachments };
-                        }
-                        return { ...ticket, attachments: [] };
+                        return { 
+                            ...ticket, 
+                            attachments: attRes.ok ? await attRes.json() : [] 
+                        };
                     })
                 );
-                
                 setTickets(ticketsWithAttachments);
-            } else {
-                Swal.fire("Error", "Failed to load tickets", "error");
             }
         } catch (err) {
-            Swal.fire("Error", "Network error", "error");
+            console.error("Failed to fetch tickets", err);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -54,102 +49,61 @@ export default function AdminTickets() {
     };
 
     useEffect(() => {
-        const loadUser = async () => {
-            try {
-                const res = await fetch(`${apiUrl}/api/auth/me`, { credentials: "include" });
-                if (res.ok) {
-                    const user = await res.json();
-                    setCurrentUser(user);
-                }
-            } catch (e) {}
-            fetchTickets();
-        };
-        loadUser();
+        fetchTickets();
     }, []);
 
-    const isOverdue = (ticket: any) => {
-        if (!ticket.createdAt || ticket.status === 'RESOLVED' || ticket.status === 'REJECTED' || ticket.status === 'CLOSED') {
-            return false;
-        }
-        const createdAt = new Date(ticket.createdAt).getTime();
-        const now = Date.now();
-        const hoursElapsed = (now - createdAt) / (1000 * 60 * 60);
-        
-        const thresholds: Record<string, number> = {
-            'CRITICAL': 1,
-            'HIGH': 4,
-            'MEDIUM': 24,
-            'LOW': 72
-        };
-        
-        const threshold = thresholds[ticket.priority] || 24;
-        return hoursElapsed > threshold;
+    const stats = {
+        total: tickets.length,
+        open: tickets.filter(t => t.status === 'OPEN').length,
+        inProgress: tickets.filter(t => t.status === 'IN_PROGRESS').length,
+        resolved: tickets.filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED').length,
+        critical: tickets.filter(t => t.priority === 'CRITICAL').length,
     };
 
-    const getOverdueLabel = (ticket: any) => {
-        if (!ticket.createdAt) return '';
-        const createdAt = new Date(ticket.createdAt);
-        const now = new Date();
-        const hoursElapsed = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+    const isOverdue = (ticket: any) => {
+        if (!ticket.createdAt || ticket.status === 'RESOLVED' || ticket.status === 'REJECTED' || ticket.status === 'CLOSED') return false;
+        const hours = (Date.now() - new Date(ticket.createdAt).getTime()) / (1000 * 60 * 60);
         const thresholds: Record<string, number> = { 'CRITICAL': 1, 'HIGH': 4, 'MEDIUM': 24, 'LOW': 72 };
-        const threshold = thresholds[ticket.priority] || 24;
-        const overdueHours = Math.floor(hoursElapsed - threshold);
-        if (overdueHours < 1) return `${Math.floor((hoursElapsed - threshold) * 60)}m overdue`;
-        return `${overdueHours}h overdue`;
+        return hours > (thresholds[ticket.priority] || 24);
     };
 
     const filteredTickets = tickets.filter(ticket => {
         if (filters.status && ticket.status !== filters.status) return false;
         if (filters.priority && ticket.priority !== filters.priority) return false;
-        
         if (filters.search) {
-            const searchTerm = filters.search.trim();
-            const searchLower = searchTerm.toLowerCase();
-            const matchesSearch = 
-                ticket.title?.toLowerCase().includes(searchLower) ||
-                ticket.description?.toLowerCase().includes(searchLower) ||
-                ticket.id?.toLowerCase().includes(searchLower) ||
-                ticket.ticketCode?.toLowerCase().includes(searchLower) ||
-                ticket.resourceId?.toLowerCase().includes(searchLower) ||
-                ticket.id?.substring(0, 6).toLowerCase().includes(searchLower);
-            if (!matchesSearch) return false;
+            const search = filters.search.toLowerCase();
+            if (!ticket.title?.toLowerCase().includes(search) &&
+                !ticket.description?.toLowerCase().includes(search) &&
+                !ticket.id?.toLowerCase().includes(search)) return false;
         }
-        
         if (filters.dateFrom) {
             const ticketDate = new Date(ticket.createdAt);
             const fromDate = new Date(filters.dateFrom);
             fromDate.setHours(0, 0, 0, 0);
             if (ticketDate < fromDate) return false;
         }
-        
         if (filters.dateTo) {
             const ticketDate = new Date(ticket.createdAt);
             const toDate = new Date(filters.dateTo);
             toDate.setHours(23, 59, 59, 999);
             if (ticketDate > toDate) return false;
         }
-        
         return true;
     });
+
+    const hasActiveFilters = filters.status || filters.priority || filters.dateFrom || filters.dateTo || filters.search;
 
     const clearFilters = () => {
         setFilters({ status: '', priority: '', dateFrom: '', dateTo: '', search: '' });
     };
 
-    const hasActiveFilters = filters.status || filters.priority || filters.dateFrom || filters.dateTo || filters.search;
-
     const processStatusChange = async (id: string, status: string, note: string) => {
         try {
             const url = new URL(`${apiUrl}/api/tickets/${id}/status`);
             url.searchParams.append("status", status);
-            url.searchParams.append("adminId", currentUser?.id || "N/A");
+            url.searchParams.append("adminId", "Admin");
             url.searchParams.append("note", note);
-
-            const res = await fetch(url.toString(), {
-                method: "PATCH",
-                credentials: "include"
-            });
-
+            const res = await fetch(url.toString(), { method: "PATCH", credentials: "include" });
             if (res.ok) {
                 Swal.fire({ title: "Updated!", icon: "success", background: '#1e293b', color: '#fff' });
                 fetchTickets();
@@ -157,21 +111,20 @@ export default function AdminTickets() {
                 Swal.fire({ title: "Error", text: await res.text(), icon: "error", background: '#1e293b', color: '#fff' });
             }
         } catch (err) {
-            Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#1e293b', color: '#fff' });
+            Swal.fire({ title: "Error", icon: "error", background: '#1e293b', color: '#fff' });
         }
     };
 
     const handleAction = (id: string, actionType: string, isPositive: boolean) => {
-        let title = "Update Status";
-        let promptText = "";
+        let title = "";
         if (actionType === "IN_PROGRESS") title = "Mark as In Progress?";
         if (actionType === "RESOLVED") title = "Resolve Ticket?";
         if (actionType === "REJECTED") title = "Reject Ticket?";
 
         Swal.fire({
-            title: title,
+            title,
             input: 'textarea',
-            inputPlaceholder: 'Any specific reasoning or notes for the user...',
+            inputPlaceholder: 'Add notes for the user...',
             icon: isPositive ? 'question' : 'warning',
             showCancelButton: true,
             confirmButtonColor: isPositive ? '#10b981' : '#ef4444',
@@ -180,14 +133,12 @@ export default function AdminTickets() {
             background: '#1e293b',
             color: '#fff',
         }).then((result) => {
-            if (result.isConfirmed) {
-                processStatusChange(id, actionType, result.value || "");
-            }
+            if (result.isConfirmed) processStatusChange(id, actionType, result.value || "");
         });
     };
 
     const handleViewDetails = (ticket: any) => {
-        const attachmentsHtml = ticket.attachments && ticket.attachments.length > 0
+        const attachmentsHtml = ticket.attachments?.length > 0
             ? `
                 <div class="mt-4">
                     <h4 class="text-sm font-semibold text-slate-300 mb-2">Attachments (${ticket.attachments.length})</h4>
@@ -252,81 +203,72 @@ export default function AdminTickets() {
     };
 
     return (
-        <div className="p-6 text-white max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-indigo-500">
-                    Admin Tickets View
-                </h1>
-                <button 
-                    onClick={() => fetchTickets(true)}
-                    disabled={refreshing}
-                    className="px-4 py-2 bg-slate-800 border border-slate-700 hover:border-sky-500 rounded-xl transition-all flex items-center gap-2 disabled:opacity-50"
-                >
-                    {refreshing ? (
-                        <>
-                            <div className="loader">
-                                <svg id="cloud" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-                                    <defs>
-                                        <filter id="roundness">
-                                            <feGaussianBlur in="SourceGraphic" stdDeviation="1.5"></feGaussianBlur>
-                                            <feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 20 -10"></feColorMatrix>
-                                        </filter>
-                                        <mask id="shapes">
-                                            <g fill="white">
-                                                <polygon points="50 37.5 80 75 20 75 50 37.5"></polygon>
-                                                <circle cx="20" cy="60" r="15"></circle>
-                                                <circle cx="80" cy="60" r="15"></circle>
-                                                <g>
-                                                    <circle cx="20" cy="60" r="15"></circle>
-                                                    <circle cx="20" cy="60" r="15"></circle>
-                                                    <circle cx="20" cy="60" r="15"></circle>
-                                                </g>
-                                            </g>
-                                        </mask>
-                                        <mask id="clipping" clipPathUnits="userSpaceOnUse">
-                                            <g id="lines" filter="url(#roundness)">
-                                                <g mask="url(#shapes)" stroke="white">
-                                                    <line x1="-50" y1="-40" x2="150" y2="-40"></line>
-                                                    <line x1="-50" y1="-31" x2="150" y2="-31"></line>
-                                                    <line x1="-50" y1="-22" x2="150" y2="-22"></line>
-                                                    <line x1="-50" y1="-13" x2="150" y2="-13"></line>
-                                                    <line x1="-50" y1="-4" x2="150" y2="-4"></line>
-                                                    <line x1="-50" y1="5" x2="150" y2="5"></line>
-                                                    <line x1="-50" y1="14" x2="150" y2="14"></line>
-                                                    <line x1="-50" y1="23" x2="150" y2="23"></line>
-                                                    <line x1="-50" y1="32" x2="150" y2="32"></line>
-                                                    <line x1="-50" y1="41" x2="150" y2="41"></line>
-                                                    <line x1="-50" y1="50" x2="150" y2="50"></line>
-                                                    <line x1="-50" y1="59" x2="150" y2="59"></line>
-                                                    <line x1="-50" y1="68" x2="150" y2="68"></line>
-                                                    <line x1="-50" y1="77" x2="150" y2="77"></line>
-                                                    <line x1="-50" y1="86" x2="150" y2="86"></line>
-                                                    <line x1="-50" y1="95" x2="150" y2="95"></line>
-                                                    <line x1="-50" y1="104" x2="150" y2="104"></line>
-                                                    <line x1="-50" y1="113" x2="150" y2="113"></line>
-                                                    <line x1="-50" y1="122" x2="150" y2="122"></line>
-                                                    <line x1="-50" y1="131" x2="150" y2="131"></line>
-                                                    <line x1="-50" y1="140" x2="150" y2="140"></line>
-                                                </g>
-                                            </g>
-                                        </mask>
-                                    </defs>
-                                    <rect x="0" y="0" width="100" height="100" rx="0" ry="0" mask="url(#clipping)"></rect>
-                                    <g>
-                                        <path d="M33.52,68.12 C35.02,62.8 39.03,58.52 44.24,56.69 C49.26,54.93 54.68,55.61 59.04,58.4 C59.04,58.4 56.24,60.53 56.24,60.53 C55.45,61.13 55.68,62.37 56.63,62.64 C56.63,62.64 67.21,65.66 67.21,65.66 C67.98,65.88 68.75,65.3 68.74,64.5 C68.74,64.5 68.68,53.5 68.68,53.5 C68.67,52.51 67.54,51.95 66.75,52.55 C66.75,52.55 64.04,54.61 64.04,54.61 C57.88,49.79 49.73,48.4 42.25,51.03 C35.2,53.51 29.78,59.29 27.74,66.49 C27.29,68.08 28.22,69.74 29.81,70.19 C30.09,70.27 30.36,70.31 30.63,70.31 C31.94,70.31 33.14,69.44 33.52,68.12Z"></path>
-                                        <path d="M69.95,74.85 C68.35,74.4 66.7,75.32 66.25,76.92 C64.74,82.24 60.73,86.51 55.52,88.35 C50.51,90.11 45.09,89.43 40.73,86.63 C40.73,86.63 43.53,84.51 43.53,84.51 C44.31,83.91 44.08,82.67 43.13,82.4 C43.13,82.4 32.55,79.38 32.55,79.38 C31.78,79.16 31.02,79.74 31.02,80.54 C31.02,80.54 31.09,91.54 31.09,91.54 C31.09,92.53 32.22,93.09 33.01,92.49 C33.01,92.49 35.72,90.43 35.72,90.43 C39.81,93.63 44.77,95.32 49.84,95.32 C52.41,95.32 55,94.89 57.51,94.01 C64.56,91.53 69.99,85.75 72.02,78.55 C72.47,76.95 71.54,75.3 69.95,74.85Z"></path>
-                                    </g>
-                                </svg>
-                            </div>
-                            <span>Syncing...</span>
-                        </>
-                    ) : (
-                        "Refresh"
-                    )}
-                </button>
+        <div className="p-6 text-white max-w-7xl mx-auto space-y-6">
+            {/* Hero Banner Section */}
+            <div className="relative w-full rounded-3xl overflow-hidden border border-slate-700/50 shadow-2xl bg-slate-900 group/banner">
+                {/* Background Decoration */}
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-pink-500/20 opacity-40 transition-opacity duration-700 group-hover/banner:opacity-60" />
+                <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/30 blur-[120px] -mr-48 -mt-48 rounded-full" />
+                <div className="absolute bottom-0 left-0 w-96 h-96 bg-pink-500/20 blur-[120px] -ml-48 -mb-48 rounded-full" />
+                
+                <div className="relative p-8 md:p-10 flex flex-col items-center text-center space-y-6">
+                    <div className="space-y-3 max-w-2xl">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[10px] font-black uppercase tracking-[0.3em]">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+                            Ticket Management System
+                        </div>
+                        <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white text-center">
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">
+                                Ticket Management
+                            </span>
+                        </h1>
+                        <p className="text-slate-300 text-sm md:text-base font-semibold max-w-lg mx-auto leading-relaxed drop-shadow-sm">
+                            Manage and track all incident tickets across the institution. Monitor resolution progress and maintain service quality.
+                        </p>
+                    </div>
+
+                    {/* Stats Cards */}
+                    <div className="w-full grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50">
+                            <div className="text-2xl font-bold text-white">{stats.total}</div>
+                            <div className="text-xs text-slate-400 font-medium">Total</div>
+                        </div>
+                        <div className="bg-amber-500/10 backdrop-blur-sm rounded-xl p-4 border border-amber-500/20">
+                            <div className="text-2xl font-bold text-amber-400">{stats.open}</div>
+                            <div className="text-xs text-amber-400/70 font-medium">Open</div>
+                        </div>
+                        <div className="bg-blue-500/10 backdrop-blur-sm rounded-xl p-4 border border-blue-500/20">
+                            <div className="text-2xl font-bold text-blue-400">{stats.inProgress}</div>
+                            <div className="text-xs text-blue-400/70 font-medium">In Progress</div>
+                        </div>
+                        <div className="bg-emerald-500/10 backdrop-blur-sm rounded-xl p-4 border border-emerald-500/20">
+                            <div className="text-2xl font-bold text-emerald-400">{stats.resolved}</div>
+                            <div className="text-xs text-emerald-400/70 font-medium">Resolved</div>
+                        </div>
+                        <div className="bg-red-500/10 backdrop-blur-sm rounded-xl p-4 border border-red-500/20">
+                            <div className="text-2xl font-bold text-red-400">{stats.critical}</div>
+                            <div className="text-xs text-red-400/70 font-medium">Critical</div>
+                        </div>
+                    </div>
+
+                    {/* Refresh Button */}
+                    <button 
+                        onClick={() => fetchTickets(true)}
+                        disabled={refreshing}
+                        className="flex items-center justify-center gap-3 px-8 py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-500/30 active:scale-95 transition-all disabled:opacity-50"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={refreshing ? 'animate-spin' : ''}>
+                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                            <path d="M21 3v5h-5"/>
+                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                            <path d="M8 16H3v5"/>
+                        </svg>
+                        {refreshing ? "Syncing..." : "Refresh Tickets"}
+                    </button>
+                </div>
             </div>
 
-            <div className="glass-card rounded-2xl p-4 mb-6 border border-slate-700/50">
+            <div className="bg-slate-800/30 rounded-2xl p-4 mb-6 border border-slate-700/50">
                 <div className="flex flex-wrap gap-4 items-end">
                     <div className="flex-1 min-w-[200px]">
                         <label className="block text-xs font-semibold text-slate-400 mb-1">Search</label>
@@ -402,7 +344,7 @@ export default function AdminTickets() {
             {loading ? (
                 <div className="text-center text-slate-400 py-10">Loading tickets...</div>
             ) : (
-                <div className="glass-card rounded-2xl overflow-hidden border border-slate-700/50">
+                <div className="bg-slate-800/30 rounded-2xl overflow-hidden border border-slate-700/50">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[800px]">
                             <thead>
@@ -410,7 +352,7 @@ export default function AdminTickets() {
                                     <th className="p-4 font-semibold text-slate-300">Issue Details</th>
                                     <th className="p-4 font-semibold text-slate-300 w-28">Priority</th>
                                     <th className="p-4 font-semibold text-slate-300 w-32">Status</th>
-                                    <th className="p-4 font-semibold text-slate-300 text-right min-w-[300px]">Actions</th>
+                                    <th className="p-4 font-semibold text-slate-300 text-right min-w-[350px]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -441,9 +383,6 @@ export default function AdminTickets() {
                                                 </div>
                                                 <div className="text-sm text-slate-400 mt-1 line-clamp-2">{t.description}</div>
                                                 <div className="text-xs text-indigo-400 mt-2 font-mono">Resource: {t.resourceId || 'General'}</div>
-                                                {isOverdue(t) && (
-                                                    <div className="text-xs text-red-400 mt-1 font-semibold animate-pulse">{getOverdueLabel(t)}</div>
-                                                )}
                                                 {t.attachments && t.attachments.length > 0 && (
                                                     <div className="flex gap-1 mt-2">
                                                         {t.attachments.slice(0, 3).map((att: any, idx: number) => (

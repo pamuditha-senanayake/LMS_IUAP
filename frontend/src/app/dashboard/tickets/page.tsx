@@ -4,6 +4,14 @@ import { useState, useEffect, useRef } from "react";
 import Swal from "sweetalert2";
 import { X, Upload, AlertTriangle, MapPin, Type, FileText, Zap, Image as ImageIcon, Loader2, CheckCircle2 } from "lucide-react";
 
+const BACKGROUND_IMAGES = [
+    "https://www.ox.ac.uk/sites/files/oxford/styles/ow_large_feature/s3/field/field_image_main/b_AllSoulsquad.jpg?itok=tTcH-5ix",
+    "https://oxford.tours/wp-content/uploads/2022/10/courtyard-oxford-university.jpg",
+    "https://i.natgeofe.com/n/17b50f51-1d61-4b1d-b64e-f3060b1bbc1c/oxfordpittriversmuseum.jpg",
+    "https://ifsa-butler.org/wp-content/uploads/2023/09/HERO-Oxford_1231106194.jpg",
+    "https://images.ohmyhosting.se/B_f30FriCvfM-s1CW-zvyM0NbHo=/fit-in/1680x1050/smart/filters:quality(85)/https%3A%2F%2Fengelsbergideas.com%2Fwp-content%2Fuploads%2F2024%2F10%2FOxford-University.jpg"
+];
+
 export default function TicketingPage() {
     const [tickets, setTickets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -17,9 +25,17 @@ export default function TicketingPage() {
     const [submitting, setSubmitting] = useState(false);
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const [currentBgIndex, setCurrentBgIndex] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentBgIndex((prev) => (prev + 1) % BACKGROUND_IMAGES.length);
+        }, 6000);
+        return () => clearInterval(interval);
+    }, []);
 
     const fetchTickets = async (userId: string) => {
         setLoading(true);
@@ -289,22 +305,40 @@ export default function TicketingPage() {
     };
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto p-4 md:p-6 text-white">
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-pink-500 mb-2">My Tickets</h1>
-                    <p className="text-slate-400">Report facility issues and track their resolution progress.</p>
-                </div>
-                <button 
-                    onClick={handleReport} 
-                    className="group relative rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white font-medium px-6 py-3 transition-all active:scale-95 shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50 overflow-hidden"
-                >
-                    <span className="relative z-10 flex items-center gap-2">
-                        <Zap size={18} className="group-hover:rotate-12 transition-transform" />
-                        Report Issue
-                    </span>
-                </button>
+        <div className="relative min-h-screen overflow-hidden">
+            <div className="fixed inset-0 z-0">
+                {BACKGROUND_IMAGES.map((img, index) => (
+                    <div
+                        key={img}
+                        className="absolute inset-0 transition-opacity duration-1000"
+                        style={{
+                            backgroundImage: `url(${img})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                            backgroundAttachment: "fixed",
+                            opacity: index === currentBgIndex ? 1 : 0,
+                        }}
+                    />
+                ))}
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-900/70 to-slate-900/90" />
             </div>
+
+            <div className="relative z-10 max-w-6xl mx-auto p-4 md:p-6 text-white min-h-screen overflow-y-auto">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-pink-500 mb-2">My Tickets</h1>
+                        <p className="text-slate-300">Report facility issues and track their resolution progress.</p>
+                    </div>
+                    <button 
+                        onClick={handleReport} 
+                        className="group relative rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white font-medium px-6 py-3 transition-all active:scale-95 shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50 overflow-hidden"
+                    >
+                        <span className="relative z-10 flex items-center gap-2">
+                            <Zap size={18} className="group-hover:rotate-12 transition-transform" />
+                            Report Issue
+                        </span>
+                    </button>
+                </div>
 
             {showReportModal && (
                 <div className="fixed inset-0 z-[110] flex items-start justify-center p-4 pt-[5vh]">
@@ -647,6 +681,7 @@ export default function TicketingPage() {
                     )}
                 </div>
             )}
+            </div>
         </div>
     );
 }

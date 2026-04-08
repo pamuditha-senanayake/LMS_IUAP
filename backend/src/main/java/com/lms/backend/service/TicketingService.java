@@ -1,6 +1,7 @@
 package com.lms.backend.service;
 
 import com.lms.backend.model.IncidentTicket;
+import com.lms.backend.model.Notification;
 import com.lms.backend.model.TicketAttachment;
 import com.lms.backend.model.TicketComment;
 import com.lms.backend.repository.IncidentTicketRepository;
@@ -24,6 +25,7 @@ public class TicketingService {
     private final IncidentTicketRepository ticketRepository;
     private final TicketAttachmentRepository attachmentRepository;
     private final TicketCommentRepository commentRepository;
+    private final NotificationService notificationService;
 
     // Tickets
     public List<IncidentTicket> getAllTickets() {
@@ -126,6 +128,7 @@ public class TicketingService {
         IncidentTicket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
         
+        String previousStatus = ticket.getStatus();
         ticket.setStatus(status);
         if ("RESOLVED".equals(status)) {
             ticket.setResolvedAt(LocalDateTime.now());
@@ -137,7 +140,41 @@ public class TicketingService {
             ticket.setRejectedById(adminId);
         }
         
-        return ticketRepository.save(ticket);
+        IncidentTicket savedTicket = ticketRepository.save(ticket);
+        
+        if (savedTicket.getReportedById() != null && !savedTicket.getReportedById().isEmpty()) {
+            String statusMessage = formatStatusMessage(status);
+            Notification notification = Notification.builder()
+                    .recipientUserId(savedTicket.getReportedById())
+                    .createdById(adminId != null ? adminId : "SYSTEM")
+                    .notificationType("STATUS_CHANGE")
+                    .title("Ticket Status Updated")
+                    .message("Your ticket '" + savedTicket.getTitle() + "' has been updated from " + formatStatus(previousStatus) + " to " + statusMessage)
+                    .relatedEntityType("TICKET")
+                    .relatedEntityId(ticketId)
+                    .isRead(false)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            notificationService.createNotification(notification);
+        }
+        
+        return savedTicket;
+    }
+    
+    private String formatStatus(String status) {
+        if (status == null) return "Unknown";
+        return status.replace("_", " ");
+    }
+    
+    private String formatStatusMessage(String status) {
+        return switch (status) {
+            case "OPEN" -> "Open";
+            case "IN_PROGRESS" -> "In Progress";
+            case "RESOLVED" -> "Resolved";
+            case "REJECTED" -> "Rejected";
+            case "CLOSED" -> "Closed";
+            default -> status;
+        };
     }
 
     // Attachments
@@ -155,7 +192,34 @@ public class TicketingService {
     }
     
     public TicketComment addComment(TicketComment comment) {
-        return commentRepository.save(comment);
+        comment.setCreatedAt(LocalDateTime.now());
+        TicketComment savedComment = commentRepository.save(comment);
+        
+        IncidentTicket ticket = ticketRepository.findById(comment.getTicketId()).orElse(null);
+        if (ticket != null && ticket.getReportedById() != null && !ticket.getReportedById().isEmpty()) {
+            if (!ticket.getReportedById().equals(comment.getAuthorId())) {
+                Notification notification = Notification.builder()
+                        .recipientUserId(ticket.getReportedById())
+                        .createdById(comment.getAuthorId())
+                        .notificationType("COMMENT_ADDED")
+                        .title("New Comment on Your Ticket")
+                        .message("A new comment was added to your ticket '" + ticket.getTitle() + "': " + truncateText(comment.getCommentText(), 50))
+                        .relatedEntityType("TICKET")
+                        .relatedEntityId(comment.getTicketId())
+                        .isRead(false)
+                        .createdAt(LocalDateTime.now())
+                        .build();
+                notificationService.createNotification(notification);
+            }
+        }
+        
+        return savedComment;
+    }
+    
+    private String truncateText(String text, int maxLength) {
+        if (text == null) return "";
+        if (text.length() <= maxLength) return text;
+        return text.substring(0, maxLength) + "...";
     }
 
     public void deleteTicket(String ticketId) {
