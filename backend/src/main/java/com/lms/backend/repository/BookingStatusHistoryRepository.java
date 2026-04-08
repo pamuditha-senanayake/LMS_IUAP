@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface BookingStatusHistoryRepository extends MongoRepository<BookingStatusHistory, String> {
     List<BookingStatusHistory> findByBookingId(String bookingId);
+    List<BookingStatusHistory> findByBookingIdOrderByChangedAtAsc(String bookingId);
 }

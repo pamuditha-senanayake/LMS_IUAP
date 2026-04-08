@@ -8,12 +8,25 @@ export default function MyBookings() {
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [resources, setResources] = useState<any[]>([]);
+    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [submitting, setSubmitting] = useState(false);
 
     const fetchBookings = async (userId: string) => {
         setLoading(true);
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-            const res = await fetch(`${apiUrl}/api/bookings?userId=${userId}`, { credentials: "include" });
+            const currentSortDir = sortOrder === 'newest' ? 'desc' : 'asc';
+            const params = new URLSearchParams({
+                userId: userId,
+                sortBy: 'createdAt',
+                sortDir: currentSortDir
+            });
+            if (statusFilter !== 'all') {
+                params.append('status', statusFilter);
+            }
+            const url = `${apiUrl}/api/bookings?${params.toString()}`;
+            const res = await fetch(url, { credentials: "include" });
             if (res.ok) {
                 const data = await res.json();
                 setBookings(data);
@@ -65,6 +78,12 @@ export default function MyBookings() {
         loadUser();
         fetchResources();
     }, []);
+
+    useEffect(() => {
+        if (currentUser?.id) {
+            fetchBookings(currentUser.id);
+        }
+    }, [sortOrder, statusFilter]);
 
     const handleAdd = (prefillData?: any, currentAttempt: number = 0) => {
         const defaultResourceId = prefillData?.resourceId || "";
@@ -233,23 +252,49 @@ export default function MyBookings() {
         Swal.fire({
             title: 'Edit Booking Request',
             html: `
-                <div class="flex flex-col gap-3 text-left">
-                    <label class="text-sm text-slate-300">Purpose</label>
-                    <input id="swal-purpose" class="swal2-input !w-11/12 !mx-auto" value="${booking.purpose}">
-                    <label class="text-sm text-slate-300">Expected Attendees</label>
-                    <input id="swal-attendees" type="number" class="swal2-input !w-11/12 !mx-auto" value="${booking.expectedAttendees}">
-                    <label class="text-sm text-slate-300">Start Time</label>
-                    <input id="swal-start" type="datetime-local" class="swal2-input !w-11/12 !mx-auto" value="${booking.startTime ? booking.startTime.substring(0, 16) : ''}">
-                    <label class="text-sm text-slate-300">End Time</label>
-                    <input id="swal-end" type="datetime-local" class="swal2-input !w-11/12 !mx-auto" value="${booking.endTime ? booking.endTime.substring(0, 16) : ''}">
+                <div class="space-y-4 text-left">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Purpose</label>
+                        <input id="swal-purpose" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" value="${booking.purpose}">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Expected Attendees</label>
+                        <input id="swal-attendees" type="number" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" value="${booking.expectedAttendees}">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Start Time</label>
+                            <input id="swal-start" type="datetime-local" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" value="${booking.startTime ? booking.startTime.substring(0, 16) : ''}">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">End Time</label>
+                            <input id="swal-end" type="datetime-local" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" value="${booking.endTime ? booking.endTime.substring(0, 16) : ''}">
+                        </div>
+                    </div>
                 </div>
             `,
             focusConfirm: false,
             showCancelButton: true,
+            confirmButtonText: submitting ? 'Updating...' : 'Save Changes',
             confirmButtonColor: '#6366f1',
-            cancelButtonColor: '#ec4899',
-            background: '#1e293b',
+            cancelButtonColor: '#475569',
+            cancelButtonText: 'Cancel',
+            background: '#0f172a',
             color: '#fff',
+            buttonsStyling: false,
+            customClass: {
+                popup: 'rounded-xl border border-slate-700',
+                confirmButton: 'px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg transition-colors shadow-lg shadow-indigo-500/20 mr-3',
+                cancelButton: 'px-6 py-2.5 bg-transparent hover:bg-slate-700 text-slate-300 font-medium rounded-lg border border-slate-600 transition-colors'
+            },
+            didOpen: () => {
+                const confirmBtn = Swal.getConfirmButton();
+                if (confirmBtn) {
+                    confirmBtn.disabled = submitting;
+                }
+            },
             preConfirm: () => {
                 return {
                     purpose: (document.getElementById('swal-purpose') as HTMLInputElement).value,
@@ -260,9 +305,11 @@ export default function MyBookings() {
             }
         }).then(async (result) => {
             if (result.isConfirmed) {
+                setSubmitting(true);
                 try {
                     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-                    const res = await fetch(`${apiUrl}/api/bookings/${booking.id}`, {
+                    const url = `${apiUrl}/api/bookings/${booking.id}?userId=${currentUser.id}`;
+                    const res = await fetch(url, {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
                         credentials: "include",
@@ -305,6 +352,8 @@ export default function MyBookings() {
                         color: '#fff',
                         confirmButtonColor: '#ef4444'
                     });
+                } finally {
+                    setSubmitting(false);
                 }
             }
         });
@@ -325,7 +374,8 @@ export default function MyBookings() {
             if (result.isConfirmed) {
                 try {
                     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-                    const res = await fetch(`${apiUrl}/api/bookings/${id}`, {
+                    const url = `${apiUrl}/api/bookings/${id}?userId=${currentUser.id}`;
+                    const res = await fetch(url, {
                         method: "DELETE",
                         credentials: "include"
                     });
@@ -377,16 +427,69 @@ export default function MyBookings() {
                 <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-pink-500">
                     My Bookings
                 </h1>
-                <button 
-                    onClick={() => handleAdd()}
-                    className="px-6 py-2 bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-400 hover:to-pink-400 shadow-lg shadow-indigo-500/25 rounded-xl font-semibold transition-all"
-                >
-                    + Request Booking
-                </button>
+                <div className="flex items-center gap-3">
+                    <button 
+                        onClick={() => currentUser?.id && fetchBookings(currentUser.id)}
+                        className="p-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg transition-colors"
+                        title="Refresh"
+                    >
+                        <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </button>
+                    <button 
+                        onClick={() => handleAdd()}
+                        className="px-6 py-2 bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-400 hover:to-pink-400 shadow-lg shadow-indigo-500/25 rounded-xl font-semibold transition-all"
+                    >
+                        + Request Booking
+                    </button>
+                </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 mb-6 p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                <div className="flex items-center gap-2">
+                    <label className="text-sm text-slate-400">Status:</label>
+                    <select 
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                        <option value="all">All</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="APPROVED">Approved</option>
+                        <option value="REJECTED">Rejected</option>
+                        <option value="CANCELLED">Cancelled</option>
+                    </select>
+                </div>
+                <div className="flex items-center gap-2">
+                    <label className="text-sm text-slate-400">Sort by:</label>
+                    <select 
+                        value={sortOrder}
+                        onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                        className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                    </select>
+                </div>
+                <div className="ml-auto text-sm text-slate-400">
+                    {bookings.length} booking{bookings.length !== 1 ? 's' : ''}
+                </div>
             </div>
 
             {loading ? (
-                <div className="text-center text-slate-400 py-10">Loading bookings...</div>
+                <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="animate-pulse bg-slate-800/30 rounded-xl p-4 border border-slate-700/50">
+                            <div className="flex items-center gap-4">
+                                <div className="w-32 h-6 bg-slate-700 rounded"></div>
+                                <div className="w-48 h-6 bg-slate-700 rounded"></div>
+                                <div className="w-40 h-6 bg-slate-700 rounded"></div>
+                                <div className="w-20 h-6 bg-slate-700 rounded ml-auto"></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             ) : (
                 <div className="glass-card rounded-2xl overflow-hidden border border-slate-700/50">
                     <div className="overflow-x-auto">
@@ -423,6 +526,7 @@ export default function MyBookings() {
                                                 <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${
                                                     b.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                                                     b.status === 'REJECTED' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                                    b.status === 'CANCELLED' ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' :
                                                     'bg-amber-500/10 text-amber-400 border-amber-500/20'
                                                 }`}>
                                                     {b.status || 'PENDING'}
@@ -433,9 +537,14 @@ export default function MyBookings() {
                                                     <div className="flex justify-end gap-2">
                                                         <button 
                                                             onClick={() => handleEdit(b)}
-                                                            className="px-3 py-1.5 text-sm font-medium bg-slate-700 hover:bg-indigo-500 hover:text-white text-slate-200 rounded-lg transition-colors"
+                                                            disabled={submitting}
+                                                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                                                                submitting 
+                                                                    ? 'bg-slate-600 text-slate-400 cursor-not-allowed' 
+                                                                    : 'bg-slate-700 hover:bg-indigo-500 hover:text-white text-slate-200'
+                                                            }`}
                                                         >
-                                                            Edit
+                                                            {submitting ? 'Updating...' : 'Edit'}
                                                         </button>
                                                         <button 
                                                             onClick={() => handleDelete(b.id)}
@@ -448,6 +557,11 @@ export default function MyBookings() {
                                                 {b.status === "REJECTED" && (
                                                     <div className="text-xs text-red-400 mt-1 max-w-[150px] truncate ml-auto" title={b.rejectionReason}>
                                                         Reason: {b.rejectionReason}
+                                                    </div>
+                                                )}
+                                                {b.status === "CANCELLED" && (
+                                                    <div className="text-xs text-slate-400 mt-1 ml-auto">
+                                                        Cancelled
                                                     </div>
                                                 )}
                                             </td>
