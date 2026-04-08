@@ -115,11 +115,17 @@ public class BookingService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
         
         String oldStatus = booking.getStatus();
+        if (oldStatus == null) {
+            oldStatus = "PENDING"; // Default to PENDING for new bookings
+        }
 
         if (!isValidStatus(newStatus)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Invalid status. Allowed: PENDING, APPROVED, REJECTED, CANCELLED");
         }
+
+        // Validate status transitions
+        validateStatusTransition(oldStatus, newStatus);
 
         if ("APPROVED".equals(newStatus)) {
             validateBookingData(booking);
@@ -301,6 +307,29 @@ public class BookingService {
                 || "APPROVED".equals(status)
                 || "REJECTED".equals(status)
                 || "CANCELLED".equals(status);
+    }
+
+    private void validateStatusTransition(String oldStatus, String newStatus) {
+        if (oldStatus == null || "PENDING".equals(oldStatus)) {
+            // From PENDING (or null), can go to: APPROVED, REJECTED, CANCELLED
+            if ("APPROVED".equals(newStatus) || "REJECTED".equals(newStatus) || "CANCELLED".equals(newStatus)) {
+                return;
+            }
+        } else if ("APPROVED".equals(oldStatus)) {
+            // From APPROVED, can only go to CANCELLED
+            if ("CANCELLED".equals(newStatus)) {
+                return;
+            }
+        } else if ("REJECTED".equals(oldStatus)) {
+            // From REJECTED, cannot change (terminal state)
+        } else if ("CANCELLED".equals(oldStatus)) {
+            // From CANCELLED, cannot change (terminal state)
+        }
+        
+        // Invalid transition
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Invalid status transition from " + oldStatus + " to " + newStatus + 
+                ". Allowed transitions: PENDING→APPROVED, PENDING→REJECTED, PENDING→CANCELLED, APPROVED→CANCELLED");
     }
     
     private String buildNotificationMessage(Booking booking, String status, String reason) {
