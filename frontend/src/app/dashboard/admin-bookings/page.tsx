@@ -105,6 +105,7 @@ export default function AdminBookings() {
             const url = new URL(`${apiUrl}/api/bookings/${id}/status`);
             url.searchParams.append("status", status);
             url.searchParams.append("adminId", currentUser?.id || "N/A");
+            url.searchParams.append("adminRole", currentUser?.roles?.[0] || "");
             url.searchParams.append("reason", reason);
 
             const res = await fetch(url.toString(), {

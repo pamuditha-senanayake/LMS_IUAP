@@ -98,7 +98,19 @@ public class BookingService {
         return bookingRepository.save(booking);
     }
 
-    public Booking updateBookingStatus(String bookingId, String newStatus, String adminId, String reason) {
+    public Booking updateBookingStatus(String bookingId, String newStatus, String adminId, String adminRole, String reason) {
+        // Authorization: Only ADMIN can approve/reject/cancel
+        // adminRole comes as "ROLE_ADMIN" from frontend
+        boolean isAdmin = adminRole != null && (
+            "ADMIN".equalsIgnoreCase(adminRole) || 
+            adminRole.contains("ADMIN") || 
+            adminRole.contains("ROLE_ADMIN")
+        );
+        
+        if (!isAdmin) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only administrators can approve, reject, or cancel bookings");
+        }
+        
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
         
