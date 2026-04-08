@@ -1058,14 +1058,14 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                                     
                                     <div className="p-4 pt-0 flex gap-2">
                                         <button
-                                            onClick={() => handleViewDetails(msg.resource!)}
+                                            onClick={() => msg.resource && handleViewDetails(msg.resource)}
                                             className="flex-1 px-3 py-2.5 bg-slate-600 hover:bg-slate-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                                         >
                                             <Users className="w-4 h-4" />
                                             View Details
                                         </button>
                                         <button
-                                            onClick={() => handleBookNow(msg.resource!)}
+                                            onClick={() => msg.resource && handleBookNow(msg.resource)}
                                             className="flex-1 px-3 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                                         >
                                             <Calendar className="w-4 h-4" />
