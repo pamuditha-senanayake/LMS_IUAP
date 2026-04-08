@@ -1,6 +1,7 @@
 package com.lms.backend.service;
 
 import com.lms.backend.enums.ResourceStatus;
+import com.lms.backend.exception.BookingConflictException;
 import com.lms.backend.model.Booking;
 import com.lms.backend.model.Resource;
 import com.lms.backend.repository.BookingRepository;
@@ -80,7 +81,7 @@ public class BookingServiceTest {
 
         when(bookingRepository.findByResourceId(anyString())).thenReturn(List.of(existingBooking));
 
-        assertThrows(ResponseStatusException.class, () -> {
+        assertThrows(BookingConflictException.class, () -> {
             bookingService.createBooking(sampleBooking);
         });
     }
@@ -110,10 +111,10 @@ public class BookingServiceTest {
 
     @Test
     void deleteBooking_ThrowsNotFound_WhenIdInvalid() {
-        when(bookingRepository.existsById("invalid")).thenReturn(false);
+        when(bookingRepository.findById("invalid")).thenReturn(Optional.empty());
 
         assertThrows(ResponseStatusException.class, () -> {
-            bookingService.deleteBooking("invalid");
+            bookingService.deleteBooking("invalid", "test-user-id");
         });
     }
 }
