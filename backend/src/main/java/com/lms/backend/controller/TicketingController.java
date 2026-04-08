@@ -145,7 +145,7 @@ public class TicketingController {
     @PutMapping("/{ticketId}")
     public ResponseEntity<IncidentTicket> updateTicket(
             @PathVariable String ticketId,
-            @Valid @RequestBody IncidentTicket updates) {
+            @RequestBody IncidentTicket updates) {
         return ResponseEntity.ok(ticketingService.updateTicket(ticketId, updates));
     }
 
