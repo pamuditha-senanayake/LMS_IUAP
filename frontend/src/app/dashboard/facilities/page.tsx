@@ -3,6 +3,9 @@
 import { useState, useEffect, useMemo } from "react";
 import ResourceCard from "@/components/ResourceCard";
 import AddResourceModal from "@/components/AddResourceModal";
+import FacilityDetailsModal from "@/components/FacilityDetailsModal";
+import BookingChatbotToggle from "@/components/BookingChatbotToggle";
+import FacilityBookingChatbot from "@/components/FacilityBookingChatbot";
 import { Search, Filter, X, Plus } from "lucide-react";
 
 interface Resource {
@@ -34,6 +37,9 @@ export default function FacilitiesCatalogue() {
     const [selectedCategory, setSelectedCategory] = useState<"ALL" | "FACILITY" | "UTILITY">("ALL");
     const [isAdmin, setIsAdmin] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+    const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
@@ -266,6 +272,35 @@ export default function FacilitiesCatalogue() {
             isOpen={isAddModalOpen}
             onClose={() => setIsAddModalOpen(false)}
             onSuccess={fetchResources}
+        />
+
+        {selectedResource && (
+            <FacilityDetailsModal
+                resource={selectedResource}
+                isOpen={isDetailsModalOpen}
+                onClose={() => {
+                    setIsDetailsModalOpen(false);
+                    setSelectedResource(null);
+                }}
+            />
+        )}
+
+        <BookingChatbotToggle
+            isOpen={isChatbotOpen}
+            onToggle={() => setIsChatbotOpen(!isChatbotOpen)}
+        />
+        <FacilityBookingChatbot
+            isOpen={isChatbotOpen}
+            onClose={() => setIsChatbotOpen(false)}
+            onViewResource={(resource) => {
+                setSelectedResource(resource);
+                setIsDetailsModalOpen(true);
+            }}
+            onBookResource={(resource) => {
+                setSelectedResource(resource);
+                setIsDetailsModalOpen(true);
+            }}
+            resources={resources}
         />
         </>
     );
