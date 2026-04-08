@@ -296,11 +296,22 @@ export default function MyBookings() {
                 }
             },
             preConfirm: () => {
+                const startInput = (document.getElementById('swal-start') as HTMLInputElement).value;
+                const endInput = (document.getElementById('swal-end') as HTMLInputElement).value;
+                const attendeesInput = (document.getElementById('swal-attendees') as HTMLInputElement).value;
+                
+                // Add seconds to datetime-local format (YYYY-MM-DDTHH:MM -> YYYY-MM-DDTHH:mm:00)
+                const startTimeWithSeconds = startInput ? startInput + ":00" : "";
+                const endTimeWithSeconds = endInput ? endInput + ":00" : "";
+                
+                // Handle empty or invalid attendees
+                const attendees = attendeesInput ? parseInt(attendeesInput) : 0;
+                
                 return {
                     purpose: (document.getElementById('swal-purpose') as HTMLInputElement).value,
-                    expectedAttendees: parseInt((document.getElementById('swal-attendees') as HTMLInputElement).value),
-                    startTime: (document.getElementById('swal-start') as HTMLInputElement).value,
-                    endTime: (document.getElementById('swal-end') as HTMLInputElement).value,
+                    expectedAttendees: isNaN(attendees) ? 0 : attendees,
+                    startTime: startTimeWithSeconds,
+                    endTime: endTimeWithSeconds
                 }
             }
         }).then(async (result) => {
@@ -330,10 +341,11 @@ export default function MyBookings() {
                         let errorMsg = "An error occurred";
                         try {
                             const errorData = await res.json();
-                            errorMsg = errorData.message || errorMsg;
+                            errorMsg = errorData.message || errorData.error || JSON.stringify(errorData);
                         } catch {
                             errorMsg = await res.text() || errorMsg;
                         }
+                        console.error("Update failed:", errorMsg);
                         Swal.fire({ 
                             title: "Update Failed", 
                             html: `<div class="text-slate-300">${errorMsg}</div>`,
@@ -399,7 +411,7 @@ export default function MyBookings() {
                             errorMsg = await res.text() || errorMsg;
                         }
                         Swal.fire({ 
-                            title: "Deletion Failed", 
+                            title: "Delete Failed", 
                             html: `<div class="text-slate-300">${errorMsg}</div>`,
                             icon: "error", 
                             background: '#1e293b', 
@@ -416,6 +428,110 @@ export default function MyBookings() {
                         color: '#fff',
                         confirmButtonColor: '#ef4444'
                     });
+                }
+            }
+        });
+    };
+
+    const handleUserCancel = (booking: any) => {
+        Swal.fire({
+            title: 'Cancel Booking?',
+            html: `
+                <div class="text-left space-y-3">
+                    <p class="text-slate-300 text-sm mb-3">Are you sure you want to cancel this booking? This action cannot be undone.</p>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Reason for Cancellation (Optional)</label>
+                        <select id="swal-cancel-reason" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent">
+                            <option value="">Select a reason...</option>
+                            <option value="No longer needed">No longer needed</option>
+                            <option value="Schedule conflict">Schedule conflict</option>
+                            <option value="Changed plans">Changed plans</option>
+                            <option value="Other">Other (specify below)</option>
+                        </select>
+                    </div>
+                    <div id="swal-other-reason-container" class="hidden">
+                        <input id="swal-other-reason" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent" placeholder="Enter reason...">
+                    </div>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#64748b',
+            cancelButtonColor: '#6366f1',
+            confirmButtonText: 'Cancel Booking',
+            background: '#1e293b',
+            color: '#fff',
+            didOpen: () => {
+                const reasonSelect = document.getElementById('swal-cancel-reason') as HTMLSelectElement;
+                const otherContainer = document.getElementById('swal-other-reason-container');
+                reasonSelect?.addEventListener('change', function() {
+                    if (this.value === 'Other') {
+                        otherContainer?.classList.remove('hidden');
+                    } else {
+                        otherContainer?.classList.add('hidden');
+                    }
+                });
+            },
+            preConfirm: () => {
+                const reasonSelect = document.getElementById('swal-cancel-reason') as HTMLSelectElement;
+                const otherInput = document.getElementById('swal-other-reason') as HTMLInputElement;
+                
+                let finalReason = reasonSelect?.value || "";
+                if (reasonSelect?.value === 'Other' && otherInput?.value) {
+                    finalReason = otherInput.value;
+                }
+                
+                return finalReason;
+            }
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                setSubmitting(true);
+                try {
+                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+                    const url = `${apiUrl}/api/bookings/${booking.id}/cancel?userId=${currentUser.id}&reason=${encodeURIComponent(result.value || '')}`;
+                    const res = await fetch(url, {
+                        method: "PATCH",
+                        credentials: "include"
+                    });
+
+                    if (res.ok) {
+                        Swal.fire({ 
+                            title: "Cancelled!", 
+                            text: "Your booking has been cancelled successfully.",
+                            icon: "success", 
+                            background: '#1e293b', 
+                            color: '#fff',
+                            confirmButtonColor: '#6366f1'
+                        });
+                        fetchBookings(currentUser.id);
+                    } else {
+                        let errorMsg = "An error occurred";
+                        try {
+                            const errorData = await res.json();
+                            errorMsg = errorData.message || errorMsg;
+                        } catch {
+                            errorMsg = await res.text() || errorMsg;
+                        }
+                        Swal.fire({ 
+                            title: "Cancellation Failed", 
+                            html: `<div class="text-slate-300">${errorMsg}</div>`,
+                            icon: "error", 
+                            background: '#1e293b', 
+                            color: '#fff',
+                            confirmButtonColor: '#ef4444'
+                        });
+                    }
+                } catch (err) {
+                    Swal.fire({ 
+                        title: "Network Error", 
+                        text: "Unable to connect to the server.",
+                        icon: "error", 
+                        background: '#1e293b', 
+                        color: '#fff',
+                        confirmButtonColor: '#ef4444'
+                    });
+                } finally {
+                    setSubmitting(false);
                 }
             }
         });
@@ -548,11 +664,29 @@ export default function MyBookings() {
                                                         </button>
                                                         <button 
                                                             onClick={() => handleDelete(b.id)}
-                                                            className="px-3 py-1.5 text-sm font-medium bg-slate-700/50 hover:bg-pink-500 hover:text-white text-pink-400 rounded-lg transition-colors"
+                                                            disabled={submitting}
+                                                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                                                                submitting 
+                                                                    ? 'bg-slate-600/50 text-slate-500 cursor-not-allowed' 
+                                                                    : 'bg-slate-700/50 hover:bg-pink-500 hover:text-white text-pink-400'
+                                                            }`}
                                                         >
                                                             Delete
                                                         </button>
                                                     </div>
+                                                )}
+                                                {b.status === "APPROVED" && (
+                                                    <button 
+                                                        onClick={() => handleUserCancel(b)}
+                                                        disabled={submitting}
+                                                        className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                                                            submitting 
+                                                                ? 'bg-slate-600 text-slate-400 cursor-not-allowed' 
+                                                                : 'bg-red-500/20 hover:bg-red-500 hover:text-white text-red-400'
+                                                        }`}
+                                                    >
+                                                        {submitting ? 'Cancelling...' : 'Cancel Booking'}
+                                                    </button>
                                                 )}
                                                 {b.status === "REJECTED" && (
                                                     <div className="text-xs text-red-400 mt-1 max-w-[150px] truncate ml-auto" title={b.rejectionReason}>

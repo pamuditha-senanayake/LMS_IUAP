@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import com.lms.backend.model.Notification;
 
@@ -69,7 +70,7 @@ public class BookingService {
 
     // Checking overlap correctly is critical
     public Booking createBooking(Booking booking) {
-        validateBookingData(booking);
+        validateBookingData(booking, true);
 
         Booking conflicting = findConflictingBooking(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), null);
         if (conflicting != null) {
@@ -128,7 +129,7 @@ public class BookingService {
         validateStatusTransition(oldStatus, newStatus);
 
         if ("APPROVED".equals(newStatus)) {
-            validateBookingData(booking);
+            validateBookingData(booking, false);
 
             Booking conflicting = findConflictingBooking(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), booking.getId());
             if (conflicting != null) {
@@ -201,7 +202,7 @@ public class BookingService {
         booking.setStartTime(update.getStartTime());
         booking.setEndTime(update.getEndTime());
 
-        validateBookingData(booking);
+        validateBookingData(booking, false);
         
         Booking conflicting = findConflictingBooking(booking.getResourceId(), booking.getStartTime(), booking.getEndTime(), bookingId);
         if (conflicting != null) {
@@ -241,6 +242,58 @@ public class BookingService {
         bookingRepository.deleteById(bookingId);
     }
 
+    public Booking cancelBookingByUser(String bookingId, String userId, String reason) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+        
+        // IDOR Protection: Verify ownership
+        if (booking.getRequestedBy() == null || !booking.getRequestedBy().getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only cancel your own bookings");
+        }
+        
+        // Users can only cancel APPROVED bookings
+        if (!"APPROVED".equals(booking.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can only cancel approved bookings");
+        }
+        
+        // Validate transition (APPROVED -> CANCELLED is valid)
+        validateStatusTransition(booking.getStatus(), "CANCELLED");
+        
+        String oldStatus = booking.getStatus();
+        
+        // Cancel the booking
+        booking.setStatus("CANCELLED");
+        booking.setCancelledAt(LocalDateTime.now());
+        booking.setUpdatedAt(LocalDateTime.now());
+        
+        Booking updatedBooking = bookingRepository.save(booking);
+        
+        // Create history record
+        BookingStatusHistory history = BookingStatusHistory.builder()
+                .bookingId(bookingId)
+                .changedById(userId)
+                .oldStatus(oldStatus)
+                .newStatus("CANCELLED")
+                .note(reason != null ? reason : "Cancelled by user")
+                .build();
+        historyRepository.save(history);
+        
+        // Trigger notification
+        String notificationMessage = buildNotificationMessage(booking, "CANCELLED", reason);
+        Notification notif = Notification.builder()
+                .recipientUserId(userId)
+                .createdById(userId)
+                .notificationType("BOOKING_STATUS_UPDATE")
+                .title("Booking Cancelled")
+                .message(notificationMessage)
+                .relatedEntityType("BOOKING")
+                .relatedEntityId(bookingId)
+                .build();
+        notificationService.createNotification(notif);
+        
+        return updatedBooking;
+    }
+
     public List<BookingStatusHistory> getBookingHistory(String bookingId) {
         if (!bookingRepository.existsById(bookingId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found");
@@ -249,12 +302,13 @@ public class BookingService {
     }
 
     private void validateBookingData(Booking booking) {
+        validateBookingData(booking, false);
+    }
+    
+    private void validateBookingData(Booking booking, boolean isNewBooking) {
         // Validate required fields
         if (booking == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Booking request must not be null");
-        }
-        if (booking.getResourceId() == null || booking.getResourceId().trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resource ID must not be empty");
         }
         if (booking.getStartTime() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start time must not be null");
@@ -273,6 +327,69 @@ public class BookingService {
         if (!booking.getStartTime().isBefore(booking.getEndTime())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start time must be before end time");
         }
+        
+        // Validate purpose length
+        if (booking.getPurpose().length() > 500) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Purpose must not exceed 500 characters");
+        }
+        
+        // Only validate start time not in past for NEW bookings (not edits)
+        if (isNewBooking && booking.getStartTime().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start time cannot be in the past");
+        }
+        
+        // Only validate resource ID for new bookings (not edits)
+        if (isNewBooking && (booking.getResourceId() == null || booking.getResourceId().trim().isEmpty())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resource ID must not be empty");
+        }
+        
+        // Sanitize inputs
+        sanitizeBookingInputs(booking);
+    }
+    
+    private void sanitizeBookingInputs(Booking booking) {
+        // Sanitize purpose - remove potentially dangerous characters
+        if (booking.getPurpose() != null) {
+            String sanitized = sanitizeInput(booking.getPurpose());
+            booking.setPurpose(sanitized);
+        }
+        
+        // Sanitize resource ID
+        if (booking.getResourceId() != null) {
+            booking.setResourceId(booking.getResourceId().trim());
+        }
+    }
+    
+    public String sanitizeInput(String input) {
+        if (input == null) {
+            return null;
+        }
+        
+        // Remove null bytes and control characters (except newlines allowed in text)
+        String sanitized = input.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "");
+        
+        // Trim whitespace
+        sanitized = sanitized.trim();
+        
+        // Encode HTML entities to prevent XSS
+        sanitized = sanitized
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#x27;")
+            .replace("/", "&#x2F;");
+        
+        return sanitized;
+    }
+    
+    public String sanitizeReason(String reason) {
+        if (reason == null || reason.isEmpty()) {
+            return null;
+        }
+        
+        // Same sanitization as input but allows empty
+        return sanitizeInput(reason);
     }
 
     private boolean hasConflict(String resourceId, LocalDateTime startTime, LocalDateTime endTime, String excludeBookingId) {
