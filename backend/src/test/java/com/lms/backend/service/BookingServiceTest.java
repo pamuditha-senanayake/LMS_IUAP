@@ -1,5 +1,6 @@
 package com.lms.backend.service;
 
+import com.lms.backend.exception.BookingConflictException;
 import com.lms.backend.model.Booking;
 import com.lms.backend.repository.BookingRepository;
 import com.lms.backend.repository.BookingStatusHistoryRepository;
@@ -14,6 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -69,7 +71,7 @@ public class BookingServiceTest {
 
         when(bookingRepository.findByResourceId(anyString())).thenReturn(List.of(existingBooking));
 
-        assertThrows(ResponseStatusException.class, () -> {
+        assertThrows(BookingConflictException.class, () -> {
             bookingService.createBooking(sampleBooking);
         });
     }
@@ -86,10 +88,10 @@ public class BookingServiceTest {
 
     @Test
     void deleteBooking_ThrowsNotFound_WhenIdInvalid() {
-        when(bookingRepository.existsById("invalid")).thenReturn(false);
+        when(bookingRepository.findById("invalid")).thenReturn(Optional.empty());
 
         assertThrows(ResponseStatusException.class, () -> {
-            bookingService.deleteBooking("invalid");
+            bookingService.deleteBooking("invalid", "test-user-id");
         });
     }
 }

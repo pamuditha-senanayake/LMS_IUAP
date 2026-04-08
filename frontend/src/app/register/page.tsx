@@ -34,7 +34,11 @@ export default function Register() {
 
             const data = await res.json();
             localStorage.setItem("user", JSON.stringify(data));
-            router.push("/dashboard");
+            if (data.roles?.includes("ROLE_ADMIN")) {
+                router.push("/dashboard");
+            } else {
+                router.push("/");
+            }
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -61,7 +65,11 @@ export default function Register() {
 
             const data = await res.json();
             localStorage.setItem("user", JSON.stringify(data));
-            router.push("/dashboard");
+            if (data.roles?.includes("ROLE_ADMIN")) {
+                router.push("/dashboard");
+            } else {
+                router.push("/");
+            }
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -109,10 +117,10 @@ export default function Register() {
                                 <img src="/A.png" alt="CourseFlow" className="w-full h-full object-contain" />
                             </div>
                             <div className="space-y-1">
-                                <h2 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase">
-                                    Course<span className="text-pink-500">Flow</span>
+                                <h2 className="text-2xl md:text-3xl leading-none brand-text animate-shimmer">
+                                    CourseFlow
                                 </h2>
-                                <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.3em]">Institutional Registry</p>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.3em]">Institutional Portal</p>
                             </div>
                         </div>
 

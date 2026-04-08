@@ -99,7 +99,7 @@ public class AuthController {
                     "id", user.getId(),
                     "name", user.getName(),
                     "email", user.getEmail(),
-                    "roles", user.getRoles() != null ? user.getRoles() : java.util.List.of("ROLE_USER")
+                    "roles", user.getRoles() != null ? user.getRoles() : java.util.List.of("ROLE_STUDENT")
             ));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(e.getMessage());

@@ -1,8 +1,33 @@
 @import "tailwindcss";
 
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #fff 0%, #94a3b8 25%, #fff 50%, #94a3b8 75%, #fff 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 4s linear infinite;
+}
+
+.brand-text {
+  font-family: var(--font-montserrat), sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+}
+
 :root {
   --background: #020617;
   --foreground: #f1f5f9;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 html, 
