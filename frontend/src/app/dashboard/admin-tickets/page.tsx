@@ -7,7 +7,6 @@ export default function AdminTickets() {
     const [tickets, setTickets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [currentUser, setCurrentUser] = useState<any>(null);
     const [filters, setFilters] = useState({
         status: '',
         priority: '',
@@ -50,14 +49,7 @@ export default function AdminTickets() {
     };
 
     useEffect(() => {
-        const loadUser = async () => {
-            try {
-                const res = await fetch(`${apiUrl}/api/auth/me`, { credentials: "include" });
-                if (res.ok) setCurrentUser(await res.json());
-            } catch (e) {}
-            fetchTickets();
-        };
-        loadUser();
+        fetchTickets();
     }, []);
 
     const stats = {
@@ -109,7 +101,7 @@ export default function AdminTickets() {
         try {
             const url = new URL(`${apiUrl}/api/tickets/${id}/status`);
             url.searchParams.append("status", status);
-            url.searchParams.append("adminId", currentUser?.id || "N/A");
+            url.searchParams.append("adminId", "Admin");
             url.searchParams.append("note", note);
             const res = await fetch(url.toString(), { method: "PATCH", credentials: "include" });
             if (res.ok) {
