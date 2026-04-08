@@ -1,20 +1,29 @@
 package com.lms.backend.controller;
 
+import com.lms.backend.config.SseConfig;
 import com.lms.backend.model.Notification;
 import com.lms.backend.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final SseConfig sseConfig;
+
+    @GetMapping("/stream/{userId}")
+    public SseEmitter streamNotifications(@PathVariable String userId) {
+        return sseConfig.createEmitter(userId);
+    }
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Notification>> getUserNotifications(@PathVariable String userId) {
