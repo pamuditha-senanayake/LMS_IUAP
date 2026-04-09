@@ -32,12 +32,14 @@ interface Resource {
     category?: "FACILITY" | "UTILITY";
     status?: string;
     capacity?: number;
+    location?: string;
+    serialNumber?: string;
     campusName?: string;
     building?: string;
     roomNumber?: string;
     storageLocation?: string;
     customType?: string;
-    location?: {
+    campusLocation?: {
         campusName?: string;
         buildingName?: string;
         roomNumber?: string;
@@ -454,11 +456,14 @@ export default function FacilityDetailPage() {
                                             <label className="block text-sm font-medium text-slate-300 mb-2">Campus</label>
                                             <input
                                                 type="text"
-                                                value={editedResource.campusName || editedResource.location?.campusName || ""}
+                                                value={editedResource.campusName || editedResource.campusLocation?.campusName || ""}
                                                 onChange={(e) => setEditedResource({ 
                                                     ...editedResource, 
                                                     campusName: e.target.value,
-                                                    location: { ...editedResource.location, campusName: e.target.value }
+                                                    campusLocation: { 
+                                                        ...(editedResource.campusLocation || {}), 
+                                                        campusName: e.target.value 
+                                                    }
                                                 })}
                                                 className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
                                             />
@@ -467,11 +472,14 @@ export default function FacilityDetailPage() {
                                             <label className="block text-sm font-medium text-slate-300 mb-2">Building</label>
                                             <input
                                                 type="text"
-                                                value={editedResource.building || editedResource.location?.buildingName || ""}
+                                                value={editedResource.building || editedResource.campusLocation?.buildingName || ""}
                                                 onChange={(e) => setEditedResource({ 
                                                     ...editedResource, 
                                                     building: e.target.value,
-                                                    location: { ...editedResource.location, buildingName: e.target.value }
+                                                    campusLocation: { 
+                                                        ...(editedResource.campusLocation || {}), 
+                                                        buildingName: e.target.value 
+                                                    }
                                                 })}
                                                 className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
                                             />
@@ -480,11 +488,14 @@ export default function FacilityDetailPage() {
                                             <label className="block text-sm font-medium text-slate-300 mb-2">Room Number</label>
                                             <input
                                                 type="text"
-                                                value={editedResource.roomNumber || editedResource.location?.roomNumber || ""}
+                                                value={editedResource.roomNumber || editedResource.campusLocation?.roomNumber || ""}
                                                 onChange={(e) => setEditedResource({ 
                                                     ...editedResource, 
                                                     roomNumber: e.target.value,
-                                                    location: { ...editedResource.location, roomNumber: e.target.value }
+                                                    campusLocation: { 
+                                                        ...(editedResource.campusLocation || {}), 
+                                                        roomNumber: e.target.value 
+                                                    }
                                                 })}
                                                 className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
                                             />
@@ -522,11 +533,14 @@ export default function FacilityDetailPage() {
                                         <label className="block text-sm font-medium text-slate-300 mb-2">Campus / Storage</label>
                                         <input
                                             type="text"
-                                            value={editedResource.campusName || editedResource.location?.campusName || ""}
+                                            value={editedResource.campusName || editedResource.campusLocation?.campusName || ""}
                                             onChange={(e) => setEditedResource({ 
                                                 ...editedResource, 
                                                 campusName: e.target.value,
-                                                location: { ...editedResource.location, campusName: e.target.value }
+                                                campusLocation: { 
+                                                    ...(editedResource.campusLocation || {}), 
+                                                    campusName: e.target.value 
+                                                }
                                             })}
                                             className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
                                         />
@@ -535,11 +549,14 @@ export default function FacilityDetailPage() {
                                         <label className="block text-sm font-medium text-slate-300 mb-2">Storage Location</label>
                                         <input
                                             type="text"
-                                            value={editedResource.storageLocation || editedResource.location?.buildingName || ""}
+                                            value={editedResource.storageLocation || editedResource.campusLocation?.buildingName || ""}
                                             onChange={(e) => setEditedResource({ 
                                                 ...editedResource, 
                                                 storageLocation: e.target.value,
-                                                location: { ...editedResource.location, buildingName: e.target.value }
+                                                campusLocation: { 
+                                                    ...(editedResource.campusLocation || {}), 
+                                                    buildingName: e.target.value 
+                                                }
                                             })}
                                             className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
                                             placeholder="Equipment Room 1"
@@ -585,8 +602,8 @@ export default function FacilityDetailPage() {
                                             <Building className="w-5 h-5 mr-2 text-slate-500" />
                                             <span className="text-sm">Building</span>
                                         </div>
-                                        <p className="text-lg font-semibold text-white">{resource.building || resource.location?.buildingName || "N/A"}</p>
-                                        <p className="text-sm text-slate-500">{resource.campusName || resource.location?.campusName || "Campus"}</p>
+                                        <p className="text-lg font-semibold text-white">{resource.building || resource.campusLocation?.buildingName || resource.location || "N/A"}</p>
+                                        <p className="text-sm text-slate-500">{resource.campusName || resource.campusLocation?.campusName || "Campus"}</p>
                                     </div>
 
                                     <div className="bg-slate-700/30 rounded-xl p-4">
@@ -594,7 +611,7 @@ export default function FacilityDetailPage() {
                                             <Package className="w-5 h-5 mr-2 text-slate-500" />
                                             <span className="text-sm">Room</span>
                                         </div>
-                                        <p className="text-lg font-semibold text-white">{resource.roomNumber || resource.location?.roomNumber || "N/A"}</p>
+                                        <p className="text-lg font-semibold text-white">{resource.roomNumber || resource.campusLocation?.roomNumber || "N/A"}</p>
                                     </div>
                                 </div>
                             ) : (
@@ -604,7 +621,7 @@ export default function FacilityDetailPage() {
                                             <MapPin className="w-5 h-5 mr-2 text-slate-500" />
                                             <span className="text-sm">Campus / Storage</span>
                                         </div>
-                                        <p className="text-lg font-semibold text-white">{resource.campusName || resource.location?.campusName || "N/A"}</p>
+                                        <p className="text-lg font-semibold text-white">{resource.campusName || resource.campusLocation?.campusName || "N/A"}</p>
                                     </div>
 
                                     <div className="bg-slate-700/30 rounded-xl p-4">
@@ -612,7 +629,7 @@ export default function FacilityDetailPage() {
                                             <Package className="w-5 h-5 mr-2 text-slate-500" />
                                             <span className="text-sm">Storage Location</span>
                                         </div>
-                                        <p className="text-lg font-semibold text-white">{resource.storageLocation || resource.location?.buildingName || "N/A"}</p>
+                                        <p className="text-lg font-semibold text-white">{resource.storageLocation || resource.campusLocation?.buildingName || resource.location || "N/A"}</p>
                                     </div>
                                 </div>
                             )}

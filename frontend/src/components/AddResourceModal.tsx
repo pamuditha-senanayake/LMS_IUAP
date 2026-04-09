@@ -4,11 +4,23 @@ import { X } from "lucide-react";
 import { useState } from "react";
 import Swal from "sweetalert2";
 
-interface AddResourceModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onSuccess: () => void;
-}
+const CATEGORY_OPTIONS = [
+    { value: "FACILITY", label: "Facilities" },
+    { value: "UTILITY", label: "Utilities" },
+];
+
+const STATUS_OPTIONS = [
+    { value: "ACTIVE", label: "ACTIVE" },
+    { value: "OUT_OF_SERVICE", label: "OUT_OF_SERVICE" },
+    { value: "MAINTENANCE_REQUIRED", label: "MAINTENANCE_REQUIRED" },
+];
+
+const LOCATION_OPTIONS = [
+    { value: "IT", label: "IT" },
+    { value: "Engineering", label: "Engineering" },
+    { value: "Medical", label: "Medical" },
+    { value: "Architecture", label: "Architecture" },
+];
 
 const FACILITY_TYPES = [
     { value: "LECTURE_HALL", label: "Lecture Hall" },
@@ -27,20 +39,35 @@ const UTILITY_TYPES = [
     { value: "OTHER", label: "Other (Specify)" },
 ];
 
+interface ValidationErrors {
+    category?: string;
+    type?: string;
+    status?: string;
+    location?: string;
+    roomNumber?: string;
+    serialNumber?: string;
+    capacity?: string;
+}
+
+interface AddResourceModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSuccess: () => void;
+}
+
 export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddResourceModalProps) {
     const [category, setCategory] = useState<"FACILITY" | "UTILITY">("FACILITY");
     const [resourceName, setResourceName] = useState("");
     const [resourceType, setResourceType] = useState("LECTURE_HALL");
     const [status, setStatus] = useState("ACTIVE");
+    const [location, setLocation] = useState("");
     const [description, setDescription] = useState("");
-    const [campus, setCampus] = useState("Main Campus");
-    const [building, setBuilding] = useState("");
     const [roomNumber, setRoomNumber] = useState("");
-    const [storageLocation, setStorageLocation] = useState("");
-    const [capacity, setCapacity] = useState(50);
-    const [amenities, setAmenities] = useState("");
+    const [serialNumber, setSerialNumber] = useState("");
+    const [capacity, setCapacity] = useState<number | "">("");
     const [customUtilityType, setCustomUtilityType] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errors, setErrors] = useState<ValidationErrors>({});
 
     const typeOptions = category === "FACILITY" ? FACILITY_TYPES : UTILITY_TYPES;
     const showCustomTypeField = category === "UTILITY" && resourceType === "OTHER";
@@ -49,6 +76,10 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
         setCategory(newCategory);
         setResourceType(newCategory === "FACILITY" ? "LECTURE_HALL" : "PROJECTOR");
         setCustomUtilityType("");
+        setRoomNumber("");
+        setSerialNumber("");
+        setCapacity("");
+        setErrors({});
     };
 
     const handleTypeChange = (newType: string) => {
@@ -58,19 +89,51 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
         }
     };
 
+    const validate = (): boolean => {
+        const newErrors: ValidationErrors = {};
+
+        if (!category) {
+            newErrors.category = "Category is required";
+        }
+        if (!resourceType) {
+            newErrors.type = "Type is required";
+        }
+        if (!status) {
+            newErrors.status = "Status is required";
+        }
+        if (!location) {
+            newErrors.location = "Location is required";
+        }
+        if (category === "FACILITY" && !roomNumber.trim()) {
+            newErrors.roomNumber = "Room Number is required for facilities";
+        }
+        if (category === "UTILITY" && !serialNumber.trim()) {
+            newErrors.serialNumber = "Serial Number is required for utilities";
+        }
+        if (category === "UTILITY") {
+            if (capacity === "" || capacity === null) {
+                newErrors.capacity = "Capacity is required for utilities";
+            } else if (typeof capacity === "number" && capacity < 0) {
+                newErrors.capacity = "Capacity cannot be negative";
+            }
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const resetForm = () => {
         setCategory("FACILITY");
         setResourceName("");
         setResourceType("LECTURE_HALL");
         setStatus("ACTIVE");
+        setLocation("");
         setDescription("");
-        setCampus("Main Campus");
-        setBuilding("");
         setRoomNumber("");
-        setStorageLocation("");
-        setCapacity(50);
-        setAmenities("");
+        setSerialNumber("");
+        setCapacity("");
         setCustomUtilityType("");
+        setErrors({});
     };
 
     const handleSubmit = async () => {
@@ -96,6 +159,21 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
             return;
         }
 
+        if (category === "UTILITY" && capacity !== "" && typeof capacity === "number" && capacity < 0) {
+            Swal.fire({ 
+                title: "Invalid Capacity", 
+                text: "Capacity cannot be negative", 
+                icon: "error", 
+                background: '#1e293b', 
+                color: '#fff' 
+            });
+            return;
+        }
+
+        if (!validate()) {
+            return;
+        }
+
         setIsSubmitting(true);
 
         let finalType = resourceType;
@@ -111,23 +189,24 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
             category: category,
             type: finalType,
             description: finalDescription,
-            status,
+            status: status,
+            location: location,
             resourceCode: `RES-${Math.floor(1000 + Math.random() * 9000)}`
         };
 
         if (category === "FACILITY") {
-            payload.capacity = capacity;
-            payload.campusName = campus;
-            payload.building = building;
+            payload.capacity = capacity !== "" ? capacity : 0;
             payload.roomNumber = roomNumber;
-            payload.amenities = amenities
-                .split(',')
-                .map((a: string) => a.trim())
-                .filter((a: string) => a.length > 0);
+            payload.campusName = "Main Campus";
+            payload.building = location;
+            payload.amenities = [];
         } else {
-            payload.capacity = 0;
-            payload.campusName = campus;
-            payload.storageLocation = storageLocation;
+            payload.capacity = capacity !== "" ? capacity : 0;
+            payload.serialNumber = serialNumber;
+            payload.storageLocation = location;
+            payload.campusName = "Main Campus";
+            payload.building = "";
+            payload.roomNumber = "";
             payload.amenities = description ? [description] : [];
         }
 
@@ -172,6 +251,9 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
         onClose();
     };
 
+    const isValid = resourceName.trim() && category && resourceType && status && location && 
+        (category === "FACILITY" ? roomNumber.trim() : (serialNumber.trim() && capacity !== "" && capacity >= 0));
+
     if (!isOpen) return null;
 
     return (
@@ -199,11 +281,13 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                             <select
                                 value={category}
                                 onChange={(e) => handleCategoryChange(e.target.value as "FACILITY" | "UTILITY")}
-                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none cursor-pointer"
+                                className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none cursor-pointer ${errors.category ? 'border-red-500' : 'border-slate-700/50'}`}
                             >
-                                <option value="FACILITY">Facility</option>
-                                <option value="UTILITY">Utility</option>
+                                {CATEGORY_OPTIONS.map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
                             </select>
+                            {errors.category && <p className="mt-1 text-xs text-red-400">{errors.category}</p>}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-400 mb-2">Resource Name *</label>
@@ -223,25 +307,42 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                             <select
                                 value={resourceType}
                                 onChange={(e) => handleTypeChange(e.target.value)}
-                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none cursor-pointer"
+                                className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none cursor-pointer ${errors.type ? 'border-red-500' : 'border-slate-700/50'}`}
                             >
                                 {typeOptions.map(opt => (
                                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                                 ))}
                             </select>
+                            {errors.type && <p className="mt-1 text-xs text-red-400">{errors.type}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-2">Status</label>
+                            <label className="block text-sm font-medium text-slate-400 mb-2">Status *</label>
                             <select
                                 value={status}
                                 onChange={(e) => setStatus(e.target.value)}
-                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none cursor-pointer"
+                                className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none cursor-pointer ${errors.status ? 'border-red-500' : 'border-slate-700/50'}`}
                             >
-                                <option value="ACTIVE">ACTIVE</option>
-                                <option value="MAINTENANCE">MAINTENANCE</option>
-                                <option value="OUT_OF_SERVICE">OUT OF SERVICE</option>
+                                {STATUS_OPTIONS.map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
                             </select>
+                            {errors.status && <p className="mt-1 text-xs text-red-400">{errors.status}</p>}
                         </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-slate-400 mb-2">Location *</label>
+                        <select
+                            value={location}
+                            onChange={(e) => setLocation(e.target.value)}
+                            className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none cursor-pointer ${errors.location ? 'border-red-500' : 'border-slate-700/50'}`}
+                        >
+                            <option value="">Select Location</option>
+                            {LOCATION_OPTIONS.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
+                        {errors.location && <p className="mt-1 text-xs text-red-400">{errors.location}</p>}
                     </div>
 
                     {showCustomTypeField && (
@@ -272,82 +373,46 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
 
                     {category === "FACILITY" ? (
                         <>
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-2">Campus</label>
-                                    <input
-                                        type="text"
-                                        value={campus}
-                                        onChange={(e) => setCampus(e.target.value)}
-                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-2">Building</label>
-                                    <input
-                                        type="text"
-                                        value={building}
-                                        onChange={(e) => setBuilding(e.target.value)}
-                                        placeholder="Engineering"
-                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-2">Room Number</label>
-                                    <input
-                                        type="text"
-                                        value={roomNumber}
-                                        onChange={(e) => setRoomNumber(e.target.value)}
-                                        placeholder="A-101"
-                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-2">Capacity (seats)</label>
-                                    <input
-                                        type="number"
-                                        value={capacity}
-                                        onChange={(e) => setCapacity(parseInt(e.target.value) || 0)}
-                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-2">Amenities</label>
-                                    <input
-                                        type="text"
-                                        value={amenities}
-                                        onChange={(e) => setAmenities(e.target.value)}
-                                        placeholder="Projector, WiFi, AC"
-                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
-                                    />
-                                </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-400 mb-2">Room Number *</label>
+                                <input
+                                    type="text"
+                                    value={roomNumber}
+                                    onChange={(e) => setRoomNumber(e.target.value)}
+                                    placeholder="A-101"
+                                    className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none ${errors.roomNumber ? 'border-red-500' : 'border-slate-700/50'}`}
+                                />
+                                {errors.roomNumber && <p className="mt-1 text-xs text-red-400">{errors.roomNumber}</p>}
                             </div>
                         </>
                     ) : (
-                        <div className="grid grid-cols-2 gap-4">
+                        <>
                             <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-2">Campus / Storage</label>
+                                <label className="block text-sm font-medium text-slate-400 mb-2">Serial Number *</label>
                                 <input
                                     type="text"
-                                    value={campus}
-                                    onChange={(e) => setCampus(e.target.value)}
-                                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
+                                    value={serialNumber}
+                                    onChange={(e) => setSerialNumber(e.target.value)}
+                                    placeholder="SN-12345"
+                                    className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none ${errors.serialNumber ? 'border-red-500' : 'border-slate-700/50'}`}
                                 />
+                                {errors.serialNumber && <p className="mt-1 text-xs text-red-400">{errors.serialNumber}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-2">Storage Location</label>
+                                <label className="block text-sm font-medium text-slate-400 mb-2">Capacity *</label>
                                 <input
-                                    type="text"
-                                    value={storageLocation}
-                                    onChange={(e) => setStorageLocation(e.target.value)}
-                                    placeholder="Equipment Room 1"
-                                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
+                                    type="number"
+                                    value={capacity}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setCapacity(val === "" ? "" : parseInt(val));
+                                    }}
+                                    placeholder="10"
+                                    className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none ${errors.capacity ? 'border-red-500' : 'border-slate-700/50'}`}
                                 />
+                                {errors.capacity && <p className="mt-1 text-xs text-red-400">{errors.capacity}</p>}
                             </div>
-                        </div>
+                        </>
                     )}
                 </div>
 
@@ -360,7 +425,7 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                     </button>
                     <button
                         onClick={handleSubmit}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || !isValid}
                         className="px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 rounded-xl transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSubmitting ? "Adding..." : "Add Resource"}

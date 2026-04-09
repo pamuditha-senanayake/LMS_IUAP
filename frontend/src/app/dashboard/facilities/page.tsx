@@ -19,14 +19,16 @@ interface Resource {
     category?: "FACILITY" | "UTILITY";
     status?: string;
     capacity?: number;
-    location?: {
+    location?: string;
+    serialNumber?: string;
+    roomNumber?: string;
+    campusLocation?: {
         campusName?: string;
         buildingName?: string;
         roomNumber?: string;
     };
     campusName?: string;
     building?: string;
-    roomNumber?: string;
     storageLocation?: string;
     resourceCode?: string;
     description?: string;
@@ -131,7 +133,8 @@ export default function FacilitiesCatalogue() {
                     resourceName: r.resourceName || r.name,
                     resourceType: r.resourceType || r.type,
                     category: r.category,
-                    location: r.location || {
+                    location: r.location || r.campusLocation?.buildingName || r.building || "",
+                    campusLocation: r.campusLocation || {
                         campusName: r.campusName || "",
                         buildingName: r.building || "",
                         roomNumber: r.roomNumber || "",
@@ -157,7 +160,7 @@ export default function FacilitiesCatalogue() {
     const locationOptions = useMemo((): FilterOption[] => {
         const locations = new Set<string>();
         resources.forEach((r) => {
-            const loc = r.location?.campusName || r.campusName;
+            const loc = r.campusLocation?.campusName || r.campusName || r.location;
             if (loc) {
                 locations.add(loc);
             }
@@ -228,7 +231,7 @@ export default function FacilitiesCatalogue() {
                 filters.status === "ALL" || resource.status === filters.status;
 
             const resourceLocation =
-                resource.location?.campusName || resource.campusName || "";
+                resource.campusLocation?.campusName || resource.campusName || resource.location || "";
             const matchesLocation =
                 filters.location === "ALL" || resourceLocation === filters.location;
 

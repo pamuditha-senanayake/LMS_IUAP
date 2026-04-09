@@ -164,6 +164,8 @@ public class FacilitiesService {
                 .status(dto.getStatus() != null ? dto.getStatus() : ResourceStatus.ACTIVE)
                 .availableFrom(dto.getAvailableFrom())
                 .availableTo(dto.getAvailableTo())
+                .serialNumber(dto.getSerialNumber())
+                .location(dto.getLocation())
                 .build();
     }
 
@@ -201,6 +203,8 @@ public class FacilitiesService {
                 .requiresAttendanceCount(resource.getRequiresAttendanceCount())
                 .createdAt(resource.getCreatedAt())
                 .updatedAt(resource.getUpdatedAt())
+                .serialNumber(resource.getSerialNumber())
+                .location(resource.getLocation())
                 .build();
     }
 }
