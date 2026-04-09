@@ -110,7 +110,7 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
             resourceName: resourceName.trim(),
             category: category,
             type: finalType,
-            description,
+            description: finalDescription,
             status,
             resourceCode: `RES-${Math.floor(1000 + Math.random() * 9000)}`
         };

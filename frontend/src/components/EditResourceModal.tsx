@@ -63,24 +63,24 @@ const statusOptions = [
     { value: "OUT_OF_SERVICE", label: "Out of Service" },
 ];
 
+const FACILITY_TYPE_VALUES = ["ROOM", "LECTURE_HALL", "LAB", "AUDITORIUM", "MEETING_ROOM"];
+const UTILITY_TYPE_VALUES = ["PROJECTOR", "SOUND_SYSTEM", "MICROPHONE", "WHITEBOARD", "FLAGS", "OTHER"];
+
+function getCategoryFromType(type: string): "FACILITY" | "UTILITY" {
+    if (type.startsWith("OTHER:")) return "UTILITY";
+    if (FACILITY_TYPE_VALUES.includes(type)) return "FACILITY";
+    if (UTILITY_TYPE_VALUES.includes(type)) return "UTILITY";
+    if (type.includes("LECTURE") || type.includes("LAB") || type.includes("AUDITORIUM") || type.includes("MEETING") || type.includes("ROOM")) return "FACILITY";
+    if (type.includes("PROJECTOR") || type.includes("MICROPHONE") || type.includes("SOUND") || type.includes("WHITEBOARD") || type.includes("FLAGS")) return "UTILITY";
+    return "FACILITY";
+}
+
 export default function EditResourceModal({ isOpen, onClose, resource, onSave, onDelete, isAdmin = false }: EditResourceModalProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [editedResource, setEditedResource] = useState<Partial<Resource>>({});
     const [category, setCategory] = useState<"FACILITY" | "UTILITY">("FACILITY");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const modalRef = useRef<HTMLDivElement>(null);
-
-    const FACILITY_TYPE_VALUES = ["ROOM", "LECTURE_HALL", "LAB", "AUDITORIUM", "MEETING_ROOM"];
-    const UTILITY_TYPE_VALUES = ["PROJECTOR", "SOUND_SYSTEM", "MICROPHONE", "WHITEBOARD", "FLAGS", "OTHER"];
-
-    const getCategoryFromType = (type: string): "FACILITY" | "UTILITY" => {
-        if (type.startsWith("OTHER:")) return "UTILITY";
-        if (FACILITY_TYPE_VALUES.includes(type)) return "FACILITY";
-        if (UTILITY_TYPE_VALUES.includes(type)) return "UTILITY";
-        if (type.includes("LECTURE") || type.includes("LAB") || type.includes("AUDITORIUM") || type.includes("MEETING") || type.includes("ROOM")) return "FACILITY";
-        if (type.includes("PROJECTOR") || type.includes("MICROPHONE") || type.includes("SOUND") || type.includes("WHITEBOARD") || type.includes("FLAGS")) return "UTILITY";
-        return "FACILITY";
-    };
 
     const typeOptions = category === "FACILITY" ? FACILITY_TYPES : UTILITY_TYPES;
 
@@ -203,7 +203,7 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${statusColors[status] || statusColors.ACTIVE}`}>
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${statusColors[status as keyof typeof statusColors] || statusColors.ACTIVE}`}>
                             {status.replace(/_/g, ' ')}
                         </span>
                         <button

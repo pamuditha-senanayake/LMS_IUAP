@@ -33,7 +33,9 @@ export default function Home() {
                 if (userData.id) {
                     fetchNotifications(userData.id);
                 }
-            } catch (e) {}
+            } catch {
+                // ignore parse errors
+            }
         }
     }, []);
 

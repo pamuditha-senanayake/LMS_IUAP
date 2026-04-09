@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import StatusBadge from "./StatusBadge";
 import FacilityDetailsModal from "./FacilityDetailsModal";
-import { Users, MapPin, Eye, Package, Wrench } from "lucide-react";
+import { Users, MapPin, Eye, Package } from "lucide-react";
 
 interface Resource {
     id?: string;
@@ -53,7 +53,9 @@ export default function ResourceCard({ resource }: ResourceCardProps) {
                 if (user.roles && user.roles.includes("ROLE_ADMIN")) {
                     setIsAdmin(true);
                 }
-            } catch {}
+            } catch {
+                // ignore parse errors
+            }
         }
     }, []);
 

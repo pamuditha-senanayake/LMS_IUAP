@@ -9,7 +9,9 @@
 if (typeof window !== "undefined") {
   const originalFetch = window.fetch;
   window.fetch = async (resource, config = {}) => {
-    let url = typeof resource === 'string' ? resource : resource instanceof Request ? resource.url : "";
+    const url = typeof resource === 'string' ? resource : resource instanceof Request ? resource.url : "";
+    
+    console.log("FetchInterceptor: URL =", url);
     
     console.log("FetchInterceptor: URL =", url);
     

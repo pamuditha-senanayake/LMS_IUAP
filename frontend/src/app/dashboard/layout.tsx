@@ -6,16 +6,10 @@ import { useEffect, useState } from "react";
 import { 
     LayoutDashboard, 
     Building, 
-    BookOpen, 
     Ticket, 
     Bell, 
     Users, 
     LogOut,
-    User as UserIcon,
-    ChevronDown,
-    Menu,
-    X,
-    Home as HomeIcon,
     BarChart3,
     Calendar
 } from "lucide-react";
@@ -49,7 +43,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     })
                     .catch(() => {});
             }
-        } catch (e) {}
+        } catch {
+            // ignore parse errors
+        }
         
         setIsLoaded(true);
     }, [pathname]);
@@ -58,7 +54,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
             await fetch(`${apiUrl}/api/auth/logout`, { method: "POST", credentials: "include" });
-        } catch (e) {}
+        } catch {
+            // ignore network errors
+        }
         localStorage.removeItem("user");
         window.location.href = "/";
     };

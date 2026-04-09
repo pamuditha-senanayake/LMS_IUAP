@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Swal from "sweetalert2";
 import { X, Upload, AlertTriangle, MapPin, Type, FileText, Zap, Image as ImageIcon, Loader2, CheckCircle2 } from "lucide-react";
 
@@ -41,34 +41,7 @@ export default function TicketingPage() {
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentBgIndex((prev) => (prev + 1) % BACKGROUND_IMAGES.length);
-        }, 6000);
-        return () => clearInterval(interval);
-    }, []);
-
-    useEffect(() => {
-        const fetchResources = async () => {
-            try {
-                const res = await fetch(`${apiUrl}/api/resources`, { credentials: "include" });
-                if (res.ok) {
-                    setResources(await res.json());
-                }
-            } catch (err) {
-                console.error("Failed to fetch resources", err);
-            }
-        };
-        fetchResources();
-    }, []);
-
-    const getResourceName = (resourceId: string) => {
-        if (!resourceId) return 'General';
-        const resource = resources.find(r => r.id === resourceId);
-        return resource ? `${resource.resourceCode} - ${resource.resourceName}` : resourceId;
-    };
-
-    const fetchTickets = async (userId: string) => {
+    const fetchTickets = useCallback(async (userId: string) => {
         setLoading(true);
         try {
             const res = await fetch(`${apiUrl}/api/tickets?userId=${userId}`, { credentials: "include" });
@@ -89,11 +62,39 @@ export default function TicketingPage() {
                 
                 setTickets(ticketsWithAttachments);
             }
-        } catch (err) {
-            console.error("Failed to fetch tickets", err);
+        } catch {
+            console.error("Failed to fetch tickets");
         } finally {
             setLoading(false);
         }
+    }, [apiUrl]);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentBgIndex((prev) => (prev + 1) % BACKGROUND_IMAGES.length);
+        }, 6000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const fetchResources = useCallback(async () => {
+        try {
+            const res = await fetch(`${apiUrl}/api/resources`, { credentials: "include" });
+            if (res.ok) {
+                setResources(await res.json());
+            }
+        } catch {
+            console.error("Failed to fetch resources");
+        }
+    }, [apiUrl]);
+
+    useEffect(() => {
+        fetchResources();
+    }, [fetchResources]);
+
+    const getResourceName = (resourceId: string) => {
+        if (!resourceId) return 'General';
+        const resource = resources.find(r => r.id === resourceId);
+        return resource ? `${resource.resourceCode} - ${resource.resourceName}` : resourceId;
     };
 
     useEffect(() => {
@@ -108,12 +109,12 @@ export default function TicketingPage() {
                 } else {
                     setLoading(false);
                 }
-            } catch (e) {
+            } catch {
                 setLoading(false);
             }
         };
         loadUser();
-    }, []);
+    }, [fetchTickets, apiUrl]);
 
     const getStatusColor = (status: string) => {
         if (status === 'OPEN') return 'border-orange-500/50 bg-orange-500/10 text-orange-400';
@@ -308,7 +309,7 @@ export default function TicketingPage() {
             } else {
                 Swal.fire({ title: "Error", text: "Failed to update ticket", icon: "error", background: '#1e293b', color: '#fff' });
             }
-        } catch (err) {
+        } catch {
             Swal.fire({ title: "Error", text: "Network error", icon: "error", background: '#1e293b', color: '#fff' });
         } finally {
             setSubmitting(false);

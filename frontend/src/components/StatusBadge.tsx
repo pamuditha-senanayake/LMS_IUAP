@@ -4,70 +4,42 @@ interface StatusBadgeProps {
     status: string;
 }
 
-export default function StatusBadge({ status }: StatusBadgeProps) {
-    const getStatusConfig = (status: string) => {
-        const normalized = status?.toUpperCase();
-        
-        const configs: Record<string, { bg: string; text: string; label: string }> = {
-            ACTIVE: { 
-                bg: "bg-emerald-500/20", 
-                text: "text-emerald-400", 
-                label: "Active" 
-            },
-            MAINTENANCE: { 
-                bg: "bg-amber-500/20", 
-                text: "text-amber-400", 
-                label: "Maintenance" 
-            },
-            OUT_OF_SERVICE: { 
-                bg: "bg-red-500/20", 
-                text: "text-red-400", 
-                label: "Out of Service" 
-            },
-            RESERVED: { 
-                bg: "bg-blue-500/20", 
-                text: "text-blue-400", 
-                label: "Reserved" 
-            },
-            AVAILABLE: { 
-                bg: "bg-emerald-500/20", 
-                text: "text-emerald-400", 
-                label: "Available" 
-            },
-            BOOKED: { 
-                bg: "bg-purple-500/20", 
-                text: "text-purple-400", 
-                label: "Booked" 
-            },
-            PENDING: { 
-                bg: "bg-amber-500/20", 
-                text: "text-amber-400", 
-                label: "Pending" 
-            },
-            APPROVED: { 
-                bg: "bg-emerald-500/20", 
-                text: "text-emerald-400", 
-                label: "Approved" 
-            },
-            REJECTED: { 
-                bg: "bg-red-500/20", 
-                text: "text-red-400", 
-                label: "Rejected" 
-            },
-            CANCELLED: { 
-                bg: "bg-slate-500/20", 
-                text: "text-slate-400", 
-                label: "Cancelled" 
-            }
-        };
-        
-        return configs[normalized] || { 
-            bg: "bg-slate-500/20", 
-            text: "text-slate-400", 
-            label: status || "Unknown" 
-        };
-    };
+type StatusConfig = {
+    bg: string;
+    text: string;
+    label: string;
+};
 
+function getStatusConfig(status: string): StatusConfig {
+    const normalized = status?.toUpperCase();
+    
+    switch (normalized) {
+        case "ACTIVE":
+            return { bg: "bg-emerald-500/20", text: "text-emerald-400", label: "Active" };
+        case "MAINTENANCE":
+            return { bg: "bg-amber-500/20", text: "text-amber-400", label: "Maintenance" };
+        case "OUT_OF_SERVICE":
+            return { bg: "bg-red-500/20", text: "text-red-400", label: "Out of Service" };
+        case "RESERVED":
+            return { bg: "bg-blue-500/20", text: "text-blue-400", label: "Reserved" };
+        case "AVAILABLE":
+            return { bg: "bg-emerald-500/20", text: "text-emerald-400", label: "Available" };
+        case "BOOKED":
+            return { bg: "bg-purple-500/20", text: "text-purple-400", label: "Booked" };
+        case "PENDING":
+            return { bg: "bg-amber-500/20", text: "text-amber-400", label: "Pending" };
+        case "APPROVED":
+            return { bg: "bg-emerald-500/20", text: "text-emerald-400", label: "Approved" };
+        case "REJECTED":
+            return { bg: "bg-red-500/20", text: "text-red-400", label: "Rejected" };
+        case "CANCELLED":
+            return { bg: "bg-slate-500/20", text: "text-slate-400", label: "Cancelled" };
+        default:
+            return { bg: "bg-slate-500/20", text: "text-slate-400", label: status || "Unknown" };
+    }
+}
+
+export default function StatusBadge({ status }: StatusBadgeProps) {
     const config = getStatusConfig(status);
 
     return (
