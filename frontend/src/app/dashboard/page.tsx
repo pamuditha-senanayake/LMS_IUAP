@@ -32,7 +32,7 @@ export default function Dashboard() {
 
                 if (data.roles && data.roles.includes("ROLE_ADMIN")) {
                     try {
-                        const [uRes, bRes, tRes, fRes, statsRes] = await Promise.all([
+                        const [uRes, , tRes, fRes, statsRes] = await Promise.all([
                             fetch(apiUrl + "/api/users", { credentials: "include" }),
                             fetch(apiUrl + "/api/bookings?size=1", { credentials: "include" }),
                             fetch(apiUrl + "/api/tickets?size=1", { credentials: "include" }),
@@ -41,7 +41,6 @@ export default function Dashboard() {
                         ]);
 
                         const usersData = uRes.ok ? await uRes.json() : [];
-                        const bookingsData = bRes.ok ? await bRes.json() : { totalElements: 0 };
                         const ticketsData = tRes.ok ? await tRes.json() : [];
                         const facilitiesData = fRes.ok ? await fRes.json() : [];
                         const statsData = statsRes.ok ? await statsRes.json() : { pending: 0 };

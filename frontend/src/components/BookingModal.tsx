@@ -57,7 +57,7 @@ export default function BookingModal({ isOpen, onClose, onSuccess, editBooking }
   const [expectedAttendees, setExpectedAttendees] = useState<number>(1);
   const [bookingType, setBookingType] = useState<string>("FACILITY");
   const [availability, setAvailability] = useState<AvailabilityResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
@@ -183,7 +183,7 @@ export default function BookingModal({ isOpen, onClose, onSuccess, editBooking }
   };
 
   const formatDateTime = (date: string, time: string) => {
-    const [hours, minutes, seconds] = time.split(":");
+    const [hours, minutes] = time.split(":");
     return `${date}T${hours}:${minutes}:00`;
   };
 

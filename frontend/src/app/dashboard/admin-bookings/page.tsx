@@ -113,31 +113,6 @@ export default function AdminBookings() {
     return () => clearTimeout(timer);
   }, [filters.search]);
 
-  const processStatusChange = async (id: string, status: string, reason: string) => {
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-      const url = new URL(`${apiUrl}/api/bookings/${id}/status`);
-      url.searchParams.append("status", status);
-      url.searchParams.append("adminId", currentUser?.id || "N/A");
-      url.searchParams.append("reason", reason || "");
-
-      const res = await fetch(url.toString(), {
-        method: "PATCH",
-        credentials: "include"
-      });
-
-      if (res.ok) {
-        Swal.fire({ title: "Success!", icon: "success", background: '#1e293b', color: '#fff' });
-        queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
-        queryClient.invalidateQueries({ queryKey: ["booking-stats"] });
-      } else {
-        Swal.fire({ title: "Error", text: await res.text(), icon: "error", background: '#1e293b', color: '#fff' });
-      }
-    } catch {
-      Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#1e293b', color: '#fff' });
-    }
-  };
-
   const handleApprove = useCallback((id: string, name: string) => {
     Swal.fire({
       title: `Approve booking for ${name}?`,
@@ -148,12 +123,33 @@ export default function AdminBookings() {
       confirmButtonText: 'Approve',
       background: '#1e293b',
       color: '#fff',
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        processStatusChange(id, "APPROVED", "Approved by admin");
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+          const url = new URL(`${apiUrl}/api/bookings/${id}/status`);
+          url.searchParams.append("status", "APPROVED");
+          url.searchParams.append("adminId", currentUser?.id || "N/A");
+          url.searchParams.append("reason", "Approved by admin");
+
+          const res = await fetch(url.toString(), {
+            method: "PATCH",
+            credentials: "include"
+          });
+
+          if (res.ok) {
+            Swal.fire({ title: "Success!", icon: "success", background: '#1e293b', color: '#fff' });
+            queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+            queryClient.invalidateQueries({ queryKey: ["booking-stats"] });
+          } else {
+            Swal.fire({ title: "Error", text: await res.text(), icon: "error", background: '#1e293b', color: '#fff' });
+          }
+        } catch {
+          Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#1e293b', color: '#fff' });
+        }
       }
     });
-  }, [queryClient]);
+  }, [queryClient, currentUser]);
 
   const handleReject = useCallback((id: string, name: string) => {
     Swal.fire({
@@ -167,12 +163,33 @@ export default function AdminBookings() {
       confirmButtonText: 'Reject',
       background: '#1e293b',
       color: '#fff',
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        processStatusChange(id, "REJECTED", result.value || "Rejected by admin");
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+          const url = new URL(`${apiUrl}/api/bookings/${id}/status`);
+          url.searchParams.append("status", "REJECTED");
+          url.searchParams.append("adminId", currentUser?.id || "N/A");
+          url.searchParams.append("reason", result.value || "Rejected by admin");
+
+          const res = await fetch(url.toString(), {
+            method: "PATCH",
+            credentials: "include"
+          });
+
+          if (res.ok) {
+            Swal.fire({ title: "Success!", icon: "success", background: '#1e293b', color: '#fff' });
+            queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+            queryClient.invalidateQueries({ queryKey: ["booking-stats"] });
+          } else {
+            Swal.fire({ title: "Error", text: await res.text(), icon: "error", background: '#1e293b', color: '#fff' });
+          }
+        } catch {
+          Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#1e293b', color: '#fff' });
+        }
       }
     });
-  }, [queryClient]);
+  }, [queryClient, currentUser]);
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {

@@ -71,7 +71,7 @@ export default function MyBookings() {
   });
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
 
-  const { data, isLoading, isFetching, error } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["bookings", currentUser?.id, page, filters.status, filters.type, sortOrder],
     queryFn: () => fetchBookings(
       currentUser?.id || "",
