@@ -36,7 +36,7 @@ export default function Dashboard() {
                             fetch(apiUrl + "/api/users", { credentials: "include" }),
                             fetch(apiUrl + "/api/bookings", { credentials: "include" }),
                             fetch(apiUrl + "/api/tickets", { credentials: "include" }),
-                            fetch(apiUrl + "/api/facilities/resources", { credentials: "include" })
+                            fetch(apiUrl + "/api/resources", { credentials: "include" })
                         ]);
 
                         const usersData = uRes.ok ? await uRes.json() : [];

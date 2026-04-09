@@ -223,12 +223,14 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
                 },
                 purpose: purpose,
                 startTime: startDateTime,
-                endTime: endDateTime
+                endTime: endDateTime,
+                type: isUtility ? "UTILITY" : "FACILITY"
             };
 
             if (isUtility) {
                 bookingData.quantity = quantity;
                 bookingData.supportNotes = supportNotes;
+                bookingData.expectedAttendees = quantity;
             } else {
                 bookingData.expectedAttendees = attendees;
             }
@@ -240,6 +242,8 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
                 credentials: "include",
                 body: JSON.stringify(bookingData)
             });
+
+            console.log("Booking payload:", bookingData);
 
             if (res.ok) {
                 await Swal.fire({
@@ -255,9 +259,12 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
                 Swal.fire("Error", data.message || "Time slot already booked", "error");
             } else if (res.status === 400) {
                 const data = await res.json();
-                Swal.fire("Error", data.message || "Cannot book this resource", "error");
+                const errorMsg = data.errors ? Object.values(data.errors).join(", ") : data.message || "Cannot book this resource";
+                Swal.fire("Error", errorMsg, "error");
             } else {
-                Swal.fire("Error", "Failed to create booking", "error");
+                const data = await res.json().catch(() => ({}));
+                const errorMsg = data.errors ? Object.values(data.errors).join(", ") : "Failed to create booking";
+                Swal.fire("Error", errorMsg, "error");
             }
         } catch (err) {
             console.error("Booking error", err);

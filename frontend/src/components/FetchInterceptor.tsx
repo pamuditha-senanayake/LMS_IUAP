@@ -11,8 +11,11 @@ if (typeof window !== "undefined") {
   window.fetch = async (resource, config = {}) => {
     let url = typeof resource === 'string' ? resource : resource instanceof Request ? resource.url : "";
     
+    console.log("FetchInterceptor: URL =", url);
+    
     // Only intercept internal API calls
     if (url.includes('/api/')) {
+      console.log("FetchInterceptor: intercepted API call to", url);
       try {
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
@@ -33,11 +36,16 @@ if (typeof window !== "undefined") {
           }
         }
       } catch (e) {
-        console.error("Auth interceptor error:", e);
+        console.error("FetchInterceptor: Auth error:", e);
       }
     }
     
-    return originalFetch(resource, config);
+    try {
+      return await originalFetch(resource, config);
+    } catch (err) {
+      console.error("FetchInterceptor: Network error:", err);
+      throw err;
+    }
   };
 }
 

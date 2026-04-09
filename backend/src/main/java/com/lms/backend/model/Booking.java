@@ -41,6 +41,9 @@ public class Booking {
     @NotNull(message = "End time is required")
     private LocalDateTime endTime;
 
+    @NotBlank(message = "Type is required")
+    private String type;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
