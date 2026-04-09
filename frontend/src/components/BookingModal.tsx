@@ -91,7 +91,6 @@ export default function BookingModal({ isOpen, onClose, onSuccess, editBooking }
   }, [selectedResource, selectedDate]);
 
   const fetchResources = async () => {
-    setLoading(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
       const res = await fetch(`${apiUrl}/api/resources`, { credentials: "include" });
@@ -101,8 +100,6 @@ export default function BookingModal({ isOpen, onClose, onSuccess, editBooking }
       }
     } catch {
       setError("Failed to load resources");
-    } finally {
-      setLoading(false);
     }
   };
 
