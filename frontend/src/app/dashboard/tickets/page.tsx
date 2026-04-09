@@ -4,6 +4,14 @@ import { useState, useEffect, useRef } from "react";
 import Swal from "sweetalert2";
 import { X, Upload, AlertTriangle, MapPin, Type, FileText, Zap, Image as ImageIcon, Loader2, CheckCircle2 } from "lucide-react";
 
+const BACKGROUND_IMAGES = [
+    "https://www.ox.ac.uk/sites/files/oxford/styles/ow_large_feature/s3/field/field_image_main/b_AllSoulsquad.jpg?itok=tTcH-5ix",
+    "https://oxford.tours/wp-content/uploads/2022/10/courtyard-oxford-university.jpg",
+    "https://i.natgeofe.com/n/17b50f51-1d61-4b1d-b64e-f3060b1bbc1c/oxfordpittriversmuseum.jpg",
+    "https://ifsa-butler.org/wp-content/uploads/2023/09/HERO-Oxford_1231106194.jpg",
+    "https://images.ohmyhosting.se/B_f30FriCvfM-s1CW-zvyM0NbHo=/fit-in/1680x1050/smart/filters:quality(85)/https%3A%2F%2Fengelsbergideas.com%2Fwp-content%2Fuploads%2F2024%2F10%2FOxford-University.jpg"
+];
+
 export default function TicketingPage() {
     const [tickets, setTickets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -14,12 +22,51 @@ export default function TicketingPage() {
         search: ''
     });
     const [showReportModal, setShowReportModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingTicket, setEditingTicket] = useState<any>(null);
+    const [editForm, setEditForm] = useState({
+        title: '',
+        description: '',
+        resourceId: '',
+        priority: 'MEDIUM'
+    });
     const [submitting, setSubmitting] = useState(false);
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const [currentBgIndex, setCurrentBgIndex] = useState(0);
+    const [resources, setResources] = useState<any[]>([]);
+    const [reportResource, setReportResource] = useState('other');
+    const [reportOtherResource, setReportOtherResource] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentBgIndex((prev) => (prev + 1) % BACKGROUND_IMAGES.length);
+        }, 6000);
+        return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        const fetchResources = async () => {
+            try {
+                const res = await fetch(`${apiUrl}/api/resources`, { credentials: "include" });
+                if (res.ok) {
+                    setResources(await res.json());
+                }
+            } catch (err) {
+                console.error("Failed to fetch resources", err);
+            }
+        };
+        fetchResources();
+    }, []);
+
+    const getResourceName = (resourceId: string) => {
+        if (!resourceId) return 'General';
+        const resource = resources.find(r => r.id === resourceId);
+        return resource ? `${resource.resourceCode} - ${resource.resourceName}` : resourceId;
+    };
 
     const fetchTickets = async (userId: string) => {
         setLoading(true);
@@ -165,7 +212,8 @@ export default function TicketingPage() {
         const submitData = new FormData();
         submitData.append('title', formData.get('title') as string);
         submitData.append('description', formData.get('description') as string);
-        submitData.append('resourceId', formData.get('resourceId') as string || '');
+        const resourceToSubmit = reportResource === 'other' ? reportOtherResource : reportResource;
+        submitData.append('resourceId', resourceToSubmit);
         submitData.append('priority', formData.get('priority') as string);
         submitData.append('reportedById', currentUser!.id);
         
@@ -187,6 +235,8 @@ export default function TicketingPage() {
                 setShowReportModal(false);
                 setSelectedImages([]);
                 setImagePreviews([]);
+                setReportResource('other');
+                setReportOtherResource('');
                 form.reset();
                 fetchTickets(currentUser!.id);
             } else {
@@ -227,84 +277,79 @@ export default function TicketingPage() {
     };
 
     const handleEdit = (ticket: any) => {
-        Swal.fire({
-            title: 'Edit Ticket',
-            html: `
-                <div class="flex flex-col gap-3 text-left">
-                    <label class="text-sm font-semibold text-slate-300">Ticket Title</label>
-                    <input id="swal-title" class="swal2-input !w-11/12 !mx-auto" value="${ticket.title}">
-                    
-                    <label class="text-sm font-semibold text-slate-300">Description</label>
-                    <textarea id="swal-desc" class="swal2-textarea !w-11/12 !mx-auto">${ticket.description}</textarea>
-                    
-                    <label class="text-sm font-semibold text-slate-300">Resource / Location</label>
-                    <input id="swal-resource" class="swal2-input !w-11/12 !mx-auto" value="${ticket.resourceId || ''}">
-                    
-                    <label class="text-sm font-semibold text-slate-300">Priority</label>
-                    <select id="swal-priority" class="swal2-select !w-11/12 !mx-auto text-sm">
-                        <option value="LOW" ${ticket.priority === 'LOW' ? 'selected' : ''}>Low</option>
-                        <option value="MEDIUM" ${ticket.priority === 'MEDIUM' ? 'selected' : ''}>Medium</option>
-                        <option value="HIGH" ${ticket.priority === 'HIGH' ? 'selected' : ''}>High</option>
-                        <option value="CRITICAL" ${ticket.priority === 'CRITICAL' ? 'selected' : ''}>Critical</option>
-                    </select>
-                </div>
-            `,
-            focusConfirm: false,
-            showCancelButton: true,
-            confirmButtonColor: '#6366f1',
-            cancelButtonColor: '#475569',
-            confirmButtonText: 'Save Changes',
-            background: '#1e293b',
-            color: '#fff',
-            preConfirm: () => {
-                const title = (document.getElementById('swal-title') as HTMLInputElement).value;
-                const desc = (document.getElementById('swal-desc') as HTMLTextAreaElement).value;
-                if (!title || !desc) {
-                    Swal.showValidationMessage("Title and description are required");
-                    return false;
-                }
-                return {
-                    title,
-                    description: desc,
-                    resourceId: (document.getElementById('swal-resource') as HTMLInputElement).value,
-                    priority: (document.getElementById('swal-priority') as HTMLSelectElement).value,
-                }
-            }
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                const res = await fetch(`${apiUrl}/api/tickets/${ticket.id}`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify(result.value)
-                });
-                if (res.ok) {
-                    Swal.fire({ title: "Updated!", icon: "success", background: '#1e293b', color: '#fff' });
-                    fetchTickets(currentUser!.id);
-                } else {
-                    Swal.fire({ title: "Error", text: "Failed to update ticket", icon: "error", background: '#1e293b', color: '#fff' });
-                }
-            }
+        setEditingTicket(ticket);
+        setEditForm({
+            title: ticket.title || '',
+            description: ticket.description || '',
+            resourceId: ticket.resourceId || '',
+            priority: ticket.priority || 'MEDIUM'
         });
+        setShowEditModal(true);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editForm.title || !editForm.description) {
+            Swal.fire({ title: "Error", text: "Title and description are required", icon: "error", background: '#1e293b', color: '#fff' });
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            const res = await fetch(`${apiUrl}/api/tickets/${editingTicket.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify(editForm)
+            });
+            if (res.ok) {
+                Swal.fire({ title: "Updated!", icon: "success", background: '#1e293b', color: '#fff' });
+                setShowEditModal(false);
+                fetchTickets(currentUser!.id);
+            } else {
+                Swal.fire({ title: "Error", text: "Failed to update ticket", icon: "error", background: '#1e293b', color: '#fff' });
+            }
+        } catch (err) {
+            Swal.fire({ title: "Error", text: "Network error", icon: "error", background: '#1e293b', color: '#fff' });
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto p-4 md:p-6 text-white">
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-pink-500 mb-2">My Tickets</h1>
-                    <p className="text-slate-400">Report facility issues and track their resolution progress.</p>
-                </div>
-                <button 
-                    onClick={handleReport} 
-                    className="group relative rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white font-medium px-6 py-3 transition-all active:scale-95 shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50 overflow-hidden"
-                >
-                    <span className="relative z-10 flex items-center gap-2">
-                        <Zap size={18} className="group-hover:rotate-12 transition-transform" />
-                        Report Issue
-                    </span>
-                </button>
+        <div className="relative min-h-screen overflow-hidden">
+            <div className="fixed inset-0 z-0">
+                {BACKGROUND_IMAGES.map((img, index) => (
+                    <div
+                        key={img}
+                        className="absolute inset-0 transition-opacity duration-1000"
+                        style={{
+                            backgroundImage: `url(${img})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                            backgroundAttachment: "fixed",
+                            opacity: index === currentBgIndex ? 1 : 0,
+                        }}
+                    />
+                ))}
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-900/70 to-slate-900/90" />
             </div>
+
+            <div className="relative z-10 max-w-6xl mx-auto p-4 md:p-6 text-white min-h-screen overflow-y-auto">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-pink-500 mb-2">My Tickets</h1>
+                        <p className="text-slate-300">Report facility issues and track their resolution progress.</p>
+                    </div>
+                    <button 
+                        onClick={handleReport} 
+                        className="group relative rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white font-medium px-6 py-3 transition-all active:scale-95 shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50 overflow-hidden"
+                    >
+                        <span className="relative z-10 flex items-center gap-2">
+                            <Zap size={18} className="group-hover:rotate-12 transition-transform" />
+                            Report Issue
+                        </span>
+                    </button>
+                </div>
 
             {showReportModal && (
                 <div className="fixed inset-0 z-[110] flex items-start justify-center p-4 pt-[5vh]">
@@ -370,12 +415,28 @@ export default function TicketingPage() {
                                         <MapPin size={16} className="text-pink-400" />
                                         Location / Resource
                                     </label>
-                                    <input
-                                        name="resourceId"
-                                        type="text"
-                                        placeholder="e.g., Auditorium A, Lab 204..."
-                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all"
-                                    />
+                                    <select
+                                        value={reportResource}
+                                        onChange={(e) => setReportResource(e.target.value)}
+                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all cursor-pointer"
+                                    >
+                                        <option value="other">Other (specify below)</option>
+                                        {resources.map((resource) => (
+                                            <option key={resource.id} value={resource.id}>
+                                                {resource.resourceCode} - {resource.resourceName}
+                                                {resource.building ? ` (${resource.building}${resource.roomNumber ? ', ' + resource.roomNumber : ''})` : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {reportResource === 'other' && (
+                                        <input
+                                            type="text"
+                                            value={reportOtherResource}
+                                            onChange={(e) => setReportOtherResource(e.target.value)}
+                                            placeholder="Enter location or resource..."
+                                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all mt-2"
+                                        />
+                                    )}
                                 </div>
 
                                 <div className="space-y-2">
@@ -489,6 +550,135 @@ export default function TicketingPage() {
                 </div>
             )}
 
+            {showEditModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowEditModal(false)} />
+                    <div className="relative w-full max-w-lg bg-slate-900/95 backdrop-blur-xl rounded-3xl border border-slate-700/50 shadow-2xl shadow-pink-500/10 overflow-hidden">
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 via-transparent to-rose-500/10" />
+                            <div className="relative p-6 pb-4">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-3 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl border border-pink-500/30">
+                                            <FileText size={24} className="text-pink-400" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-xl font-bold text-white">Edit Ticket</h2>
+                                            <p className="text-xs text-slate-400">Update your ticket information</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowEditModal(false)}
+                                        className="p-2 hover:bg-slate-800 rounded-xl transition-colors"
+                                    >
+                                        <X size={20} className="text-slate-400" />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-5">
+                                    <div className="space-y-2">
+                                        <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
+                                            <Type size={16} className="text-pink-400" />
+                                            Ticket Title
+                                            <span className="text-red-400">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={editForm.title}
+                                            onChange={(e) => setEditForm({...editForm, title: e.target.value})}
+                                            placeholder="Brief title describing the issue..."
+                                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
+                                            <FileText size={16} className="text-pink-400" />
+                                            Description
+                                            <span className="text-red-400">*</span>
+                                        </label>
+                                        <textarea
+                                            value={editForm.description}
+                                            onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                                            rows={4}
+                                            placeholder="Provide detailed information about the issue..."
+                                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all resize-none"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
+                                                <MapPin size={16} className="text-pink-400" />
+                                                Location / Resource
+                                            </label>
+                                            <select
+                                                value={editForm.resourceId}
+                                                onChange={(e) => setEditForm({...editForm, resourceId: e.target.value})}
+                                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all cursor-pointer"
+                                            >
+                                                <option value="other">Other (specify below)</option>
+                                                {resources.map((resource) => (
+                                                    <option key={resource.id} value={resource.id}>
+                                                        {resource.resourceCode} - {resource.resourceName}
+                                                        {resource.building ? ` (${resource.building}${resource.roomNumber ? ', ' + resource.roomNumber : ''})` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
+                                                <Zap size={16} className="text-pink-400" />
+                                                Priority Level
+                                            </label>
+                                            <select
+                                                value={editForm.priority}
+                                                onChange={(e) => setEditForm({...editForm, priority: e.target.value})}
+                                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all cursor-pointer"
+                                            >
+                                                <option value="LOW">Low - Minor inconvenience</option>
+                                                <option value="MEDIUM">Medium - Partially affected</option>
+                                                <option value="HIGH">High - Significantly disrupted</option>
+                                                <option value="CRITICAL">Critical - Unusable / Emergency</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 pt-6 mt-6 border-t border-slate-800">
+                                    <button
+                                        onClick={() => setShowEditModal(false)}
+                                        className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSaveEdit}
+                                        disabled={submitting}
+                                        className="flex-1 px-4 py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        {submitting ? (
+                                            <>
+                                                <Loader2 size={18} className="animate-spin" />
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <CheckCircle2 size={18} />
+                                                Save Changes
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="glass-card rounded-2xl p-4 mb-6 border border-slate-700/50">
                 <div className="flex flex-wrap gap-4 items-end">
                     <div className="flex-1 min-w-[200px]">
@@ -594,7 +784,9 @@ export default function TicketingPage() {
                                 <div className="text-slate-400 text-xs flex flex-col gap-2 mt-auto">
                                     <div className="flex justify-between border-t border-slate-700/50 pt-3">
                                         <span className="font-semibold text-slate-300">Resource:</span>
-                                        <span>{ticket.resourceId || 'N/A'}</span>
+                                        <span className="text-right max-w-[180px] truncate" title={getResourceName(ticket.resourceId)}>
+                                            {getResourceName(ticket.resourceId)}
+                                        </span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="font-semibold text-slate-300">Priority:</span>
@@ -647,6 +839,7 @@ export default function TicketingPage() {
                     )}
                 </div>
             )}
+            </div>
         </div>
     );
 }
