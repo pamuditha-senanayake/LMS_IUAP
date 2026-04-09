@@ -17,8 +17,8 @@ const STATUS_OPTIONS = [
 
 const LOCATION_OPTIONS = [
     { value: "IT", label: "IT" },
+    { value: "Medicine", label: "Medicine" },
     { value: "Engineering", label: "Engineering" },
-    { value: "Medical", label: "Medical" },
     { value: "Architecture", label: "Architecture" },
 ];
 
