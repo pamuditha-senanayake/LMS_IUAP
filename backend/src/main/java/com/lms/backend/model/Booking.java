@@ -45,6 +45,7 @@ public class Booking {
     private String type;
 
     @Data
+    @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class UserSummary {

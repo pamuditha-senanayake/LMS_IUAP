@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Montserrat } from "next/font/google";
 import "./globals.css";
+import Providers from "./providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,11 +46,13 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} h-full antialiased selection:bg-indigo-500/30 selection:text-indigo-200`}
     >
       <body className="min-h-screen flex flex-col bg-[#020617] text-slate-200 overflow-x-hidden">
-        <FetchInterceptor />
-        <GoogleOAuthProvider clientId={clientId}>
-          <Navbar />
-          {children}
-        </GoogleOAuthProvider>
+        <Providers>
+          <FetchInterceptor />
+          <GoogleOAuthProvider clientId={clientId}>
+            <Navbar />
+            {children}
+          </GoogleOAuthProvider>
+        </Providers>
       </body>
     </html>
   );

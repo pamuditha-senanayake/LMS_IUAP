@@ -11,7 +11,8 @@ import {
     Users, 
     LogOut,
     BarChart3,
-    Calendar
+    Calendar,
+    CalendarDays
 } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -65,6 +66,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: "Overview", path: "/dashboard", icon: LayoutDashboard },
         { name: "Facilities", path: "/dashboard/facilities", icon: Building },
         { name: "My Bookings", path: "/dashboard/bookings", icon: Calendar },
+        { name: "Booking Calendar", path: "/dashboard/booking-calendar", icon: CalendarDays },
         { name: "Booking Management", path: "/dashboard/admin-bookings", icon: Calendar },
         { name: "Ticketing", path: "/dashboard/tickets", icon: Ticket },
         { name: "Ticket Statistics", path: "/dashboard/ticket-statistics", icon: BarChart3 },

@@ -1,13 +1,17 @@
 package com.lms.backend.controller;
 
+import com.lms.backend.dto.*;
 import com.lms.backend.model.Booking;
 import com.lms.backend.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -18,11 +22,45 @@ public class BookingController {
     private final BookingService bookingService;
 
     @GetMapping
-    public ResponseEntity<List<Booking>> getAllBookings(@RequestParam(required = false) String userId) {
-        if (userId != null) {
-            return ResponseEntity.ok(bookingService.getUserBookings(userId));
-        }
-        return ResponseEntity.ok(bookingService.getAllBookings());
+    public ResponseEntity<PaginatedResponseDto<BookingResponseDto>> getBookings(
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String resourceId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String type,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDirection) {
+        
+        BookingFilterDto filter = BookingFilterDto.builder()
+                .userId(userId)
+                .resourceId(resourceId)
+                .status(status)
+                .type(type)
+                .page(page)
+                .size(size)
+                .sortBy(sortBy)
+                .sortDirection(sortDirection)
+                .build();
+        
+        return ResponseEntity.ok(bookingService.getBookingsPaginated(filter));
+    }
+
+    @GetMapping("/{bookingId}")
+    public ResponseEntity<BookingResponseDto> getBookingById(@PathVariable String bookingId) {
+        return ResponseEntity.ok(bookingService.getBookingById(bookingId));
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<BookingStatsDto> getBookingStats() {
+        return ResponseEntity.ok(bookingService.getBookingStats());
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<Booking>> getUserBookings(@PathVariable String userId) {
+        return ResponseEntity.ok(bookingService.getUserBookings(userId));
     }
 
     @GetMapping("/resource/{resourceId}")
@@ -30,12 +68,26 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getBookingsByResourceId(resourceId));
     }
 
+    @GetMapping("/{bookingId}/history")
+    public ResponseEntity<List<BookingResponseDto.BookingHistoryDto>> getBookingHistory(
+            @PathVariable String bookingId) {
+        return ResponseEntity.ok(bookingService.getBookingHistory(bookingId));
+    }
+
     @PostMapping
-    public ResponseEntity<Booking> createBooking(@Valid @RequestBody Booking booking) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(bookingService.createBooking(booking));
+    public ResponseEntity<Booking> createBooking(@Valid @RequestBody BookingRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(bookingService.createBooking(request));
+    }
+
+    @PutMapping("/{bookingId}")
+    public ResponseEntity<Booking> updateBooking(
+            @PathVariable String bookingId,
+            @Valid @RequestBody BookingRequestDto request) {
+        return ResponseEntity.ok(bookingService.updateBooking(bookingId, request));
     }
 
     @PatchMapping("/{bookingId}/status")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Booking> updateStatus(
             @PathVariable String bookingId,
             @RequestParam String status,
@@ -44,16 +96,17 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.updateBookingStatus(bookingId, status, adminId, reason));
     }
 
-    @PutMapping("/{bookingId}")
-    public ResponseEntity<Booking> updateBooking(
+    @PostMapping("/{bookingId}/cancel")
+    public ResponseEntity<Booking> cancelBooking(
             @PathVariable String bookingId,
-            @Valid @RequestBody Booking booking) {
-        return ResponseEntity.ok(bookingService.updateBooking(bookingId, booking));
+            @RequestParam String userId) {
+        return ResponseEntity.ok(bookingService.cancelBooking(bookingId, userId));
     }
 
     @DeleteMapping("/{bookingId}")
-    public ResponseEntity<?> deleteBooking(@PathVariable String bookingId) {
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<Void> deleteBooking(@PathVariable String bookingId) {
         bookingService.deleteBooking(bookingId);
-        return ResponseEntity.ok("Booking deleted successfully");
+        return ResponseEntity.noContent().build();
     }
 }
