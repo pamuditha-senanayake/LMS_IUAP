@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, Calendar, Clock, Users, MapPin, CheckCircle, AlertCircle, Wrench } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { X, Users, MapPin, CheckCircle, AlertCircle } from "lucide-react";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
 
@@ -78,7 +78,7 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
     const isAvailable = status === "ACTIVE";
 
     const [bookings, setBookings] = useState<Booking[]>([]);
-    const [loadingBookings, setLoadingBookings] = useState(false);
+    const [, setLoadingBookings] = useState(false);
     const [selectedDate, setSelectedDate] = useState<string>("");
     const [selectedStartTime, setSelectedStartTime] = useState<string>("");
     const [selectedEndTime, setSelectedEndTime] = useState<string>("");
@@ -88,25 +88,7 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
     const [quantity, setQuantity] = useState<number>(1);
     const [isBooking, setIsBooking] = useState(false);
 
-    useEffect(() => {
-        if (isOpen && resourceId) {
-            fetchBookings();
-        }
-    }, [isOpen, resourceId]);
-
-    useEffect(() => {
-        if (!isOpen) {
-            setSelectedDate("");
-            setSelectedStartTime("");
-            setSelectedEndTime("");
-            setPurpose("");
-            setAttendees(1);
-            setSupportNotes("");
-            setQuantity(1);
-        }
-    }, [isOpen]);
-
-    const fetchBookings = async () => {
+    const fetchBookings = useCallback(async () => {
         setLoadingBookings(true);
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -122,7 +104,25 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
         } finally {
             setLoadingBookings(false);
         }
-    };
+    }, [resourceId]);
+
+    useEffect(() => {
+        if (isOpen && resourceId) {
+            fetchBookings();
+        }
+    }, [isOpen, resourceId, fetchBookings]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setSelectedDate("");
+            setSelectedStartTime("");
+            setSelectedEndTime("");
+            setPurpose("");
+            setAttendees(1);
+            setSupportNotes("");
+            setQuantity(1);
+        }
+    }, [isOpen]);
 
     const getLocationDisplay = () => {
         if (!isUtility) {

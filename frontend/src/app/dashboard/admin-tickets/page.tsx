@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Swal from "sweetalert2";
 
 export default function AdminTickets() {
@@ -18,29 +18,7 @@ export default function AdminTickets() {
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
-    useEffect(() => {
-        const fetchResources = async () => {
-            try {
-                const res = await fetch(`${apiUrl}/api/resources`, { credentials: "include" });
-                if (res.ok) {
-                    const resourceData = await res.json();
-                    setResources(resourceData);
-                    return resourceData;
-                }
-            } catch (err) {
-                console.error("Failed to fetch resources", err);
-            }
-            return [];
-        };
-
-        const init = async () => {
-            const resourceData = await fetchResources();
-            await fetchTickets(resourceData);
-        };
-        init();
-    }, []);
-
-    const fetchTickets = async (resourceData?: any[]) => {
+    const fetchTickets = useCallback(async (resourceData?: any[]) => {
         if (resourceData === undefined) {
             resourceData = resources;
         }
@@ -69,13 +47,35 @@ export default function AdminTickets() {
                 );
                 setTickets(ticketsWithAttachments);
             }
-        } catch (err) {
-            console.error("Failed to fetch tickets", err);
+        } catch {
+            console.error("Failed to fetch tickets");
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    };
+    }, [apiUrl, resources]);
+
+    useEffect(() => {
+        const fetchResources = async () => {
+            try {
+                const res = await fetch(`${apiUrl}/api/resources`, { credentials: "include" });
+                if (res.ok) {
+                    const resourceData = await res.json();
+                    setResources(resourceData);
+                    return resourceData;
+                }
+            } catch {
+                console.error("Failed to fetch resources");
+            }
+            return [];
+        };
+
+        const init = async () => {
+            const resourceData = await fetchResources();
+            await fetchTickets(resourceData);
+        };
+        init();
+    }, [fetchTickets, apiUrl]);
 
     const stats = {
         total: tickets.length,
@@ -135,7 +135,7 @@ export default function AdminTickets() {
             } else {
                 Swal.fire({ title: "Error", text: await res.text(), icon: "error", background: '#1e293b', color: '#fff' });
             }
-        } catch (err) {
+        } catch {
             Swal.fire({ title: "Error", icon: "error", background: '#1e293b', color: '#fff' });
         }
     };

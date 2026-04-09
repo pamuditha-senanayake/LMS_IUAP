@@ -19,7 +19,7 @@ export default function AdminBookings() {
             } else {
                 Swal.fire("Error", "Failed to fetch bookings", "error");
             }
-        } catch (err) {
+        } catch {
             Swal.fire("Error", "Network error", "error");
         } finally {
             setLoading(false);
@@ -35,7 +35,7 @@ export default function AdminBookings() {
                     const user = await res.json();
                     setCurrentUser(user);
                 }
-            } catch (e) {}
+            } catch {}
             fetchBookings();
         };
         loadUser();
@@ -60,7 +60,7 @@ export default function AdminBookings() {
             } else {
                 Swal.fire({ title: "Error", text: await res.text(), icon: "error", background: '#1e293b', color: '#fff' });
             }
-        } catch (err) {
+        } catch {
             Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#1e293b', color: '#fff' });
         }
     };

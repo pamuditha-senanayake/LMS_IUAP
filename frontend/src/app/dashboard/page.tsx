@@ -57,7 +57,7 @@ export default function Dashboard() {
                         console.error("Metric sync failed", e);
                     }
                 }
-            } catch (err) {
+            } catch {
                 localStorage.removeItem("user");
                 router.push("/login");
             } finally {

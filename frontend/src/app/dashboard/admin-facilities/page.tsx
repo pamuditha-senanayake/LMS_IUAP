@@ -66,7 +66,7 @@ export default function AdminFacilities() {
                         Swal.fire({title: "Deleted!", icon: "success", background: '#1e293b', color: '#fff'});
                         fetchResources();
                     }
-                } catch(e) {}
+                } catch {}
             }
         });
     };
@@ -142,7 +142,7 @@ export default function AdminFacilities() {
                     } else {
                         Swal.fire({ title: "Failed", text: await res.text(), icon: "error", background: '#1e293b', color: '#fff' });
                     }
-                } catch (e) {}
+        } catch {}
             }
         });
     };
@@ -165,7 +165,7 @@ export default function AdminFacilities() {
                 body: JSON.stringify(payload)
             });
             if (res.ok) fetchResources();
-        } catch (e) {}
+        } catch {}
     };
 
     return (

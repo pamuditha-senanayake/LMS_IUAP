@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
     BarChart,
     Bar,
@@ -24,10 +24,7 @@ import {
     Activity,
     ArrowUpRight,
     ArrowDownRight,
-    Zap,
 } from "lucide-react";
-
-const COLORS = ["#f43f5e", "#f97316", "#3b82f6", "#22c55e"];
 
 const tooltipStyle = {
     backgroundColor: "rgba(15, 23, 42, 0.98)",
@@ -58,7 +55,7 @@ export default function TicketStatistics() {
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
-    const fetchStatistics = async (isRefresh = false) => {
+    const fetchStatistics = useCallback(async (isRefresh = false) => {
         if (isRefresh) {
             setRefreshing(true);
         } else {
@@ -123,13 +120,13 @@ export default function TicketStatistics() {
             setLoading(false);
             setRefreshing(false);
         }
-    };
+    }, [apiUrl, dateRange]);
 
     useEffect(() => {
         if (!refreshing) {
             fetchStatistics();
         }
-    }, [dateRange]);
+    }, [fetchStatistics, refreshing]);
 
     const priorityData = stats
         ? [
@@ -584,7 +581,7 @@ function KPICard({
     };
 
     return (
-        <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${gradient} p-5 shadow-xl ${glowColors[glowColor]} group hover:scale-[1.02] transition-transform duration-300`}>
+        <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${gradient} p-5 shadow-xl ${glowColors[glowColor as keyof typeof glowColors]} group hover:scale-[1.02] transition-transform duration-300`}>
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
             <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">

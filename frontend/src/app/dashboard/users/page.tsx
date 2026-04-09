@@ -11,7 +11,6 @@ import {
     Mail, 
     Users, 
     Search,
-    ChevronRight,
     MoreVertical
 } from "lucide-react";
 
@@ -39,7 +38,7 @@ export default function UserManagement() {
                     color: '#fff'
                 });
             }
-        } catch (err) {
+        } catch {
             Swal.fire({
                 title: "Error",
                 text: "Network error",
@@ -159,7 +158,7 @@ export default function UserManagement() {
                         const errText = await res.text();
                         Swal.fire({ title: "Error", text: errText, icon: "error", background: '#0f172a', color: '#f1f5f9' });
                     }
-                } catch (err) {
+                } catch {
                     Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#0f172a', color: '#f1f5f9' });
                 }
             }
@@ -215,7 +214,7 @@ export default function UserManagement() {
                         const errText = await res.text();
                         Swal.fire({ title: "Error", text: errText, icon: "error", background: '#111827', color: '#f1f5f9' });
                     }
-                } catch (err) {
+                } catch {
                     Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#111827', color: '#f1f5f9' });
                 }
             }

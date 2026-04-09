@@ -296,7 +296,7 @@ export default function FacilitiesCatalogue() {
                 setSelectedResource(resource);
                 setIsDetailsModalOpen(true);
             }}
-            onBookResource={(resource, bookingData) => {
+            onBookResource={(resource) => {
                 setSelectedResource(resource);
                 setIsDetailsModalOpen(true);
             }}

@@ -10,12 +10,10 @@ import {
     Bell, 
     Users, 
     LogOut, 
-    User as UserIcon, 
     Home as HomeIcon, 
     Menu, 
     X,
     ChevronRight,
-    Zap,
     Calendar
 } from "lucide-react";
 
@@ -50,7 +48,9 @@ export default function Navbar() {
                         })
                         .catch(() => {});
                 }
-            } catch (e) {}
+            } catch {
+                // ignore parse errors
+            }
         }
         return () => window.removeEventListener("scroll", handleScroll);
     }, [pathname]);
@@ -65,7 +65,9 @@ export default function Navbar() {
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
             await fetch(`${apiUrl}/api/auth/logout`, { method: "POST", credentials: "include" });
-        } catch (e) {}
+        } catch {
+            // ignore network errors
+        }
         localStorage.removeItem("user");
         setUser(null);
         setIsAdmin(false);

@@ -16,7 +16,7 @@ export default function Notifications() {
                 const data = await res.json();
                 setNotifications(data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
             }
-        } catch (err) {
+        } catch {
             console.error("Failed to fetch notifications");
         } finally {
             setLoading(false);
@@ -35,7 +35,7 @@ export default function Notifications() {
                 } else {
                     setLoading(false);
                 }
-            } catch (e) {
+            } catch {
                 setLoading(false);
             }
         };
@@ -53,7 +53,7 @@ export default function Notifications() {
             if (res.ok) {
                 fetchNotifications(userId);
             }
-        } catch (err) {
+        } catch {
             Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#1e293b', color: '#fff' });
         }
     };

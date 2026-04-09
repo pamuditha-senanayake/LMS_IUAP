@@ -19,7 +19,7 @@ export default function MyBookings() {
             } else {
                 Swal.fire("Error", "Failed to fetch bookings", "error");
             }
-        } catch (err) {
+        } catch {
             Swal.fire("Error", "Network error", "error");
         } finally {
             setLoading(false);
@@ -39,7 +39,7 @@ export default function MyBookings() {
                 } else {
                     setLoading(false);
                 }
-            } catch (e) {
+            } catch {
                 setLoading(false);
             }
         };
@@ -105,7 +105,7 @@ export default function MyBookings() {
                         const errText = await res.text();
                         Swal.fire({ title: "Error", text: errText, icon: "error", background: '#1e293b', color: '#fff' });
                     }
-                } catch (err) {
+                } catch {
                     Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#1e293b', color: '#fff' });
                 }
             }
@@ -164,7 +164,7 @@ export default function MyBookings() {
                         const errText = await res.text();
                         Swal.fire({ title: "Error", text: errText, icon: "error", background: '#1e293b', color: '#fff' });
                     }
-                } catch (err) {
+                } catch {
                     Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#1e293b', color: '#fff' });
                 }
             }
@@ -198,7 +198,7 @@ export default function MyBookings() {
                         const errText = await res.text();
                         Swal.fire({ title: "Error", text: errText, icon: "error", background: '#1e293b', color: '#fff' });
                     }
-                } catch (err) {
+                } catch {
                     Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#1e293b', color: '#fff' });
                 }
             }

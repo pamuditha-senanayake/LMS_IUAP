@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { X, Send, Bot, User, Loader2, ArrowLeft, CheckCircle, Calendar, Users as UsersIcon, MapPin, RotateCcw } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { X, Bot, User, Loader2, Users as UsersIcon, MapPin, RotateCcw } from "lucide-react";
 
 interface Resource {
     id?: string;
@@ -61,6 +61,12 @@ interface FacilityBookingChatbotProps {
     resources: Resource[];
 }
 
+let messageIdCounter = 0;
+const generateMessageId = (): string => {
+    messageIdCounter += 1;
+    return `facility_msg_${Date.now()}_${messageIdCounter}`;
+};
+
 export default function FacilityBookingChatbot({ isOpen, onClose, onViewResource, onBookResource, resources }: FacilityBookingChatbotProps) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [currentStep, setCurrentStep] = useState<BookingStep>("start");
@@ -68,20 +74,24 @@ export default function FacilityBookingChatbot({ isOpen, onClose, onViewResource
     const [selectedType, setSelectedType] = useState<string>("");
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const selectedCategoryRef = useRef(selectedCategory);
+    const selectedTypeRef = useRef(selectedType);
+
+    useEffect(() => {
+        selectedCategoryRef.current = selectedCategory;
+    }, [selectedCategory]);
+
+    useEffect(() => {
+        selectedTypeRef.current = selectedType;
+    }, [selectedType]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, isTyping]);
 
-    useEffect(() => {
-        if (isOpen && messages.length === 0) {
-            startConversation();
-        }
-    }, [isOpen]);
-
-    const startConversation = () => {
+    const startConversation = useCallback(() => {
         const welcomeMsg: ChatMessage = {
-            id: "1",
+            id: generateMessageId(),
             text: "Hi! I'm your Booking Assistant. Let me help you find and book a resource. What would you like to book?",
             sender: "bot",
             timestamp: new Date(),
@@ -92,19 +102,49 @@ export default function FacilityBookingChatbot({ isOpen, onClose, onViewResource
         };
         setMessages([welcomeMsg]);
         setCurrentStep("category");
-    };
+    }, []);
 
-    const resetConversation = () => {
+    const resetConversation = useCallback(() => {
         setMessages([]);
         setCurrentStep("start");
         setSelectedCategory("");
         setSelectedType("");
         setTimeout(startConversation, 300);
-    };
+    }, [startConversation]);
 
-    const handleOptionSelect = async (option: ChatOption) => {
+    useEffect(() => {
+        if (isOpen && messages.length === 0) {
+            startConversation();
+        }
+    }, [isOpen, startConversation, messages.length]);
+
+    const getFilteredResources = useCallback((type: string): Resource[] => {
+        return resources.filter(r => {
+            const rType = r.resourceType || r.type || "";
+            const matchesType = rType.toUpperCase().includes(type.toUpperCase()) || 
+                             type.toUpperCase().includes(rType.toUpperCase().replace("_", " "));
+            const isActive = r.status === "ACTIVE";
+            return matchesType && isActive;
+        });
+    }, [resources]);
+
+    const showRecommendation = useCallback((resource: Resource) => {
+        const botText = `Great news! Here are the details:`;
+
+        const botMsg: ChatMessage = {
+            id: generateMessageId(),
+            text: botText,
+            sender: "bot",
+            timestamp: new Date(),
+            resource: resource,
+        };
+        setMessages(prev => [...prev, botMsg]);
+        setIsTyping(false);
+    }, []);
+
+    const handleOptionSelect = useCallback(async (option: ChatOption) => {
         const userMsg: ChatMessage = {
-            id: Date.now().toString(),
+            id: generateMessageId(),
             text: option.label,
             sender: "user",
             timestamp: new Date(),
@@ -116,13 +156,13 @@ export default function FacilityBookingChatbot({ isOpen, onClose, onViewResource
 
         if (currentStep === "category") {
             setSelectedCategory(option.value);
-            const options = option.value === "UTILITY" ? UTILITY_TYPES : FACILITY_TYPES;
+            const optOptions = option.value === "UTILITY" ? UTILITY_TYPES : FACILITY_TYPES;
             const botMsg: ChatMessage = {
-                id: (Date.now() + 1).toString(),
+                id: generateMessageId(),
                 text: `Great! What type of ${option.value.toLowerCase()} are you looking for?`,
                 sender: "bot",
                 timestamp: new Date(),
-                options: options,
+                options: optOptions,
             };
             setMessages(prev => [...prev, botMsg]);
             setCurrentStep("type");
@@ -132,7 +172,7 @@ export default function FacilityBookingChatbot({ isOpen, onClose, onViewResource
             
             if (filteredResources.length === 0) {
                 const botMsg: ChatMessage = {
-                    id: (Date.now() + 1).toString(),
+                    id: generateMessageId(),
                     text: `I couldn't find any available ${option.value.replace(/_/g, " ").toLowerCase()} at the moment. Would you like to try a different type?`,
                     sender: "bot",
                     timestamp: new Date(),
@@ -153,7 +193,7 @@ export default function FacilityBookingChatbot({ isOpen, onClose, onViewResource
                     value: r.id || r._id || "",
                 }));
                 const botMsg: ChatMessage = {
-                    id: (Date.now() + 1).toString(),
+                    id: generateMessageId(),
                     text: `I found ${filteredResources.length} available ${option.value.replace(/_/g, " ").toLowerCase()}s. Which one interests you?`,
                     sender: "bot",
                     timestamp: new Date(),
@@ -171,13 +211,13 @@ export default function FacilityBookingChatbot({ isOpen, onClose, onViewResource
         } else if (currentStep === "recommendation") {
             if (option.value === "retry") {
                 setCurrentStep("type");
-                const options = selectedCategory === "UTILITY" ? UTILITY_TYPES : FACILITY_TYPES;
+                const optOptions = selectedCategoryRef.current === "UTILITY" ? UTILITY_TYPES : FACILITY_TYPES;
                 const botMsg: ChatMessage = {
-                    id: (Date.now() + 1).toString(),
+                    id: generateMessageId(),
                     text: "Which type would you like to try instead?",
                     sender: "bot",
                     timestamp: new Date(),
-                    options: options,
+                    options: optOptions,
                 };
                 setMessages(prev => [...prev, botMsg]);
             } else if (option.value === "start") {
@@ -188,61 +228,23 @@ export default function FacilityBookingChatbot({ isOpen, onClose, onViewResource
         }
         
         setIsTyping(false);
-    };
+    }, [currentStep, getFilteredResources, resources, showRecommendation, resetConversation]);
 
-    const getFilteredResources = (type: string): Resource[] => {
-        return resources.filter(r => {
-            const rType = r.resourceType || r.type || "";
-            const matchesType = rType.toUpperCase().includes(type.toUpperCase()) || 
-                             type.toUpperCase().includes(rType.toUpperCase().replace("_", " "));
-            const isActive = r.status === "ACTIVE";
-            return matchesType && isActive;
-        });
-    };
-
-    const showRecommendation = (resource: Resource) => {
-        const isBooked = false;
-        const statusText = resource.status === "ACTIVE" ? "Available" : "Unavailable";
-        
-        let botText = "";
-        if (isBooked) {
-            botText = `This ${resource.resourceType || resource.type} is already booked for your selected time. Let me show you other available options.`;
-            const filtered = getFilteredResources(selectedType).filter(r => (r.id || r._id) !== (resource.id || resource._id));
-            if (filtered.length > 0) {
-                setTimeout(() => {
-                    showRecommendation(filtered[0]);
-                }, 800);
-            }
-        } else {
-            botText = `Great news! Here are the details:`;
-        }
-
-        const botMsg: ChatMessage = {
-            id: Date.now().toString(),
-            text: botText,
-            sender: "bot",
-            timestamp: new Date(),
-            resource: resource,
-        };
-        setMessages(prev => [...prev, botMsg]);
-        setIsTyping(false);
-    };
-
-    const handleViewDetails = (resource: Resource) => {
+    const handleViewDetails = useCallback((resource: Resource) => {
         onViewResource(resource);
-    };
+    }, [onViewResource]);
 
-    const handleBookNow = (resource: Resource) => {
+    const handleBookNow = useCallback((resource: Resource) => {
         onBookResource(resource);
-    };
+    }, [onBookResource]);
 
-    const handleStartOver = () => {
+    const handleStartOver = useCallback(() => {
         setIsTyping(true);
         setTimeout(() => {
             resetConversation();
             setIsTyping(false);
         }, 300);
-    };
+    }, [resetConversation]);
 
     if (!isOpen) return null;
 
