@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { X, Bot, User, Loader2, RotateCcw, Calendar, Clock, Users, CheckCircle, Circle, AlertTriangle, Sparkles, ArrowRight, MapPin, MapPinned } from "lucide-react";
 
 interface Resource {
@@ -399,6 +399,12 @@ function getLocationDisplay(resource: Resource): string {
     }
 }
 
+let messageIdCounter = 0;
+const generateMessageId = (): string => {
+    messageIdCounter += 1;
+    return `msg_${Date.now()}_${messageIdCounter}`;
+};
+
 export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, onBookResource, resources }: SmartBookingChatbotProps) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [currentStep, setCurrentStep] = useState<BookingStep>("category");
@@ -417,6 +423,11 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
     const [isTyping, setIsTyping] = useState(false);
     const [timeError, setTimeError] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const bookingDataRef = useRef(bookingData);
+    
+    useEffect(() => {
+        bookingDataRef.current = bookingData;
+    }, [bookingData]);
     
     const locationOptions = useMemo(() => getLocationsFromResources(resources), [resources]);
 
@@ -424,15 +435,9 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, isTyping]);
 
-    useEffect(() => {
-        if (isOpen && messages.length === 0) {
-            startConversation();
-        }
-    }, [isOpen]);
-
-    const startConversation = () => {
+    const startConversation = useCallback(() => {
         const welcomeMsg: ChatMessage = {
-            id: "1",
+            id: generateMessageId(),
             text: "What would you like to book?",
             sender: "bot",
             timestamp: new Date(),
@@ -446,20 +451,28 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
         setBookingData({ category: "", type: "", location: "", date: "", startTime: "", endTime: "", capacity: 0, capacityLabel: "", amenities: [] });
         setSelectedAmenities([]);
         setTimeError(null);
-    };
+    }, []);
 
-    const resetConversation = () => {
+    const resetConversation = useCallback(() => {
         setMessages([]);
         setCurrentStep("category");
         setBookingData({ category: "", type: "", location: "", date: "", startTime: "", endTime: "", capacity: 0, capacityLabel: "", amenities: [] });
         setSelectedAmenities([]);
         setTimeError(null);
         setTimeout(startConversation, 300);
-    };
+    }, [startConversation]);
 
-    const processSelection = async (option: ChatOption) => {
+    useEffect(() => {
+        if (isOpen && messages.length === 0) {
+            startConversation();
+        }
+    }, [isOpen, startConversation, messages.length]);
+
+    const processSelection = useCallback(async (option: ChatOption) => {
+        const shouldSimulateBooked = Math.random() < 0.3;
+        
         const userMsg: ChatMessage = {
-            id: Date.now().toString(),
+            id: generateMessageId(),
             text: option.label,
             sender: "user",
             timestamp: new Date(),
@@ -469,12 +482,13 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
         setTimeError(null);
         await new Promise(resolve => setTimeout(resolve, 600));
 
+        const currentBookingData = bookingDataRef.current;
         let botMsg: ChatMessage;
 
         if (currentStep === "category") {
             setBookingData(prev => ({ ...prev, category: option.value }));
             botMsg = {
-                id: (Date.now() + 1).toString(),
+                id: generateMessageId(),
                 text: "Where do you need it?",
                 sender: "bot",
                 timestamp: new Date(),
@@ -486,9 +500,9 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
             const locationVal = option.value;
             setBookingData(prev => ({ ...prev, location: locationVal }));
             
-            if (bookingData.category === "FACILITY") {
+            if (currentBookingData.category === "FACILITY") {
                 botMsg = {
-                    id: (Date.now() + 1).toString(),
+                    id: generateMessageId(),
                     text: "What type of facility do you need?",
                     sender: "bot",
                     timestamp: new Date(),
@@ -497,7 +511,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                 setCurrentStep("facilityType");
             } else {
                 botMsg = {
-                    id: (Date.now() + 1).toString(),
+                    id: generateMessageId(),
                     text: "What type of utility do you need?",
                     sender: "bot",
                     timestamp: new Date(),
@@ -509,7 +523,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
         else if (currentStep === "facilityType") {
             setBookingData(prev => ({ ...prev, type: option.value }));
             botMsg = {
-                id: (Date.now() + 1).toString(),
+                id: generateMessageId(),
                 text: "How many people will be using this facility?",
                 sender: "bot",
                 timestamp: new Date(),
@@ -521,7 +535,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
             const capacityLabel = option.label;
             setBookingData(prev => ({ ...prev, capacity: parseInt(option.value), capacityLabel }));
             botMsg = {
-                id: (Date.now() + 1).toString(),
+                id: generateMessageId(),
                 text: "Which amenities or equipment do you need? (Select all that apply)",
                 sender: "bot",
                 timestamp: new Date(),
@@ -532,7 +546,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
         else if (currentStep === "amenities") {
             setBookingData(prev => ({ ...prev, amenities: selectedAmenities }));
             botMsg = {
-                id: (Date.now() + 1).toString(),
+                id: generateMessageId(),
                 text: "What date do you need it for?",
                 sender: "bot",
                 timestamp: new Date(),
@@ -544,7 +558,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
             const dateVal = option.value;
             setBookingData(prev => ({ ...prev, date: dateVal }));
             botMsg = {
-                id: (Date.now() + 1).toString(),
+                id: generateMessageId(),
                 text: "What start time works for you?",
                 sender: "bot",
                 timestamp: new Date(),
@@ -556,7 +570,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
             const startTimeVal = option.value;
             setBookingData(prev => ({ ...prev, startTime: startTimeVal }));
             botMsg = {
-                id: (Date.now() + 1).toString(),
+                id: generateMessageId(),
                 text: "What end time?",
                 sender: "bot",
                 timestamp: new Date(),
@@ -567,7 +581,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
         else if (currentStep === "endTime") {
             const endTimeVal = option.value;
             
-            if (!validateTimeRange(bookingData.startTime, endTimeVal)) {
+            if (!validateTimeRange(currentBookingData.startTime, endTimeVal)) {
                 setTimeError("End time must be later than start time.");
                 setIsTyping(false);
                 return;
@@ -575,21 +589,21 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
             
             setBookingData(prev => ({ ...prev, endTime: endTimeVal }));
             
-            const bestMatch = bookingData.category === "FACILITY" 
+            const bestMatch = currentBookingData.category === "FACILITY" 
                 ? getBestFacilityMatch(resources, {
-                    type: bookingData.type,
-                    location: bookingData.location,
-                    capacity: bookingData.capacity,
+                    type: currentBookingData.type,
+                    location: currentBookingData.location,
+                    capacity: currentBookingData.capacity,
                     amenities: selectedAmenities,
-                    date: bookingData.date,
-                    startTime: bookingData.startTime,
+                    date: currentBookingData.date,
+                    startTime: currentBookingData.startTime,
                     endTime: endTimeVal,
                 })
                 : getBestUtilityMatch(resources, {
-                    type: bookingData.type,
-                    location: bookingData.location,
-                    date: bookingData.date,
-                    startTime: bookingData.startTime,
+                    type: currentBookingData.type,
+                    location: currentBookingData.location,
+                    date: currentBookingData.date,
+                    startTime: currentBookingData.startTime,
                     endTime: endTimeVal,
                 });
             
@@ -597,8 +611,8 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
             
             if (!bestMatch) {
                 botMsg = {
-                    id: (Date.now() + 1).toString(),
-                    text: `I couldn't find any ${bookingData.category === "FACILITY" ? "facility" : "utility"} matching your requirements at this location. Would you like to try a different location or start over?`,
+                    id: generateMessageId(),
+                    text: `I couldn't find any ${currentBookingData.category === "FACILITY" ? "facility" : "utility"} matching your requirements at this location. Would you like to try a different location or start over?`,
                     sender: "bot",
                     timestamp: new Date(),
                     options: [
@@ -606,26 +620,26 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                     ],
                 };
             } else {
-                const isBooked = Math.random() < 0.3;
+                const isBooked = shouldSimulateBooked;
                 const reason = buildRecommendationReason(bestMatch, {
-                    category: bookingData.category,
-                    type: bookingData.type,
-                    location: bookingData.location,
-                    capacityLabel: bookingData.capacityLabel,
+                    category: currentBookingData.category,
+                    type: currentBookingData.type,
+                    location: currentBookingData.location,
+                    capacityLabel: currentBookingData.capacityLabel,
                     amenities: selectedAmenities,
                 });
                 
                 if (isBooked) {
                     const altOption = getSameCategoryAlternatives(resources, bestMatch.id || bestMatch._id || "", {
-                        category: bookingData.category,
-                        type: bookingData.type,
-                        location: bookingData.location,
-                        capacity: bookingData.capacity,
+                        category: currentBookingData.category,
+                        type: currentBookingData.type,
+                        location: currentBookingData.location,
+                        capacity: currentBookingData.capacity,
                         amenities: selectedAmenities,
                     });
                     
                     botMsg = {
-                        id: (Date.now() + 1).toString(),
+                        id: generateMessageId(),
                         text: "This is the best match, but it is already booked for your selected time.",
                         sender: "bot",
                         timestamp: new Date(),
@@ -636,7 +650,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                     };
                 } else {
                     botMsg = {
-                        id: (Date.now() + 1).toString(),
+                        id: generateMessageId(),
                         text: "Perfect! Here's the best option for you:",
                         sender: "bot",
                         timestamp: new Date(),
@@ -649,7 +663,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
         else if (currentStep === "utilityType") {
             setBookingData(prev => ({ ...prev, type: option.value }));
             botMsg = {
-                id: (Date.now() + 1).toString(),
+                id: generateMessageId(),
                 text: "What date do you need it for?",
                 sender: "bot",
                 timestamp: new Date(),
@@ -667,7 +681,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                 const altResource = lastMsg?.alternativeResource;
                 if (!altResource) {
                     botMsg = {
-                        id: (Date.now() + 1).toString(),
+                        id: generateMessageId(),
                         text: "No alternative available.",
                         sender: "bot",
                         timestamp: new Date(),
@@ -675,14 +689,14 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                     };
                 } else {
                     const reason = buildRecommendationReason(altResource, {
-                        category: bookingData.category,
-                        type: bookingData.type,
-                        location: bookingData.location,
-                        capacityLabel: bookingData.capacityLabel,
+                        category: currentBookingData.category,
+                        type: currentBookingData.type,
+                        location: currentBookingData.location,
+                        capacityLabel: currentBookingData.capacityLabel,
                         amenities: selectedAmenities,
                     });
                     botMsg = {
-                        id: (Date.now() + 1).toString(),
+                        id: generateMessageId(),
                         text: "Here's an alternative that's available:",
                         sender: "bot",
                         timestamp: new Date(),
@@ -692,7 +706,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                 }
             } else {
                 botMsg = {
-                    id: (Date.now() + 1).toString(),
+                    id: generateMessageId(),
                     text: "Would you like to start over or try different criteria?",
                     sender: "bot",
                     timestamp: new Date(),
@@ -702,10 +716,21 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                 };
             }
         }
+        else {
+            botMsg = {
+                id: generateMessageId(),
+                text: "Would you like to start over or try different criteria?",
+                sender: "bot",
+                timestamp: new Date(),
+                options: [
+                    { label: "Start over", value: "start" },
+                ],
+            };
+        }
         
         setMessages(prev => [...prev, botMsg]);
         setIsTyping(false);
-    };
+    }, [currentStep, selectedAmenities, resources, messages, resetConversation]);
 
     const handleDateSelect = (date: string) => {
         processSelection({ label: date, value: date });
@@ -1039,7 +1064,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                                         
                                         {msg.recommendationReason && (
                                             <div className="text-sm text-slate-300 mb-3 italic">
-                                                "{msg.recommendationReason}"
+                                                &quot;{msg.recommendationReason}&quot;
                                             </div>
                                         )}
                                         
