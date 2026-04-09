@@ -32,26 +32,28 @@ export default function Dashboard() {
 
                 if (data.roles && data.roles.includes("ROLE_ADMIN")) {
                     try {
-                        const [uRes, bRes, tRes, fRes] = await Promise.all([
+                        const [uRes, , tRes, fRes, statsRes] = await Promise.all([
                             fetch(apiUrl + "/api/users", { credentials: "include" }),
-                            fetch(apiUrl + "/api/bookings", { credentials: "include" }),
-                            fetch(apiUrl + "/api/tickets", { credentials: "include" }),
-                            fetch(apiUrl + "/api/resources", { credentials: "include" })
+                            fetch(apiUrl + "/api/bookings?size=1", { credentials: "include" }),
+                            fetch(apiUrl + "/api/tickets?size=1", { credentials: "include" }),
+                            fetch(apiUrl + "/api/resources", { credentials: "include" }),
+                            fetch(apiUrl + "/api/bookings/stats", { credentials: "include" })
                         ]);
 
                         const usersData = uRes.ok ? await uRes.json() : [];
-                        const bookingsData = bRes.ok ? await bRes.json() : [];
                         const ticketsData = tRes.ok ? await tRes.json() : [];
                         const facilitiesData = fRes.ok ? await fRes.json() : [];
+                        const statsData = statsRes.ok ? await statsRes.json() : { pending: 0 };
 
-                        const pendingBookings = bookingsData.filter((b: any) => !b.status || b.status === "PENDING" || b.status === "OPEN").length;
-                        const openTickets = ticketsData.filter((t: any) => !t.status || t.status === "OPEN" || t.status === "IN_PROGRESS").length;
+                        const openTickets = Array.isArray(ticketsData) 
+                            ? ticketsData.filter((t: any) => !t.status || t.status === "OPEN" || t.status === "IN_PROGRESS").length 
+                            : 0;
 
                         setMetrics({
-                            users: usersData.length || 0,
-                            pendingBookings,
+                            users: Array.isArray(usersData) ? usersData.length : 0,
+                            pendingBookings: statsData.pending || 0,
                             openTickets,
-                            facilities: facilitiesData.length || 0
+                            facilities: Array.isArray(facilitiesData) ? facilitiesData.length : 0
                         });
                     } catch (e) {
                         console.error("Metric sync failed", e);
