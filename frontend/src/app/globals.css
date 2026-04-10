@@ -21,9 +21,42 @@
   letter-spacing: -0.05em;
 }
 
-:root {
-  --background: #020617;
-  --foreground: #f1f5f9;
+/* Theme Colors - Navy/Sky Blue/Teal */
+:root,
+[data-theme="dark"] {
+  --background: #2F4156;
+  --foreground: #F5EFEB;
+  --primary: #567C8D;
+  --primary-light: #C8D9E6;
+  --secondary: #F5EFEB;
+  --accent: #C8D9E6;
+  --muted: #C8D9E6;
+  --card-bg: rgba(47, 65, 86, 0.95);
+  --card-border: rgba(200, 217, 230, 0.15);
+  --input-bg: rgba(47, 65, 86, 0.8);
+  --input-border: rgba(200, 217, 230, 0.2);
+  --text-primary: #F5EFEB;
+  --text-secondary: #C8D9E6;
+  --text-muted: #C8D9E6;
+  --overlay-bg: rgba(47, 65, 86, 0.9);
+}
+
+[data-theme="light"] {
+  --background: #F5EFEB;
+  --foreground: #2F4156;
+  --primary: #567C8D;
+  --primary-light: #2F4156;
+  --secondary: #FFFFFF;
+  --accent: #567C8D;
+  --muted: #567C8D;
+  --card-bg: rgba(255, 255, 255, 0.98);
+  --card-border: rgba(47, 65, 86, 0.12);
+  --input-bg: rgba(200, 217, 230, 0.5);
+  --input-border: rgba(47, 65, 86, 0.25);
+  --text-primary: #2F4156;
+  --text-secondary: #567C8D;
+  --text-muted: #567C8D;
+  --overlay-bg: rgba(245, 239, 235, 0.98);
 }
 
 html {
@@ -39,6 +72,7 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   overflow-x: hidden;
   width: 100%;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 body {
@@ -54,8 +88,8 @@ body::before {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.1) 0%, rgba(15, 23, 42, 0) 50%),
-              radial-gradient(circle at 80% 20%, rgba(236, 72, 153, 0.08) 0%, rgba(15, 23, 42, 0) 40%);
+  background: radial-gradient(circle at 50% 50%, rgba(86, 124, 141, 0.15) 0%, var(--background) 50%),
+              radial-gradient(circle at 80% 20%, rgba(200, 217, 230, 0.1) 0%, var(--background) 40%);
   animation: bg-pulse 15s ease-in-out infinite alternate;
   z-index: -1;
   pointer-events: none;
@@ -67,24 +101,24 @@ body::before {
 }
 
 .glass-card {
-  background: rgba(30, 41, 59, 0.7);
+  background: var(--card-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid var(--card-border);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease, border-color 0.3s ease;
 }
 
 .input-field {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--text-primary);
   transition: all 0.3s ease;
 }
 
 .input-field:focus {
-  border-color: rgba(99, 102, 241, 0.8);
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(86, 124, 141, 0.15);
   outline: none;
 }
 
@@ -137,8 +171,8 @@ body::before {
 
 /* Cloud Loader Animation */
 .loader {
-  --cloud-color: #4387f4;
-  --arrows-color: #80b1ff;
+  --cloud-color: #567C8D;
+  --arrows-color: #C8D9E6;
   --time-animation: 1s;
   transform: scale(0.5);
 }
@@ -219,38 +253,42 @@ body::before {
 
 /* Theme-Aware Button Utilities */
 .btn-primary-action {
-    background-color: var(--primary);
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
+  background-color: var(--primary);
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
 }
 
 [data-theme="light"] .btn-primary-action {
-    background-color: rgba(30, 27, 75, 0.08);
-    border: 1px solid rgba(30, 27, 75, 0.15);
-    color: #0f172a !important;
+  background-color: var(--primary);
+  color: #FFFFFF;
+  border: none;
 }
 
 .btn-danger-action {
-    background-color: #ef4444;
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
+  background-color: #ef4444;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
 }
 
 [data-theme="light"] .btn-danger-action {
-    background-color: rgba(239, 68, 68, 0.12);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    color: #000000 !important;
+  background-color: #ef4444;
+  color: #FFFFFF;
+}
+
+[data-theme="light"] .swal2-popup {
+  background-color: var(--card-bg) !important;
+  color: var(--text-primary) !important;
 }
 
 [data-theme="light"] .swal2-styled.swal2-confirm {
-    background-color: rgba(30, 27, 75, 0.08) !important;
-    border: 1px solid rgba(30, 27, 75, 0.15) !important;
-    color: #000000 !important;
+  background-color: var(--primary) !important;
+  border: none !important;
+  color: #FFFFFF !important;
 }
 
 [data-theme="light"] .swal2-styled.swal2-cancel {
-    background-color: transparent !important;
-    color: #475569 !important;
+  background-color: transparent !important;
+  color: var(--text-secondary) !important;
 }
