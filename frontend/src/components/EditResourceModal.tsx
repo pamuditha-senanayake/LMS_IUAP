@@ -36,7 +36,17 @@ const UTILITY_TYPES = [
     { value: "MICROPHONE", label: "Microphone" },
     { value: "WHITEBOARD", label: "Whiteboard" },
     { value: "FLAGS", label: "Flags" },
-    { value: "OTHER", label: "Other" },
+    { value: "OTHER", label: "Other (Specify)" },
+];
+
+const AMENITY_OPTIONS = [
+    { value: "Projector", label: "Projector" },
+    { value: "WiFi", label: "WiFi" },
+    { value: "AC", label: "AC" },
+    { value: "Whiteboard", label: "Whiteboard" },
+    { value: "Sound System", label: "Sound System" },
+    { value: "Smart Display", label: "Smart Display" },
+    { value: "Microphone", label: "Microphone" },
 ];
 
 const FACILITY_TYPE_VALUES = ["ROOM", "LECTURE_HALL", "LAB", "AUDITORIUM", "MEETING_ROOM"];
@@ -66,6 +76,10 @@ interface Resource {
     roomNumber?: string;
     resourceCode?: string;
     description?: string;
+    amenities?: string[];
+    campusName?: string;
+    building?: string;
+    storageLocation?: string;
 }
 
 interface EditResourceModalProps {
@@ -78,6 +92,7 @@ interface EditResourceModalProps {
 }
 
 interface ValidationErrors {
+    resourceName?: string;
     category?: string;
     type?: string;
     status?: string;
@@ -97,11 +112,16 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
     const [isEditing, setIsEditing] = useState(false);
     const [editedResource, setEditedResource] = useState<Partial<Resource>>({});
     const [category, setCategory] = useState<"FACILITY" | "UTILITY">("FACILITY");
+    const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<ValidationErrors>({});
     const modalRef = useRef<HTMLDivElement>(null);
 
     const typeOptions = category === "FACILITY" ? FACILITY_TYPES : UTILITY_TYPES;
+
+    const getResourceLocation = (res: Resource): string => {
+        return res.location || res.campusName || res.building || res.storageLocation || "";
+    };
 
     const handleCategoryChange = (newCategory: "FACILITY" | "UTILITY") => {
         setCategory(newCategory);
@@ -111,15 +131,30 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
             location: "",
             roomNumber: "",
             serialNumber: "",
-            capacity: undefined
+            capacity: undefined,
+            campusName: "",
+            building: "",
+            storageLocation: ""
         }));
+        setSelectedAmenities([]);
         setErrors({});
+    };
+
+    const toggleAmenity = (amenity: string) => {
+        setSelectedAmenities(prev => 
+            prev.includes(amenity) 
+                ? prev.filter(a => a !== amenity)
+                : [...prev, amenity]
+        );
     };
 
     const validate = (): boolean => {
         const newErrors: ValidationErrors = {};
         const ed = editedResource;
 
+        if (!ed.resourceName?.trim()) {
+            newErrors.resourceName = "Resource Name is required";
+        }
         if (!category) {
             newErrors.category = "Category is required";
         }
@@ -129,18 +164,18 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
         if (!ed.status) {
             newErrors.status = "Status is required";
         }
-        if (!ed.location) {
+        if (!getResourceLocation(ed)) {
             newErrors.location = "Location is required";
         }
         if (category === "FACILITY" && !ed.roomNumber?.trim()) {
-            newErrors.roomNumber = "Room Number is required for facilities";
+            newErrors.roomNumber = "Room Number is required";
         }
         if (category === "UTILITY" && !ed.serialNumber?.trim()) {
-            newErrors.serialNumber = "Serial Number is required for utilities";
+            newErrors.serialNumber = "Serial Number is required";
         }
         if (category === "FACILITY") {
             if (ed.capacity === undefined || ed.capacity === null) {
-                newErrors.capacity = "Capacity is required for facilities";
+                newErrors.capacity = "Capacity is required";
             } else if (typeof ed.capacity === "number" && ed.capacity < 0) {
                 newErrors.capacity = "Capacity cannot be negative";
             }
@@ -152,18 +187,24 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
 
     useEffect(() => {
         if (resource) {
+            const resourceLocation = getResourceLocation(resource);
             const resourceCategory = resource.category;
             const detectedCategory = resourceCategory || getCategoryFromType(resource.resourceType || resource.type || "");
             setCategory(detectedCategory);
+            setSelectedAmenities(resource.amenities || []);
             setEditedResource({
                 resourceName: resource.resourceName || resource.name,
                 resourceType: resource.resourceType || resource.type,
                 status: resource.status || "ACTIVE",
-                location: resource.location || "",
+                location: resourceLocation,
+                campusName: resource.campusName || resourceLocation,
+                building: resource.building || resourceLocation,
+                storageLocation: resource.storageLocation || resourceLocation,
                 roomNumber: resource.roomNumber || "",
                 serialNumber: resource.serialNumber || "",
                 capacity: resource.capacity,
                 description: resource.description,
+                amenities: resource.amenities || [],
             });
         }
     }, [resource]);
@@ -185,8 +226,9 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
     if (!isOpen || !resource) return null;
 
     const resourceName = resource.resourceName || resource.name || "Unnamed Resource";
-    const resourceType = resource.resourceType || resource.type || "GENERAL";
+    const resourceTypeDisplay = resource.resourceType || resource.type || "GENERAL";
     const status = resource.status || "ACTIVE";
+    const displayLocation = getResourceLocation(resource) || "N/A";
 
     const handleBackdropClick = (e: React.MouseEvent) => {
         if (e.target === e.currentTarget) onClose();
@@ -210,9 +252,34 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
             return;
         }
 
+        const payload: Record<string, any> = {
+            resourceName: editedResource.resourceName,
+            category: category,
+            type: editedResource.resourceType,
+            status: editedResource.status,
+            location: editedResource.location,
+            campusName: editedResource.location,
+            building: editedResource.location,
+            description: editedResource.description,
+        };
+
+        console.log("EDIT - form state before save:", { editedResourceLocation: editedResource.location, campusName: editedResource.campusName });
+
+        if (category === "FACILITY") {
+            payload.capacity = editedResource.capacity;
+            payload.roomNumber = editedResource.roomNumber;
+            payload.amenities = selectedAmenities;
+        } else {
+            payload.serialNumber = editedResource.serialNumber;
+            payload.storageLocation = editedResource.location;
+            payload.roomNumber = "";
+        }
+
+        console.log("EDIT - final payload:", JSON.stringify(payload, null, 2));
+
         setIsSubmitting(true);
         try {
-            await onSave(editedResource);
+            await onSave(payload);
             setIsEditing(false);
         } finally {
             setIsSubmitting(false);
@@ -246,18 +313,24 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
 
     const handleCancel = () => {
         if (resource) {
+            const resourceLocation = getResourceLocation(resource);
             const resourceCategory = resource.category;
             const detectedCategory = resourceCategory || getCategoryFromType(resource.resourceType || resource.type || "");
             setCategory(detectedCategory);
+            setSelectedAmenities(resource.amenities || []);
             setEditedResource({
                 resourceName: resource.resourceName || resource.name,
                 resourceType: resource.resourceType || resource.type,
                 status: resource.status || "ACTIVE",
-                location: resource.location || "",
+                location: resourceLocation,
+                campusName: resource.campusName || resourceLocation,
+                building: resource.building || resourceLocation,
+                storageLocation: resource.storageLocation || resourceLocation,
                 roomNumber: resource.roomNumber || "",
                 serialNumber: resource.serialNumber || "",
                 capacity: resource.capacity,
                 description: resource.description,
+                amenities: resource.amenities || [],
             });
         }
         setIsEditing(false);
@@ -279,7 +352,7 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
                     <div>
                         <h2 className="text-xl font-bold text-white">{resourceName}</h2>
                         <p className="text-sm text-slate-400 mt-0.5">
-                            {resourceType.replace(/_/g, ' ')} {resource.resourceCode && `• #${resource.resourceCode}`}
+                            {resourceTypeDisplay.replace(/_/g, ' ')} {resource.resourceCode && `• #${resource.resourceCode}`}
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -300,26 +373,28 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
                         <div className="space-y-5">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-2">Resource Name *</label>
-                                    <input
-                                        type="text"
-                                        value={editedResource.resourceName || ""}
-                                        onChange={(e) => setEditedResource({ ...editedResource, resourceName: e.target.value })}
-                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
-                                    />
-                                </div>
-                                <div>
                                     <label className="block text-sm font-medium text-slate-400 mb-2">Category *</label>
                                     <select
                                         value={category}
                                         onChange={(e) => handleCategoryChange(e.target.value as "FACILITY" | "UTILITY")}
-                                        className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer appearance-none ${errors.category ? 'border-red-500' : 'border-slate-700/50'}`}
+                                        className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer ${errors.category ? 'border-red-500' : 'border-slate-700/50'}`}
                                     >
+                                        <option value="">Select Category</option>
                                         {CATEGORY_OPTIONS.map(opt => (
                                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                                         ))}
                                     </select>
                                     {errors.category && <p className="mt-1 text-xs text-red-400">{errors.category}</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-400 mb-2">Resource Name *</label>
+                                    <input
+                                        type="text"
+                                        value={editedResource.resourceName || ""}
+                                        onChange={(e) => setEditedResource({ ...editedResource, resourceName: e.target.value })}
+                                        className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.resourceName ? 'border-red-500' : 'border-slate-700/50'}`}
+                                    />
+                                    {errors.resourceName && <p className="mt-1 text-xs text-red-400">{errors.resourceName}</p>}
                                 </div>
                             </div>
 
@@ -329,8 +404,9 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
                                     <select
                                         value={editedResource.resourceType || ""}
                                         onChange={(e) => setEditedResource({ ...editedResource, resourceType: e.target.value })}
-                                        className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer appearance-none ${errors.type ? 'border-red-500' : 'border-slate-700/50'}`}
+                                        className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer ${errors.type ? 'border-red-500' : 'border-slate-700/50'}`}
                                     >
+                                        <option value="">Select Type</option>
                                         {typeOptions.map(type => (
                                             <option key={type.value} value={type.value}>{type.label}</option>
                                         ))}
@@ -340,10 +416,11 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
                                 <div>
                                     <label className="block text-sm font-medium text-slate-400 mb-2">Status *</label>
                                     <select
-                                        value={editedResource.status || "ACTIVE"}
+                                        value={editedResource.status || ""}
                                         onChange={(e) => setEditedResource({ ...editedResource, status: e.target.value })}
-                                        className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer appearance-none ${errors.status ? 'border-red-500' : 'border-slate-700/50'}`}
+                                        className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer ${errors.status ? 'border-red-500' : 'border-slate-700/50'}`}
                                     >
+                                        <option value="">Select Status</option>
                                         {STATUS_OPTIONS.map(opt => (
                                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                                         ))}
@@ -356,8 +433,8 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
                                 <label className="block text-sm font-medium text-slate-400 mb-2">Location *</label>
                                 <select
                                     value={editedResource.location || ""}
-                                    onChange={(e) => setEditedResource({ ...editedResource, location: e.target.value })}
-                                    className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer appearance-none ${errors.location ? 'border-red-500' : 'border-slate-700/50'}`}
+                                    onChange={(e) => setEditedResource({ ...editedResource, location: e.target.value, campusName: e.target.value, building: e.target.value, storageLocation: e.target.value })}
+                                    className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer ${errors.location ? 'border-red-500' : 'border-slate-700/50'}`}
                                 >
                                     <option value="">Select Location</option>
                                     {LOCATION_OPTIONS.map(opt => (
@@ -381,29 +458,64 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
                             </div>
 
                             {category === "FACILITY" ? (
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-2">Room Number *</label>
-                                    <input
-                                        type="text"
-                                        value={editedResource.roomNumber || ""}
-                                        onChange={(e) => setEditedResource({ ...editedResource, roomNumber: e.target.value })}
-                                        placeholder="A-101"
-                                        className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.roomNumber ? 'border-red-500' : 'border-slate-700/50'}`}
-                                    />
-                                    {errors.roomNumber && <p className="mt-1 text-xs text-red-400">{errors.roomNumber}</p>}
-                                </div>
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-400 mb-2">Room Number *</label>
+                                        <input
+                                            type="text"
+                                            value={editedResource.roomNumber || ""}
+                                            onChange={(e) => setEditedResource({ ...editedResource, roomNumber: e.target.value })}
+                                            placeholder="A-101"
+                                            className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.roomNumber ? 'border-red-500' : 'border-slate-700/50'}`}
+                                        />
+                                        {errors.roomNumber && <p className="mt-1 text-xs text-red-400">{errors.roomNumber}</p>}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-400 mb-2">Capacity *</label>
+                                        <input
+                                            type="number"
+                                            value={editedResource.capacity ?? ""}
+                                            onChange={(e) => setEditedResource({ ...editedResource, capacity: e.target.value === "" ? undefined : parseInt(e.target.value) })}
+                                            placeholder="50"
+                                            min="0"
+                                            className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.capacity ? 'border-red-500' : 'border-slate-700/50'}`}
+                                        />
+                                        {errors.capacity && <p className="mt-1 text-xs text-red-400">{errors.capacity}</p>}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-400 mb-2">Amenities (Optional)</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {AMENITY_OPTIONS.map(amenity => (
+                                                <button
+                                                    key={amenity.value}
+                                                    type="button"
+                                                    onClick={() => toggleAmenity(amenity.value)}
+                                                    className={`px-3 py-1.5 text-sm rounded-lg border transition-all ${
+                                                        selectedAmenities.includes(amenity.value)
+                                                            ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-400'
+                                                            : 'bg-slate-800/50 border-slate-700/50 text-slate-400 hover:border-slate-500'
+                                                    }`}
+                                                >
+                                                    {amenity.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
                             ) : (
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-2">Serial Number *</label>
-                                    <input
-                                        type="text"
-                                        value={editedResource.serialNumber || ""}
-                                        onChange={(e) => setEditedResource({ ...editedResource, serialNumber: e.target.value })}
-                                        placeholder="SN-12345"
-                                        className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.serialNumber ? 'border-red-500' : 'border-slate-700/50'}`}
-                                    />
-                                    {errors.serialNumber && <p className="mt-1 text-xs text-red-400">{errors.serialNumber}</p>}
-                                </div>
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-400 mb-2">Serial Number *</label>
+                                        <input
+                                            type="text"
+                                            value={editedResource.serialNumber || ""}
+                                            onChange={(e) => setEditedResource({ ...editedResource, serialNumber: e.target.value })}
+                                            placeholder="SN-12345"
+                                            className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.serialNumber ? 'border-red-500' : 'border-slate-700/50'}`}
+                                        />
+                                        {errors.serialNumber && <p className="mt-1 text-xs text-red-400">{errors.serialNumber}</p>}
+                                    </div>
+                                </>
                             )}
                         </div>
                     ) : (
@@ -414,7 +526,7 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
                                         <MapPin className="w-4 h-4 mr-2" />
                                         Location
                                     </div>
-                                    <p className="text-lg font-semibold text-white">{resource.location || "N/A"}</p>
+                                    <p className="text-lg font-semibold text-white">{displayLocation}</p>
                                 </div>
                                 {resource.category === "FACILITY" && (
                                     <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
@@ -428,13 +540,27 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
                             </div>
 
                             {resource.category === "FACILITY" && (
-                                <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
-                                    <div className="flex items-center text-slate-400 text-sm mb-2">
-                                        <DoorOpen className="w-4 h-4 mr-2" />
-                                        Room Number
+                                <>
+                                    <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
+                                        <div className="flex items-center text-slate-400 text-sm mb-2">
+                                            <DoorOpen className="w-4 h-4 mr-2" />
+                                            Room Number
+                                        </div>
+                                        <p className="text-xl font-bold text-white">{resource.roomNumber || "N/A"}</p>
                                     </div>
-                                    <p className="text-xl font-bold text-white">{resource.roomNumber || "N/A"}</p>
-                                </div>
+                                    {resource.amenities && resource.amenities.length > 0 && (
+                                        <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
+                                            <div className="text-slate-400 text-sm mb-2">Amenities</div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {resource.amenities.map((amenity, idx) => (
+                                                    <span key={idx} className="px-2 py-1 text-sm rounded-md bg-slate-700/50 text-slate-300 border border-slate-600/30">
+                                                        {amenity}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             )}
 
                             {resource.category === "UTILITY" && resource.serialNumber && (

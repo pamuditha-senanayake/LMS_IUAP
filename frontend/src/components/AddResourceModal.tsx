@@ -39,6 +39,16 @@ const UTILITY_TYPES = [
     { value: "OTHER", label: "Other (Specify)" },
 ];
 
+const AMENITY_OPTIONS = [
+    { value: "Projector", label: "Projector" },
+    { value: "WiFi", label: "WiFi" },
+    { value: "AC", label: "AC" },
+    { value: "Whiteboard", label: "Whiteboard" },
+    { value: "Sound System", label: "Sound System" },
+    { value: "Smart Display", label: "Smart Display" },
+    { value: "Microphone", label: "Microphone" },
+];
+
 interface ValidationErrors {
     resourceName?: string;
     category?: string;
@@ -66,6 +76,7 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
     const [roomNumber, setRoomNumber] = useState("");
     const [serialNumber, setSerialNumber] = useState("");
     const [capacity, setCapacity] = useState<number | "">("");
+    const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
     const [customUtilityType, setCustomUtilityType] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<ValidationErrors>({});
@@ -80,7 +91,16 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
         setRoomNumber("");
         setSerialNumber("");
         setCapacity("");
+        setSelectedAmenities([]);
         setErrors({});
+    };
+
+    const toggleAmenity = (amenity: string) => {
+        setSelectedAmenities(prev => 
+            prev.includes(amenity) 
+                ? prev.filter(a => a !== amenity)
+                : [...prev, amenity]
+        );
     };
 
     const handleTypeChange = (newType: string) => {
@@ -164,6 +184,7 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
         setRoomNumber("");
         setSerialNumber("");
         setCapacity("");
+        setSelectedAmenities([]);
         setCustomUtilityType("");
         setErrors({});
     };
@@ -193,6 +214,7 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
             type: finalType,
             description: finalDescription,
             status: status,
+            location: location,
             resourceCode: `RES-${Math.floor(1000 + Math.random() * 9000)}`
         };
 
@@ -200,15 +222,15 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
             payload.capacity = capacity !== "" ? capacity : 0;
             payload.roomNumber = roomNumber;
             payload.building = location;
-            payload.amenities = [];
             payload.campusName = location;
+            payload.amenities = selectedAmenities;
         } else {
             payload.serialNumber = serialNumber;
             payload.storageLocation = location;
-            payload.building = "";
+            payload.building = location;
             payload.roomNumber = "";
-            payload.amenities = description ? [description] : [];
             payload.campusName = location;
+            payload.amenities = [];
         }
 
         console.log("Request payload:", JSON.stringify(payload, null, 2));
@@ -231,8 +253,9 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                     title: "Resource Added!", 
                     text: "The new resource has been created successfully.", 
                     icon: "success", 
-                    background: '#1e293b', 
-                    color: '#fff'
+                    background: '#ffffff', 
+                    color: '#1e293b',
+                    confirmButtonColor: '#0f172a'
                 });
                 resetForm();
                 onSuccess();
@@ -251,13 +274,13 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                     title: "Failed", 
                     text: errorMessage, 
                     icon: "error", 
-                    background: '#1e293b', 
-                    color: '#fff'
+                    background: '#ffffff', 
+                    color: '#1e293b'
                 });
             }
         } catch (error) {
             console.error("Network error:", error);
-            Swal.fire({ title: "Error", text: "Network processing failed: " + (error as Error).message, icon: "error", background: '#1e293b', color: '#fff' });
+            Swal.fire({ title: "Error", text: "Network processing failed: " + (error as Error).message, icon: "error", background: '#ffffff', color: '#1e293b' });
         } finally {
             setIsSubmitting(false);
         }
@@ -275,177 +298,202 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
 
     return (
         <div 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
             onClick={(e) => e.target === e.currentTarget && handleClose()}
         >
-            <div className="relative w-full max-w-lg bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-slate-700/50 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
-                
-                <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
-                    <h2 className="text-lg font-bold text-white">Add New Resource</h2>
-                    <button
-                        onClick={handleClose}
-                        className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700/50 transition-all"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
+            <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
+                <div className="px-6 pt-6 pb-4">
+                    <div className="flex items-center justify-between mb-1">
+                        <h2 className="text-xl font-semibold text-slate-900">Add New Resource</h2>
+                        <button
+                            onClick={handleClose}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                    <p className="text-sm text-slate-500">Create a new facility or utility resource</p>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-5">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-slate-600 ml-0.5">Category</label>
+                        <div className="flex p-1 bg-slate-100 rounded-xl">
+                            {CATEGORY_OPTIONS.map(opt => (
+                                <button
+                                    key={opt.value}
+                                    type="button"
+                                    onClick={() => handleCategoryChange(opt.value as "FACILITY" | "UTILITY")}
+                                    className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                                        category === opt.value
+                                            ? 'bg-white text-slate-900 shadow-sm'
+                                            : 'text-slate-500 hover:text-slate-700'
+                                    }`}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-2">Category *</label>
-                            <select
-                                value={category}
-                                onChange={(e) => handleCategoryChange(e.target.value as "FACILITY" | "UTILITY")}
-                                className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none cursor-pointer ${errors.category ? 'border-red-500' : 'border-slate-700/50'}`}
-                            >
-                                <option value="">Select Category</option>
-                                {CATEGORY_OPTIONS.map(opt => (
-                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                            </select>
-                            {errors.category && <p className="mt-1 text-xs text-red-400">{errors.category}</p>}
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-2">Resource Name *</label>
+                            <label className="block text-xs font-medium text-slate-600 mb-1.5 ml-0.5">Resource Name</label>
                             <input
                                 type="text"
                                 value={resourceName}
                                 onChange={(e) => setResourceName(e.target.value)}
                                 placeholder={category === "FACILITY" ? "Main Auditorium" : "Epson Projector #1"}
-                                className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none ${errors.resourceName ? 'border-red-500' : 'border-slate-700/50'}`}
+                                className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all outline-none ${errors.resourceName ? 'border-red-400' : 'border-slate-200'}`}
                             />
-                            {errors.resourceName && <p className="mt-1 text-xs text-red-400">{errors.resourceName}</p>}
+                            {errors.resourceName && <p className="mt-1 text-xs text-red-500 ml-0.5">{errors.resourceName}</p>}
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-600 mb-1.5 ml-0.5">Location</label>
+                            <select
+                                value={location}
+                                onChange={(e) => setLocation(e.target.value)}
+                                className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-sm text-slate-900 focus:bg-white focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all outline-none cursor-pointer ${errors.location ? 'border-red-400' : 'border-slate-200'}`}
+                            >
+                                <option value="">Select</option>
+                                {LOCATION_OPTIONS.map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                            </select>
+                            {errors.location && <p className="mt-1 text-xs text-red-500 ml-0.5">{errors.location}</p>}
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-2">Type *</label>
+                            <label className="block text-xs font-medium text-slate-600 mb-1.5 ml-0.5">Type</label>
                             <select
                                 value={resourceType}
                                 onChange={(e) => handleTypeChange(e.target.value)}
-                                className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none cursor-pointer ${errors.type ? 'border-red-500' : 'border-slate-700/50'}`}
+                                className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-sm text-slate-900 focus:bg-white focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all outline-none cursor-pointer ${errors.type ? 'border-red-400' : 'border-slate-200'}`}
                             >
-                                <option value="">Select Type</option>
+                                <option value="">Select</option>
                                 {typeOptions.map(opt => (
                                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                                 ))}
                             </select>
-                            {errors.type && <p className="mt-1 text-xs text-red-400">{errors.type}</p>}
+                            {errors.type && <p className="mt-1 text-xs text-red-500 ml-0.5">{errors.type}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-2">Status *</label>
+                            <label className="block text-xs font-medium text-slate-600 mb-1.5 ml-0.5">Status</label>
                             <select
                                 value={status}
                                 onChange={(e) => setStatus(e.target.value)}
-                                className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none cursor-pointer ${errors.status ? 'border-red-500' : 'border-slate-700/50'}`}
+                                className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-sm text-slate-900 focus:bg-white focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all outline-none cursor-pointer ${errors.status ? 'border-red-400' : 'border-slate-200'}`}
                             >
-                                <option value="">Select Status</option>
+                                <option value="">Select</option>
                                 {STATUS_OPTIONS.map(opt => (
                                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                                 ))}
                             </select>
-                            {errors.status && <p className="mt-1 text-xs text-red-400">{errors.status}</p>}
+                            {errors.status && <p className="mt-1 text-xs text-red-500 ml-0.5">{errors.status}</p>}
                         </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-2">Location *</label>
-                        <select
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                            className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none cursor-pointer ${errors.location ? 'border-red-500' : 'border-slate-700/50'}`}
-                        >
-                            <option value="">Select Location</option>
-                            {LOCATION_OPTIONS.map(opt => (
-                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                        </select>
-                        {errors.location && <p className="mt-1 text-xs text-red-400">{errors.location}</p>}
                     </div>
 
                     {showCustomTypeField && (
                         <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-2">Specify Utility Type *</label>
+                            <label className="block text-xs font-medium text-slate-600 mb-1.5 ml-0.5">Specify Utility Type</label>
                             <input
                                 type="text"
                                 value={customUtilityType}
                                 onChange={(e) => setCustomUtilityType(e.target.value)}
                                 placeholder="e.g., Speaker Stand, Extension Cord"
-                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
+                                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all outline-none"
                             />
                         </div>
                     )}
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-2">
-                            {category === "FACILITY" ? "Description" : "Notes / Description"}
+                        <label className="block text-xs font-medium text-slate-600 mb-1.5 ml-0.5">
+                            {category === "FACILITY" ? "Description" : "Notes"}
                         </label>
                         <textarea
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             rows={2}
                             placeholder={category === "FACILITY" ? "Large auditorium with AV equipment..." : "Serial number, condition, notes..."}
-                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none resize-none"
+                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all outline-none resize-none"
                         />
                     </div>
 
                     {category === "FACILITY" ? (
                         <>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-2">Room Number *</label>
-                                <input
-                                    type="text"
-                                    value={roomNumber}
-                                    onChange={(e) => setRoomNumber(e.target.value)}
-                                    placeholder="A-101"
-                                    className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none ${errors.roomNumber ? 'border-red-500' : 'border-slate-700/50'}`}
-                                />
-                                {errors.roomNumber && <p className="mt-1 text-xs text-red-400">{errors.roomNumber}</p>}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-600 mb-1.5 ml-0.5">Room Number</label>
+                                    <input
+                                        type="text"
+                                        value={roomNumber}
+                                        onChange={(e) => setRoomNumber(e.target.value)}
+                                        placeholder="A-101"
+                                        className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all outline-none ${errors.roomNumber ? 'border-red-400' : 'border-slate-200'}`}
+                                    />
+                                    {errors.roomNumber && <p className="mt-1 text-xs text-red-500 ml-0.5">{errors.roomNumber}</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-600 mb-1.5 ml-0.5">Capacity</label>
+                                    <input
+                                        type="number"
+                                        value={capacity}
+                                        onChange={(e) => handleCapacityChange(e.target.value)}
+                                        placeholder="50"
+                                        min="0"
+                                        className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all outline-none ${errors.capacity ? 'border-red-400' : 'border-slate-200'}`}
+                                    />
+                                    {errors.capacity && <p className="mt-1 text-xs text-red-500 ml-0.5">{errors.capacity}</p>}
+                                </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-2">Capacity *</label>
-                                <input
-                                    type="number"
-                                    value={capacity}
-                                    onChange={(e) => handleCapacityChange(e.target.value)}
-                                    placeholder="50"
-                                    min="0"
-                                    className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none ${errors.capacity ? 'border-red-500' : 'border-slate-700/50'}`}
-                                />
-                                {errors.capacity && <p className="mt-1 text-xs text-red-400">{errors.capacity}</p>}
+                                <label className="block text-xs font-medium text-slate-600 mb-2 ml-0.5">Amenities</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {AMENITY_OPTIONS.map(amenity => (
+                                        <button
+                                            key={amenity.value}
+                                            type="button"
+                                            onClick={() => toggleAmenity(amenity.value)}
+                                            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                                                selectedAmenities.includes(amenity.value)
+                                                    ? 'bg-slate-800 border-slate-800 text-white'
+                                                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'
+                                            }`}
+                                        >
+                                            {amenity.label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </>
                     ) : (
-                        <>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-2">Serial Number *</label>
-                                <input
-                                    type="text"
-                                    value={serialNumber}
-                                    onChange={(e) => setSerialNumber(e.target.value)}
-                                    placeholder="SN-12345"
-                                    className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none ${errors.serialNumber ? 'border-red-500' : 'border-slate-700/50'}`}
-                                />
-                                {errors.serialNumber && <p className="mt-1 text-xs text-red-400">{errors.serialNumber}</p>}
-                            </div>
-                        </>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-600 mb-1.5 ml-0.5">Serial Number</label>
+                            <input
+                                type="text"
+                                value={serialNumber}
+                                onChange={(e) => setSerialNumber(e.target.value)}
+                                placeholder="SN-12345"
+                                className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all outline-none ${errors.serialNumber ? 'border-red-400' : 'border-slate-200'}`}
+                            />
+                            {errors.serialNumber && <p className="mt-1 text-xs text-red-500 ml-0.5">{errors.serialNumber}</p>}
+                        </div>
                     )}
                 </div>
 
-                <div className="flex items-center justify-end gap-3 p-5 border-t border-slate-700/50 bg-slate-800/30">
+                <div className="flex items-center justify-end gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
                     <button
                         onClick={handleClose}
-                        className="px-5 py-2.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-700/50 hover:bg-slate-700 rounded-xl transition-all border border-slate-600/50"
+                        className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSubmit}
                         disabled={isSubmitting || !isValid}
-                        className="px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 rounded-xl transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-5 py-2 text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSubmitting ? "Adding..." : "Add Resource"}
                     </button>

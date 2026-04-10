@@ -71,18 +71,19 @@ export default function ResourceCard({ resource }: ResourceCardProps) {
     const isFacility = category === "FACILITY";
     const isUtility = category === "UTILITY";
     
+    const getResourceLocation = (): string => {
+        return resource.location || resource.campusName || resource.building || resource.storageLocation || "";
+    };
+
     const getLocationDisplay = () => {
+        const loc = getResourceLocation();
         if (isFacility) {
             const parts = [];
-            if (resource.location) {
-                parts.push(resource.location);
-            }
-            if (resource.roomNumber) {
-                parts.push(resource.roomNumber);
-            }
+            if (loc) parts.push(loc);
+            if (resource.roomNumber) parts.push(resource.roomNumber);
             return parts.length > 0 ? parts.join(' - ') : "N/A";
         } else if (isUtility) {
-            const storageLoc = resource.storageLocation || resource.location;
+            const storageLoc = resource.storageLocation || loc;
             if (storageLoc && resource.serialNumber) {
                 return `${storageLoc} - ${resource.serialNumber}`;
             } else if (storageLoc) {
@@ -90,7 +91,7 @@ export default function ResourceCard({ resource }: ResourceCardProps) {
             }
             return resource.serialNumber || "N/A";
         }
-        return resource.location || "N/A";
+        return loc || "N/A";
     };
 
     const locationDisplay = getLocationDisplay();

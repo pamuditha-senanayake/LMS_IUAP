@@ -57,6 +57,10 @@ export interface ResourceFormData {
     roomNumber?: string;
     serialNumber?: string;
     capacity?: number;
+    amenities?: string[];
+    campusName?: string;
+    building?: string;
+    storageLocation?: string;
 }
 
 export function validateResourceForm(data: ResourceFormData, category: "FACILITY" | "UTILITY"): ValidationErrors {
