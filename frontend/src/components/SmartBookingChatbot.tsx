@@ -637,18 +637,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
         } 
         else if (currentStep === "capacity") {
             const capacityLabel = option.label;
-            setBookingData(prev => ({ ...prev, capacity: parseInt(option.value), capacityLabel }));
-            botMsg = {
-                id: generateMessageId(),
-                text: "Which amenities or equipment do you need? (Select all that apply)",
-                sender: "bot",
-                timestamp: new Date(),
-                isAmenityPicker: true,
-            };
-            setCurrentStep("amenities");
-        } 
-        else if (currentStep === "amenities") {
-            setBookingData(prev => ({ ...prev, amenities: selectedAmenities }));
+            setBookingData(prev => ({ ...prev, capacity: parseInt(option.value), capacityLabel, amenities: [] }));
             botMsg = {
                 id: generateMessageId(),
                 text: "What date do you need it for?",
@@ -657,7 +646,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                 isDatePicker: true,
             };
             setCurrentStep("date");
-        } 
+        }
         else if (currentStep === "date") {
             const dateVal = option.value;
             setBookingData(prev => ({ ...prev, date: dateVal }));
@@ -714,12 +703,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
             setCurrentStep("recommendation");
             
             if (!bestMatch) {
-                let noMatchMessage = "";
-                if (currentBookingData.category === "FACILITY" && selectedAmenities.length > 0) {
-                    noMatchMessage = `No facilities match all of your selected requirements (${selectedAmenities.join(", ")}). Try removing some amenities or changing your filters. Would you like to try different options or start over?`;
-                } else {
-                    noMatchMessage = `I couldn't find any ${currentBookingData.category === "FACILITY" ? "facility" : "utility"} matching your requirements at this location. Would you like to try a different location or start over?`;
-                }
+                let noMatchMessage = `I couldn't find any ${currentBookingData.category === "FACILITY" ? "facility" : "utility"} matching your requirements at this location. Would you like to try a different location or start over?`;
                 botMsg = {
                     id: generateMessageId(),
                     text: noMatchMessage,
@@ -773,24 +757,8 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                         nextAvailableTime: availability.nextAvailable,
                     };
                 } else {
-                    const missingAmenities = selectedAmenities.length > 0 && bestMatch.amenities 
-                        ? selectedAmenities.filter(a => !bestMatch.amenities!.map(am => am.toLowerCase()).includes(a.toLowerCase()))
-                        : [];
-                    const hasAllAmenities = missingAmenities.length === 0;
-                    
-                    const roomHasAmenities = bestMatch.amenities 
-                        ? bestMatch.amenities.join(", ") 
-                        : "no specific amenities";
-                    
-                    let messageText = "";
-                    let needsConfirmation = false;
-                    
-                    if (!hasAllAmenities && selectedAmenities.length > 0) {
-                        needsConfirmation = true;
-                        messageText = `This room only has ${roomHasAmenities}. ${missingAmenities.join(", ")} ${missingAmenities.length === 1 ? "is" : "are"} not available. Are you okay with this option?`;
-                    } else {
-                        messageText = "Perfect! Here's the best option for you:";
-                    }
+                    const hasAllAmenities = true;
+                    const messageText = "Perfect! Here's the best option for you:";
                     
                     botMsg = {
                         id: generateMessageId(),
@@ -799,8 +767,6 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                         timestamp: new Date(),
                         resource: bestMatch,
                         recommendationReason: reason,
-                        missingAmenities: missingAmenities,
-                        needsConfirmation: needsConfirmation,
                         hasAllAmenities: hasAllAmenities,
                     };
                 }
@@ -1182,39 +1148,6 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                                         {opt.label}
                                     </button>
                                 ))}
-                            </div>
-                        )}
-
-                        {msg.isAmenityPicker && (
-                            <div className="mt-3 ml-9">
-                                <div className="flex flex-wrap gap-2 mb-3">
-                                    {AMENITY_OPTIONS.map((opt, idx) => (
-                                        <button
-                                            key={idx}
-                                            onClick={() => handleAmenityToggle(opt.value)}
-                                            disabled={isTyping}
-                                            className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm transition-all disabled:opacity-50 shadow-sm ${
-                                                selectedAmenities.includes(opt.value)
-                                                    ? "bg-indigo-500 text-white"
-                                                    : "bg-white border border-slate-200 hover:border-indigo-300 text-slate-600"
-                                            }`}
-                                        >
-                                            {selectedAmenities.includes(opt.value) ? (
-                                                <CheckCircle className="w-4 h-4" />
-                                            ) : (
-                                                <Circle className="w-4 h-4" />
-                                            )}
-                                            {opt.label}
-                                        </button>
-                                    ))}
-                                </div>
-                                <button
-                                    onClick={() => processSelection({ label: "Continue", value: "continue" })}
-                                    disabled={isTyping}
-                                    className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white text-sm font-medium rounded-full transition-all disabled:opacity-50 shadow-md hover:shadow-lg"
-                                >
-                                    {selectedAmenities.length > 0 ? `Continue (${selectedAmenities.length} selected)` : "Continue without amenities"}
-                                </button>
                             </div>
                         )}
 
