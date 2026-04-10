@@ -16,14 +16,16 @@ interface Resource {
     category?: "FACILITY" | "UTILITY";
     status?: string;
     capacity?: number;
-    location?: {
+    location?: string;
+    serialNumber?: string;
+    roomNumber?: string;
+    campusLocation?: {
         campusName?: string;
         buildingName?: string;
         roomNumber?: string;
     };
     campusName?: string;
     building?: string;
-    roomNumber?: string;
     storageLocation?: string;
     resourceCode?: string;
     description?: string;
@@ -69,32 +71,27 @@ export default function ResourceCard({ resource }: ResourceCardProps) {
     const isFacility = category === "FACILITY";
     const isUtility = category === "UTILITY";
     
+    const getResourceLocation = (): string => {
+        return resource.location || resource.campusName || resource.building || resource.storageLocation || "";
+    };
+
     const getLocationDisplay = () => {
+        const loc = getResourceLocation();
         if (isFacility) {
             const parts = [];
-            if (resource.location?.campusName || resource.campusName) {
-                parts.push(resource.location?.campusName || resource.campusName);
-            }
-            if (resource.location?.buildingName || resource.building) {
-                parts.push(resource.location?.buildingName || resource.building);
-            }
-            if (resource.location?.roomNumber || resource.roomNumber) {
-                parts.push(resource.location?.roomNumber || resource.roomNumber);
-            }
+            if (loc) parts.push(loc);
+            if (resource.roomNumber) parts.push(resource.roomNumber);
             return parts.length > 0 ? parts.join(' - ') : "N/A";
         } else if (isUtility) {
-            const storageLoc = resource.location?.buildingName || resource.storageLocation;
-            const campus = resource.location?.campusName || resource.campusName;
-            if (storageLoc && campus) {
-                return `${campus} - ${storageLoc}`;
+            const storageLoc = resource.storageLocation || loc;
+            if (storageLoc && resource.serialNumber) {
+                return `${storageLoc} - ${resource.serialNumber}`;
             } else if (storageLoc) {
                 return storageLoc;
-            } else if (campus) {
-                return campus;
             }
-            return "N/A";
+            return resource.serialNumber || "N/A";
         }
-        return resource.building || "N/A";
+        return loc || "N/A";
     };
 
     const locationDisplay = getLocationDisplay();

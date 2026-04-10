@@ -15,14 +15,16 @@ interface Resource {
     category?: "FACILITY" | "UTILITY";
     status?: string;
     capacity?: number;
-    location?: {
+    location?: string;
+    serialNumber?: string;
+    roomNumber?: string;
+    campusLocation?: {
         campusName?: string;
         buildingName?: string;
         roomNumber?: string;
     };
     campusName?: string;
     building?: string;
-    roomNumber?: string;
     storageLocation?: string;
     resourceCode?: string;
     description?: string;
@@ -127,27 +129,21 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
     const getLocationDisplay = () => {
         if (!isUtility) {
             const parts = [];
-            if (resource.location?.campusName || resource.campusName) {
-                parts.push(resource.location?.campusName || resource.campusName);
+            if (resource.location) {
+                parts.push(resource.location);
             }
-            if (resource.location?.buildingName || resource.building) {
-                parts.push(resource.location?.buildingName || resource.building);
-            }
-            if (resource.location?.roomNumber || resource.roomNumber) {
-                parts.push(resource.location?.roomNumber || resource.roomNumber);
+            if (resource.roomNumber) {
+                parts.push(resource.roomNumber);
             }
             return parts.length > 0 ? parts.join(' - ') : "N/A";
         } else {
-            const storageLoc = resource.location?.buildingName || resource.building || resource.storageLocation;
-            const campus = resource.location?.campusName || resource.campusName;
-            if (storageLoc && campus) {
-                return `${campus} - ${storageLoc}`;
+            const storageLoc = resource.storageLocation || resource.location;
+            if (storageLoc && resource.serialNumber) {
+                return `${storageLoc} - ${resource.serialNumber}`;
             } else if (storageLoc) {
                 return storageLoc;
-            } else if (campus) {
-                return campus;
             }
-            return "N/A";
+            return resource.serialNumber || "N/A";
         }
     };
 

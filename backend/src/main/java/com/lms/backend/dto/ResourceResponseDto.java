@@ -36,6 +36,8 @@ public class ResourceResponseDto {
     private Boolean requiresAttendanceCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String serialNumber;
+    private String location;
     
     @Data
     @Builder

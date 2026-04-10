@@ -21,11 +21,7 @@ export default function AdminFacilities() {
                     ...r,
                     resourceName: r.resourceName || r.name,
                     resourceType: r.resourceType || r.type,
-                    location: r.location || {
-                        campusName: r.campusName || "",
-                        buildingName: r.building || "",
-                        roomNumber: r.roomNumber || ""
-                    }
+                    location: r.location || r.building || ""
                 }));
                 setResources(transformed);
             } else {
@@ -76,8 +72,13 @@ export default function AdminFacilities() {
             title: 'Register New Resource',
             html: `
                 <div class="flex flex-col gap-3 text-left">
-                    <label class="text-sm font-semibold text-slate-300">Target Campus</label>
-                    <input id="res-campus" class="swal2-input !w-11/12 !mx-auto" placeholder="Main Campus">
+                    <label class="text-sm font-semibold text-slate-300">Location</label>
+                    <select id="res-location" class="swal2-select !w-11/12 !mx-auto text-sm">
+                        <option value="IT">IT</option>
+                        <option value="Medicine">Medicine</option>
+                        <option value="Engineering">Engineering</option>
+                        <option value="Architecture">Architecture</option>
+                    </select>
                     
                     <label class="text-sm font-semibold text-slate-300">Facility Type</label>
                     <select id="res-type" class="swal2-select !w-11/12 !mx-auto text-sm">
@@ -121,9 +122,8 @@ export default function AdminFacilities() {
                     capacity: parseInt((document.getElementById('res-capacity') as HTMLInputElement).value) || 0,
                     status: (document.getElementById('res-status') as HTMLSelectElement).value,
                     resourceCode: `RES-${Math.floor(1000 + Math.random() * 9000)}`,
-                    location: {
-                        campusName: (document.getElementById('res-campus') as HTMLInputElement).value || "Main"
-                    }
+                    location: (document.getElementById('res-location') as HTMLSelectElement).value,
+                    category: "FACILITY"
                 };
             }
         }).then(async (result) => {
@@ -234,7 +234,7 @@ export default function AdminFacilities() {
                                             <div className="mt-2 text-xs text-sky-300">Type: {r.resourceType} | Cap: {r.capacity}</div>
                                         </td>
                                         <td className="p-4">
-                                            <span className="text-slate-300 text-sm">{r.location?.campusName || "N/A"}</span>
+                                            <span className="text-slate-300 text-sm">{r.location || "N/A"}</span>
                                         </td>
                                         <td className="p-4">
                                             <span className={`text-xs font-bold px-2 py-1 flex items-center w-max gap-1 rounded-md ${r.status === 'ACTIVE' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>

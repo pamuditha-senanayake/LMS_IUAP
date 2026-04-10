@@ -106,14 +106,16 @@ public class FacilitiesService {
         existing.setCategory(requestDto.getCategory());
         existing.setType(requestDto.getType());
         existing.setDescription(requestDto.getDescription());
-        existing.setCampusName(requestDto.getCampusName());
-        existing.setBuilding(requestDto.getBuilding());
+        existing.setLocation(requestDto.getLocation() != null ? requestDto.getLocation() : requestDto.getCampusName());
+        existing.setCampusName(requestDto.getCampusName() != null ? requestDto.getCampusName() : requestDto.getLocation());
+        existing.setBuilding(requestDto.getBuilding() != null ? requestDto.getBuilding() : requestDto.getLocation());
         existing.setRoomNumber(requestDto.getRoomNumber());
         existing.setCapacity(requestDto.getCapacity());
-        existing.setStorageLocation(requestDto.getStorageLocation());
+        existing.setStorageLocation(requestDto.getStorageLocation() != null ? requestDto.getStorageLocation() : requestDto.getLocation());
         existing.setCustomType(requestDto.getCustomType());
         existing.setAmenities(requestDto.getAmenities());
         existing.setStatus(requestDto.getStatus());
+        existing.setSerialNumber(requestDto.getSerialNumber());
         existing.setAvailableFrom(requestDto.getAvailableFrom());
         existing.setAvailableTo(requestDto.getAvailableTo());
         
@@ -149,21 +151,24 @@ public class FacilitiesService {
     }
 
     private Resource toEntity(ResourceRequestDto dto) {
+        String loc = dto.getLocation() != null ? dto.getLocation() : dto.getCampusName();
         return Resource.builder()
                 .resourceName(dto.getResourceName())
                 .category(dto.getCategory())
                 .type(dto.getType())
                 .description(dto.getDescription())
-                .campusName(dto.getCampusName())
-                .building(dto.getBuilding())
+                .location(loc)
+                .campusName(loc)
+                .building(loc)
                 .roomNumber(dto.getRoomNumber())
                 .capacity(dto.getCapacity())
-                .storageLocation(dto.getStorageLocation())
+                .storageLocation(dto.getStorageLocation() != null ? dto.getStorageLocation() : loc)
                 .customType(dto.getCustomType())
                 .amenities(dto.getAmenities())
                 .status(dto.getStatus() != null ? dto.getStatus() : ResourceStatus.ACTIVE)
                 .availableFrom(dto.getAvailableFrom())
                 .availableTo(dto.getAvailableTo())
+                .serialNumber(dto.getSerialNumber())
                 .build();
     }
 
@@ -201,6 +206,8 @@ public class FacilitiesService {
                 .requiresAttendanceCount(resource.getRequiresAttendanceCount())
                 .createdAt(resource.getCreatedAt())
                 .updatedAt(resource.getUpdatedAt())
+                .serialNumber(resource.getSerialNumber())
+                .location(resource.getLocation())
                 .build();
     }
 }

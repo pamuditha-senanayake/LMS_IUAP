@@ -57,6 +57,10 @@ public class Resource {
     
     private List<String> amenities;
     
+    private String serialNumber;
+    
+    private String location;
+    
     private String availableFrom;
     
     private String availableTo;

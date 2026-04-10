@@ -52,6 +52,10 @@ public class ResourceRequestDto {
     
     private List<AvailabilityWindowDto> availabilityWindows;
     
+    private String serialNumber;
+    
+    private String location;
+    
     @Data
     @Builder
     @NoArgsConstructor
