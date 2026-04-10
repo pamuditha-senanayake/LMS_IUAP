@@ -3,24 +3,39 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import { ArrowLeft, Users, CheckCircle, Clock, Pencil, Trash2, Building, Package, MapPin } from "lucide-react";
+import { ArrowLeft, MapPin, Users, DoorOpen } from "lucide-react";
+import { 
+    CATEGORY_OPTIONS, 
+    STATUS_OPTIONS, 
+    LOCATION_OPTIONS, 
+    FACILITY_TYPES, 
+    UTILITY_TYPES,
+    validateResourceForm,
+    ValidationErrors,
+    ResourceFormData
+} from "@/constants/resourceConstants";
 
-const FACILITY_TYPE_OPTIONS = [
-    { value: "ROOM", label: "Room" },
-    { value: "LECTURE_HALL", label: "Lecture Hall" },
-    { value: "LAB", label: "Lab" },
-    { value: "AUDITORIUM", label: "Auditorium" },
-    { value: "MEETING_ROOM", label: "Meeting Room" },
+const FACILITY_TYPE_VALUES = FACILITY_TYPES.map(t => t.value);
+const UTILITY_TYPE_VALUES = UTILITY_TYPES.map(t => t.value);
+
+const AMENITY_OPTIONS = [
+    { value: "Projector", label: "Projector" },
+    { value: "WiFi", label: "WiFi" },
+    { value: "AC", label: "AC" },
+    { value: "Whiteboard", label: "Whiteboard" },
+    { value: "Sound System", label: "Sound System" },
+    { value: "Smart Display", label: "Smart Display" },
+    { value: "Microphone", label: "Microphone" },
 ];
 
-const UTILITY_TYPE_OPTIONS = [
-    { value: "PROJECTOR", label: "Projector" },
-    { value: "SOUND_SYSTEM", label: "Sound System" },
-    { value: "MICROPHONE", label: "Microphone" },
-    { value: "WHITEBOARD", label: "Whiteboard" },
-    { value: "FLAGS", label: "Flags" },
-    { value: "OTHER", label: "Other" },
-];
+function getCategoryFromType(type: string): "FACILITY" | "UTILITY" {
+    if (type?.startsWith("OTHER:")) return "UTILITY";
+    if (FACILITY_TYPE_VALUES.includes(type)) return "FACILITY";
+    if (UTILITY_TYPE_VALUES.includes(type)) return "UTILITY";
+    if (type?.includes("LECTURE") || type?.includes("LAB") || type?.includes("AUDITORIUM") || type?.includes("MEETING") || type?.includes("ROOM")) return "FACILITY";
+    if (type?.includes("PROJECTOR") || type?.includes("MICROPHONE") || type?.includes("SOUND") || type?.includes("WHITEBOARD") || type?.includes("FLAGS")) return "UTILITY";
+    return "FACILITY";
+}
 
 interface Resource {
     id?: string;
@@ -32,19 +47,15 @@ interface Resource {
     category?: "FACILITY" | "UTILITY";
     status?: string;
     capacity?: number;
-    campusName?: string;
-    building?: string;
+    location?: string;
+    serialNumber?: string;
     roomNumber?: string;
-    storageLocation?: string;
-    customType?: string;
-    location?: {
-        campusName?: string;
-        buildingName?: string;
-        roomNumber?: string;
-    };
     resourceCode?: string;
     description?: string;
     amenities?: string[];
+    campusName?: string;
+    building?: string;
+    storageLocation?: string;
 }
 
 const formatType = (type: string): string => {
@@ -52,6 +63,10 @@ const formatType = (type: string): string => {
         return type.replace("OTHER:", "");
     }
     return type?.replace(/_/g, ' ') || 'Unknown';
+};
+
+const getResourceLocation = (res: Resource): string => {
+    return res.location || res.campusName || res.building || res.storageLocation || "";
 };
 
 export default function FacilityDetailPage() {
@@ -62,22 +77,40 @@ export default function FacilityDetailPage() {
     const [resource, setResource] = useState<Resource | null>(null);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
-    const [editedResource, setEditedResource] = useState<Partial<Resource>>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
+    
     const [category, setCategory] = useState<"FACILITY" | "UTILITY">("FACILITY");
-    const [customType, setCustomType] = useState("");
+    const [formData, setFormData] = useState<ResourceFormData>({});
+    const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+    const [errors, setErrors] = useState<ValidationErrors>({});
 
-    const typeOptions = category === "FACILITY" ? FACILITY_TYPE_OPTIONS : UTILITY_TYPE_OPTIONS;
-    const showCustomTypeField = category === "UTILITY" && (editedResource.resourceType === "OTHER" || editedResource.type === "OTHER");
+    const typeOptions = category === "FACILITY" ? FACILITY_TYPES : UTILITY_TYPES;
 
     const handleCategoryChange = (newCategory: "FACILITY" | "UTILITY") => {
         setCategory(newCategory);
-        setEditedResource(prev => ({ 
+        setFormData(prev => ({ 
             ...prev, 
-            resourceType: newCategory === "FACILITY" ? "ROOM" : "PROJECTOR",
-            type: newCategory === "FACILITY" ? "ROOM" : "PROJECTOR"
+            resourceType: newCategory === "FACILITY" ? "LECTURE_HALL" : "PROJECTOR",
+            location: "",
+            roomNumber: "",
+            serialNumber: "",
+            capacity: undefined
         }));
-        setCustomType("");
+        setSelectedAmenities([]);
+        setErrors({});
+    };
+
+    const handleFormChange = (data: Partial<ResourceFormData>) => {
+        setFormData(prev => ({ ...prev, ...data }));
+    };
+
+    const toggleAmenity = (amenity: string) => {
+        setSelectedAmenities(prev => 
+            prev.includes(amenity) 
+                ? prev.filter(a => a !== amenity)
+                : [...prev, amenity]
+        );
     };
 
     useEffect(() => {
@@ -103,16 +136,23 @@ export default function FacilityDetailPage() {
                     const data = await res.json();
                     setResource(data);
                     
-                    const resourceType = data.resourceType || data.type || "LECTURE_HALL";
-                    const resourceCategory = data.category || "FACILITY";
+                    const resourceCategory = data.category || getCategoryFromType(data.resourceType || data.type || "");
+                    const resourceType = data.resourceType || data.type || "";
+                    const resourceLocation = getResourceLocation(data);
+                    const resourceAmenities = data.amenities || [];
                     
                     setCategory(resourceCategory);
-                    setCustomType(data.customType || "");
-                    
-                    setEditedResource({
-                        ...data,
+                    setSelectedAmenities(resourceAmenities);
+                    setFormData({
+                        resourceName: data.resourceName || data.name || "",
                         resourceType: resourceType,
-                        type: resourceType,
+                        status: data.status || "ACTIVE",
+                        location: resourceLocation,
+                        description: data.description || "",
+                        roomNumber: data.roomNumber || "",
+                        serialNumber: data.serialNumber || "",
+                        capacity: data.capacity,
+                        amenities: data.amenities || [],
                     });
                 } else if (res.status === 404) {
                     Swal.fire("Error", "Resource not found", "error").then(() => {
@@ -134,25 +174,41 @@ export default function FacilityDetailPage() {
 
     const handleSave = async () => {
         if (!resource) return;
-        
-        let finalType = editedResource.resourceType ?? editedResource.type ?? "";
-        let finalDescription = editedResource.description;
-        
-        if (finalType === "OTHER" && customType.trim()) {
-            finalType = `OTHER:${customType.trim()}`;
-            finalDescription = customType.trim();
+
+        if (category === "FACILITY" && formData.capacity !== undefined && formData.capacity < 0) {
+            Swal.fire({ 
+                title: "Invalid Capacity", 
+                text: "Capacity cannot be negative", 
+                icon: "error", 
+                background: '#1e293b', 
+                color: '#fff' 
+            });
+            return;
         }
+
+        const validationErrors = validateResourceForm(formData, category);
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            return;
+        }
+
+        setIsSubmitting(true);
         
-        const payload: any = {
-            ...editedResource,
-            type: finalType,
+        const payload = {
+            resourceName: formData.resourceName,
             category: category,
-            customType: category === "UTILITY" && finalType.startsWith("OTHER:") ? customType : undefined,
-            description: finalDescription,
+            type: formData.resourceType,
+            status: formData.status,
+            location: formData.location,
+            campusName: formData.location,
+            building: formData.location,
+            description: formData.description,
+            roomNumber: category === "FACILITY" ? formData.roomNumber : "",
+            serialNumber: category === "UTILITY" ? formData.serialNumber : "",
+            capacity: category === "FACILITY" ? formData.capacity : null,
+            amenities: category === "FACILITY" ? selectedAmenities : [],
         };
-        
-        delete payload.resourceType;
-        
+
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
             const res = await fetch(`${apiUrl}/api/resources/${resource.id || resource._id}`, {
@@ -171,13 +227,18 @@ export default function FacilityDetailPage() {
                 });
                 const updated = await res.json();
                 setResource(updated);
-                setEditedResource({
-                    ...updated,
-                    resourceType: updated.resourceType || updated.type,
-                    type: updated.resourceType || updated.type,
+                setCategory(updated.category || getCategoryFromType(updated.resourceType || updated.type || ""));
+                setFormData({
+                    resourceName: updated.resourceName || updated.name || "",
+                    resourceType: updated.resourceType || updated.type || "",
+                    status: updated.status || "ACTIVE",
+                    location: updated.location || "",
+                    description: updated.description || "",
+                    roomNumber: updated.roomNumber || "",
+                    serialNumber: updated.serialNumber || "",
+                    capacity: updated.capacity,
                 });
-                setCategory(updated.category || "FACILITY");
-                setCustomType(updated.customType || "");
+                setErrors({});
                 setIsEditing(false);
             } else {
                 const errorText = await res.text();
@@ -191,6 +252,8 @@ export default function FacilityDetailPage() {
             }
         } catch {
             Swal.fire("Error", "Network processing failed", "error");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -232,14 +295,7 @@ export default function FacilityDetailPage() {
                     });
                     router.push("/dashboard/facilities");
                 } else {
-                    const errorText = await res.text();
-                    Swal.fire({ 
-                        title: "Failed", 
-                        text: errorText || "Unable to delete resource.", 
-                        icon: "error", 
-                        background: '#1e293b', 
-                        color: '#fff'
-                    });
+                    Swal.fire("Error", "Failed to delete resource", "error");
                 }
             } catch {
                 Swal.fire("Error", "Network processing failed", "error");
@@ -248,398 +304,314 @@ export default function FacilityDetailPage() {
     };
 
     const handleCancel = () => {
-        setIsEditing(false);
         if (resource) {
-            setEditedResource({
-                ...resource,
-                resourceType: resource.resourceType || resource.type,
-                type: resource.resourceType || resource.type,
+            const resourceCategory = resource.category || getCategoryFromType(resource.resourceType || resource.type || "");
+            setCategory(resourceCategory);
+            setFormData({
+                resourceName: resource.resourceName || resource.name || "",
+                resourceType: resource.resourceType || resource.type || "",
+                status: resource.status || "ACTIVE",
+                location: resource.location || "",
+                description: resource.description || "",
+                roomNumber: resource.roomNumber || "",
+                serialNumber: resource.serialNumber || "",
+                capacity: resource.capacity,
             });
-            setCategory(resource.category || "FACILITY");
-            setCustomType(resource.customType || "");
         }
+        setIsEditing(false);
+        setErrors({});
     };
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
             </div>
         );
     }
 
     if (!resource) {
-        return (
-            <div className="text-center py-20">
-                <p className="text-slate-400">Resource not found</p>
-                <button 
-                    onClick={() => router.push("/dashboard/facilities")}
-                    className="mt-4 px-4 py-2 bg-indigo-500 text-white rounded-lg"
-                >
-                    Back to Facilities
-                </button>
-            </div>
-        );
+        return null;
     }
 
-    const resourceName = resource.resourceName || resource.name || "Unnamed Resource";
     const resourceType = resource.resourceType || resource.type || "GENERAL";
     const status = resource.status || "ACTIVE";
-    const capacity = resource.capacity || 0;
-    
-    const isFacility = category === "FACILITY";
     const isUtility = category === "UTILITY";
-
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case "ACTIVE":
-                return <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"><CheckCircle className="w-3 h-3 mr-1" /> Active</span>;
-            case "MAINTENANCE":
-                return <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"><Clock className="w-3 h-3 mr-1" /> Maintenance</span>;
-            default:
-                return <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">Out of Service</span>;
-        }
-    };
+    const displayLocation = getResourceLocation(resource) || "N/A";
 
     return (
-        <div>
-            <button 
-                onClick={() => router.push("/dashboard/facilities")}
-                className="flex items-center text-slate-400 hover:text-white mb-6 transition-colors"
-            >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Facilities Catalogue
-            </button>
+        <div className="min-h-screen bg-slate-900 text-white p-6">
+            <div className="max-w-4xl mx-auto">
+                <button
+                    onClick={() => router.push("/dashboard/facilities")}
+                    className="flex items-center text-slate-400 hover:text-white mb-6 transition-colors"
+                >
+                    <ArrowLeft className="w-5 h-5 mr-2" />
+                    Back to Facilities
+                </button>
 
-            <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
-                <div className={`h-2 ${isUtility ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500'}`}></div>
-                
-                <div className="p-8">
-                    <div className="flex justify-between items-start mb-6">
-                        <div>
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium border ${
-                                    isUtility 
-                                        ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' 
-                                        : 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
-                                }`}>
-                                    {isUtility ? 'UTILITY' : 'FACILITY'}
-                                </span>
-                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
-                                    isUtility 
-                                        ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' 
-                                        : 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
-                                }`}>
-                                    {formatType(resourceType)}
-                                </span>
+                <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                    <div className="p-6 border-b border-slate-700/50">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h1 className="text-2xl font-bold">{resource.resourceName || resource.name}</h1>
+                                <p className="text-slate-400 mt-1">
+                                    {formatType(resourceType)} {resource.resourceCode && `• #${resource.resourceCode}`}
+                                </p>
                             </div>
-                            <h1 className="text-3xl font-bold text-white mb-2">{resourceName}</h1>
-                            {resource.resourceCode && (
-                                <p className="text-sm text-slate-500 font-mono">#{resource.resourceCode}</p>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-3">
-                            {getStatusBadge(status)}
-                            {isAdmin && !isEditing && (
-                                <div className="flex gap-2">
+                            <div className="flex items-center gap-3">
+                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
+                                    status === "ACTIVE" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" :
+                                    status === "OUT_OF_SERVICE" ? "bg-red-500/20 text-red-400 border-red-500/30" :
+                                    "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                                }`}>
+                                    {status.replace(/_/g, ' ')}
+                                </span>
+                                {isAdmin && !isEditing && (
                                     <button
                                         onClick={() => setIsEditing(true)}
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors border ${
-                                            isUtility
-                                                ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border-amber-500/30'
-                                                : 'bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 border-indigo-500/30'
-                                        }`}
+                                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors font-medium"
                                     >
-                                        <Pencil className="w-4 h-4" />
                                         Edit
                                     </button>
-                                    <button
-                                        onClick={handleDelete}
-                                        className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors border border-red-500/30"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                        Delete
-                                    </button>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {isEditing ? (
-                        <div className="space-y-6 bg-slate-700/30 rounded-xl p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Resource Name</label>
-                                    <input
-                                        type="text"
-                                        value={editedResource.resourceName || ""}
-                                        onChange={(e) => setEditedResource({ ...editedResource, resourceName: e.target.value })}
-                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
-                                    />
+                    <div className="p-6">
+                        {isEditing ? (
+                            <div className="space-y-5">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-400 mb-2">Resource Name *</label>
+                                        <input
+                                            type="text"
+                                            value={formData.resourceName || ""}
+                                            onChange={(e) => handleFormChange({ resourceName: e.target.value })}
+                                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-400 mb-2">Category *</label>
+                                        <select
+                                            value={category}
+                                            onChange={(e) => handleCategoryChange(e.target.value as "FACILITY" | "UTILITY")}
+                                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer"
+                                        >
+                                            <option value="">Select Category</option>
+                                            {CATEGORY_OPTIONS.map(opt => (
+                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Category</label>
-                                    <select
-                                        value={category}
-                                        onChange={(e) => handleCategoryChange(e.target.value as "FACILITY" | "UTILITY")}
-                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer"
-                                    >
-                                        <option value="FACILITY">Facility</option>
-                                        <option value="UTILITY">Utility</option>
-                                    </select>
-                                </div>
-                            </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-400 mb-2">Type *</label>
+                                        <select
+                                            value={formData.resourceType || ""}
+                                            onChange={(e) => handleFormChange({ resourceType: e.target.value })}
+                                            className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer ${errors.type ? 'border-red-500' : 'border-slate-600'}`}
+                                        >
+                                            <option value="">Select Type</option>
+                                            {typeOptions.map(opt => (
+                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                            ))}
+                                        </select>
+                                        {errors.type && <p className="mt-1 text-xs text-red-400">{errors.type}</p>}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-400 mb-2">Status *</label>
+                                        <select
+                                            value={formData.status || "ACTIVE"}
+                                            onChange={(e) => handleFormChange({ status: e.target.value })}
+                                            className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer ${errors.status ? 'border-red-500' : 'border-slate-600'}`}
+                                        >
+                                            {STATUS_OPTIONS.map(opt => (
+                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                            ))}
+                                        </select>
+                                        {errors.status && <p className="mt-1 text-xs text-red-400">{errors.status}</p>}
+                                    </div>
+                                </div>
+
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Type</label>
+                                    <label className="block text-sm font-medium text-slate-400 mb-2">Location *</label>
                                     <select
-                                        value={editedResource.resourceType || editedResource.type || ""}
-                                        onChange={(e) => setEditedResource({ 
-                                            ...editedResource, 
-                                            resourceType: e.target.value,
-                                            type: e.target.value
-                                        })}
-                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer"
+                                        value={formData.location || ""}
+                                        onChange={(e) => handleFormChange({ location: e.target.value })}
+                                        className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer ${errors.location ? 'border-red-500' : 'border-slate-600'}`}
                                     >
-                                        {typeOptions.map(opt => (
+                                        <option value="">Select Location</option>
+                                        {LOCATION_OPTIONS.map(opt => (
                                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                                         ))}
                                     </select>
+                                    {errors.location && <p className="mt-1 text-xs text-red-400">{errors.location}</p>}
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Status</label>
-                                    <select
-                                        value={editedResource.status || "ACTIVE"}
-                                        onChange={(e) => setEditedResource({ ...editedResource, status: e.target.value })}
-                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer"
-                                    >
-                                        <option value="ACTIVE">ACTIVE</option>
-                                        <option value="MAINTENANCE">MAINTENANCE</option>
-                                        <option value="OUT_OF_SERVICE">OUT OF SERVICE</option>
-                                    </select>
-                                </div>
-                            </div>
 
-                            {showCustomTypeField && (
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Specify Utility Type *</label>
-                                    <input
-                                        type="text"
-                                        value={customType}
-                                        onChange={(e) => setCustomType(e.target.value)}
-                                        placeholder="e.g., Speaker Stand, Extension Cord"
-                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                                    <label className="block text-sm font-medium text-slate-400 mb-2">
+                                        {isUtility ? "Notes / Description" : "Description"}
+                                    </label>
+                                    <textarea
+                                        value={formData.description || ""}
+                                        onChange={(e) => handleFormChange({ description: e.target.value })}
+                                        rows={2}
+                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none resize-none"
+                                        placeholder={isUtility ? "Serial number, condition, notes..." : "Describe the facility..."}
                                     />
                                 </div>
-                            )}
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                    {isFacility ? "Description" : "Notes / Description"}
-                                </label>
-                                <textarea
-                                    value={editedResource.description || ""}
-                                    onChange={(e) => setEditedResource({ ...editedResource, description: e.target.value })}
-                                    rows={2}
-                                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none resize-none"
-                                    placeholder={isFacility ? "Describe the facility..." : "Serial number, condition, notes..."}
-                                />
-                            </div>
-
-                            {isFacility ? (
-                                <>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {isUtility ? (
+                                    <>
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-300 mb-2">Campus</label>
+                                            <label className="block text-sm font-medium text-slate-400 mb-2">Serial Number *</label>
                                             <input
                                                 type="text"
-                                                value={editedResource.campusName || editedResource.location?.campusName || ""}
-                                                onChange={(e) => setEditedResource({ 
-                                                    ...editedResource, 
-                                                    campusName: e.target.value,
-                                                    location: { ...editedResource.location, campusName: e.target.value }
-                                                })}
-                                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                                                value={formData.serialNumber || ""}
+                                                onChange={(e) => handleFormChange({ serialNumber: e.target.value })}
+                                                placeholder="SN-12345"
+                                                className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.serialNumber ? 'border-red-500' : 'border-slate-600'}`}
                                             />
+                                            {errors.serialNumber && <p className="mt-1 text-xs text-red-400">{errors.serialNumber}</p>}
                                         </div>
+                                    </>
+                                ) : (
+                                    <>
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-300 mb-2">Building</label>
+                                            <label className="block text-sm font-medium text-slate-400 mb-2">Room Number *</label>
                                             <input
                                                 type="text"
-                                                value={editedResource.building || editedResource.location?.buildingName || ""}
-                                                onChange={(e) => setEditedResource({ 
-                                                    ...editedResource, 
-                                                    building: e.target.value,
-                                                    location: { ...editedResource.location, buildingName: e.target.value }
-                                                })}
-                                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                                                value={formData.roomNumber || ""}
+                                                onChange={(e) => handleFormChange({ roomNumber: e.target.value })}
+                                                placeholder="A-101"
+                                                className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.roomNumber ? 'border-red-500' : 'border-slate-600'}`}
                                             />
+                                            {errors.roomNumber && <p className="mt-1 text-xs text-red-400">{errors.roomNumber}</p>}
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-300 mb-2">Room Number</label>
-                                            <input
-                                                type="text"
-                                                value={editedResource.roomNumber || editedResource.location?.roomNumber || ""}
-                                                onChange={(e) => setEditedResource({ 
-                                                    ...editedResource, 
-                                                    roomNumber: e.target.value,
-                                                    location: { ...editedResource.location, roomNumber: e.target.value }
-                                                })}
-                                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-300 mb-2">Capacity (seats)</label>
+                                            <label className="block text-sm font-medium text-slate-400 mb-2">Capacity *</label>
                                             <input
                                                 type="number"
-                                                value={editedResource.capacity || 0}
-                                                onChange={(e) => setEditedResource({ ...editedResource, capacity: parseInt(e.target.value) || 0 })}
-                                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                                                value={formData.capacity ?? ""}
+                                                onChange={(e) => handleFormChange({ capacity: e.target.value === "" ? undefined : parseInt(e.target.value) })}
+                                                placeholder="50"
+                                                className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.capacity ? 'border-red-500' : 'border-slate-600'}`}
                                             />
+                                            {errors.capacity && <p className="mt-1 text-xs text-red-400">{errors.capacity}</p>}
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-300 mb-2">Amenities</label>
-                                            <input
-                                                type="text"
-                                                value={editedResource.amenities?.join(', ') || ""}
-                                                onChange={(e) => setEditedResource({ 
-                                                    ...editedResource, 
-                                                    amenities: e.target.value.split(',').map(a => a.trim()).filter(a => a.length > 0)
-                                                })}
-                                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
-                                                placeholder="Projector, WiFi, AC"
-                                            />
+                                            <label className="block text-sm font-medium text-slate-400 mb-2">Amenities (Optional)</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {AMENITY_OPTIONS.map(amenity => (
+                                                    <button
+                                                        key={amenity.value}
+                                                        type="button"
+                                                        onClick={() => toggleAmenity(amenity.value)}
+                                                        className={`px-3 py-1.5 text-sm rounded-lg border transition-all ${
+                                                            selectedAmenities.includes(amenity.value)
+                                                                ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-400'
+                                                                : 'bg-slate-800/50 border-slate-600 text-slate-400 hover:border-slate-500'
+                                                        }`}
+                                                    >
+                                                        {amenity.label}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-300 mb-2">Campus / Storage</label>
-                                        <input
-                                            type="text"
-                                            value={editedResource.campusName || editedResource.location?.campusName || ""}
-                                            onChange={(e) => setEditedResource({ 
-                                                ...editedResource, 
-                                                campusName: e.target.value,
-                                                location: { ...editedResource.location, campusName: e.target.value }
-                                            })}
-                                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-300 mb-2">Storage Location</label>
-                                        <input
-                                            type="text"
-                                            value={editedResource.storageLocation || editedResource.location?.buildingName || ""}
-                                            onChange={(e) => setEditedResource({ 
-                                                ...editedResource, 
-                                                storageLocation: e.target.value,
-                                                location: { ...editedResource.location, buildingName: e.target.value }
-                                            })}
-                                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
-                                            placeholder="Equipment Room 1"
-                                        />
-                                    </div>
-                                </div>
-                            )}
+                                    </>
+                                )}
 
-                            <div className="flex gap-3 pt-4">
-                                <button
-                                    onClick={handleCancel}
-                                    className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-colors font-semibold"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleSave}
-                                    className={`px-6 py-3 text-white rounded-xl transition-all font-bold shadow-lg ${
-                                        isUtility
-                                            ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-amber-500/25'
-                                            : 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 shadow-indigo-500/25'
-                                    }`}
-                                >
-                                    Save Changes
-                                </button>
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        onClick={handleCancel}
+                                        className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-colors font-semibold"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSave}
+                                        disabled={isSubmitting}
+                                        className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl transition-all font-bold shadow-lg shadow-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isSubmitting ? "Saving..." : "Save Changes"}
+                                    </button>
+                                    {isAdmin && (
+                                        <button
+                                            onClick={handleDelete}
+                                            className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors font-semibold ml-auto"
+                                        >
+                                            Delete
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    ) : (
-                        <>
-                            {isFacility ? (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                    <div className="bg-slate-700/30 rounded-xl p-4">
-                                        <div className="flex items-center text-slate-400 mb-2">
-                                            <Users className="w-5 h-5 mr-2 text-slate-500" />
-                                            <span className="text-sm">Capacity</span>
+                        ) : (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-4 bg-slate-700/30 rounded-xl">
+                                        <div className="flex items-center text-slate-400 text-sm mb-2">
+                                            <MapPin className="w-4 h-4 mr-2" />
+                                            Location
                                         </div>
-                                        <p className="text-2xl font-bold text-white">{capacity}</p>
-                                        <p className="text-sm text-slate-500">seats</p>
+                                        <p className="text-lg font-semibold text-white">{displayLocation}</p>
                                     </div>
-
-                                    <div className="bg-slate-700/30 rounded-xl p-4">
-                                        <div className="flex items-center text-slate-400 mb-2">
-                                            <Building className="w-5 h-5 mr-2 text-slate-500" />
-                                            <span className="text-sm">Building</span>
+                                    {resource.category === "FACILITY" && (
+                                        <div className="p-4 bg-slate-700/30 rounded-xl">
+                                            <div className="flex items-center text-slate-400 text-sm mb-2">
+                                                <Users className="w-4 h-4 mr-2" />
+                                                Capacity
+                                            </div>
+                                            <p className="text-lg font-semibold text-white">{resource.capacity ?? 0}</p>
                                         </div>
-                                        <p className="text-lg font-semibold text-white">{resource.building || resource.location?.buildingName || "N/A"}</p>
-                                        <p className="text-sm text-slate-500">{resource.campusName || resource.location?.campusName || "Campus"}</p>
-                                    </div>
-
-                                    <div className="bg-slate-700/30 rounded-xl p-4">
-                                        <div className="flex items-center text-slate-400 mb-2">
-                                            <Package className="w-5 h-5 mr-2 text-slate-500" />
-                                            <span className="text-sm">Room</span>
-                                        </div>
-                                        <p className="text-lg font-semibold text-white">{resource.roomNumber || resource.location?.roomNumber || "N/A"}</p>
-                                    </div>
+                                    )}
                                 </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                                    <div className="bg-slate-700/30 rounded-xl p-4">
-                                        <div className="flex items-center text-slate-400 mb-2">
-                                            <MapPin className="w-5 h-5 mr-2 text-slate-500" />
-                                            <span className="text-sm">Campus / Storage</span>
+
+                                {resource.category === "FACILITY" && (
+                                    <>
+                                        <div className="p-4 bg-slate-700/30 rounded-xl">
+                                            <div className="flex items-center text-slate-400 text-sm mb-2">
+                                                <DoorOpen className="w-4 h-4 mr-2" />
+                                                Room Number
+                                            </div>
+                                            <p className="text-xl font-bold text-white">{resource.roomNumber || "N/A"}</p>
                                         </div>
-                                        <p className="text-lg font-semibold text-white">{resource.campusName || resource.location?.campusName || "N/A"}</p>
-                                    </div>
+                                        {resource.amenities && resource.amenities.length > 0 && (
+                                            <div className="p-4 bg-slate-700/30 rounded-xl">
+                                                <div className="text-slate-400 text-sm mb-2">Amenities</div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {resource.amenities.map((amenity, idx) => (
+                                                        <span key={idx} className="px-2 py-1 text-sm rounded-md bg-slate-600/50 text-slate-300 border border-slate-500/30">
+                                                            {amenity}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
 
-                                    <div className="bg-slate-700/30 rounded-xl p-4">
-                                        <div className="flex items-center text-slate-400 mb-2">
-                                            <Package className="w-5 h-5 mr-2 text-slate-500" />
-                                            <span className="text-sm">Storage Location</span>
+                                {resource.category === "UTILITY" && resource.serialNumber && (
+                                    <div className="p-4 bg-slate-700/30 rounded-xl">
+                                        <div className="text-slate-400 text-sm mb-2">Serial Number</div>
+                                        <p className="text-lg font-semibold text-white">{resource.serialNumber}</p>
+                                    </div>
+                                )}
+
+                                {resource.description && (
+                                    <div className="p-4 bg-slate-700/30 rounded-xl">
+                                        <div className="text-slate-400 text-sm mb-2">
+                                            {resource.category === "UTILITY" ? "Notes" : "Description"}
                                         </div>
-                                        <p className="text-lg font-semibold text-white">{resource.storageLocation || resource.location?.buildingName || "N/A"}</p>
+                                        <p className="text-slate-300 leading-relaxed">{resource.description}</p>
                                     </div>
-                                </div>
-                            )}
-
-                            {resource.description && (
-                                <div className="mb-8">
-                                    <h2 className="text-lg font-semibold text-white mb-3">
-                                        {isUtility ? 'Notes' : 'Description'}
-                                    </h2>
-                                    <p className="text-slate-300 leading-relaxed">{resource.description}</p>
-                                </div>
-                            )}
-
-                            {isFacility && resource.amenities && resource.amenities.length > 0 && (
-                                <div className="mb-8">
-                                    <h2 className="text-lg font-semibold text-white mb-3">Amenities</h2>
-                                    <div className="flex flex-wrap gap-2">
-                                        {resource.amenities.map((amenity, idx) => (
-                                            <span key={idx} className="px-3 py-1.5 text-sm rounded-lg bg-slate-700/50 text-slate-300 border border-slate-600/50">
-                                                {amenity}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </>
-                    )}
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

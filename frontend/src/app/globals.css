@@ -216,3 +216,41 @@ body::before {
     r: 15;
   }
 }
+
+/* Theme-Aware Button Utilities */
+.btn-primary-action {
+    background-color: var(--primary);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+[data-theme="light"] .btn-primary-action {
+    background-color: rgba(30, 27, 75, 0.08);
+    border: 1px solid rgba(30, 27, 75, 0.15);
+    color: #0f172a !important;
+}
+
+.btn-danger-action {
+    background-color: #ef4444;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+[data-theme="light"] .btn-danger-action {
+    background-color: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #000000 !important;
+}
+
+[data-theme="light"] .swal2-styled.swal2-confirm {
+    background-color: rgba(30, 27, 75, 0.08) !important;
+    border: 1px solid rgba(30, 27, 75, 0.15) !important;
+    color: #000000 !important;
+}
+
+[data-theme="light"] .swal2-styled.swal2-cancel {
+    background-color: transparent !important;
+    color: #475569 !important;
+}

@@ -12,14 +12,30 @@ import {
     LogOut,
     BarChart3,
     Calendar,
-    CalendarDays
+    CalendarDays,
+    Sun,
+    Moon
 } from "lucide-react";
+
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const [isAdmin, setIsAdmin] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+    useEffect(() => {
+        const savedTheme = localStorage.getItem("theme") as 'light' | 'dark' | null;
+        if (savedTheme) setTheme(savedTheme);
+    }, []);
+
+    const toggleTheme = () => {
+        const newTheme = theme === 'dark' ? 'light' : 'dark';
+        setTheme(newTheme);
+        localStorage.setItem("theme", newTheme);
+        window.dispatchEvent(new Event("theme-update"));
+    };
 
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
@@ -74,26 +90,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: "Admin Tickets", path: "/dashboard/admin-tickets", icon: Ticket },
         { name: "Admin Facilities", path: "/dashboard/admin-facilities", icon: Building },
         { name: "Alerts", path: "/dashboard/notifications", icon: Bell },
+        // { name: "Audit Logs", path: "/dashboard/audit-logs", icon: ClipboardList },
+
     ];
 
     if (!isLoaded) return (
-        <div className="min-h-screen bg-[#020617] flex items-center justify-center">
-            <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+        <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
         </div>
     );
 
     // ADMIN VIEW - SIDEBAR ONLY
     if (isAdmin) {
         return (
-            <div className="flex items-start min-h-screen bg-[#020617] text-slate-100">
+            <div className="flex items-start min-h-screen bg-background text-foreground transition-colors duration-500">
                 <div className="group/sidebar flex flex-col items-center fixed top-0 left-0 transition-all duration-[450ms] ease-in-out w-[80px] hover:w-[260px] h-screen py-6 px-3 z-50">
-                    <article className="border border-solid border-slate-700/50 w-full h-full ease-in-out duration-500 rounded-2xl flex flex-col shadow-lg shadow-black/40 bg-slate-900/98 backdrop-blur-xl overflow-y-auto overflow-x-hidden scrollbar-none">
+                    <article className="border border-border-main w-full h-full ease-in-out duration-500 rounded-2xl flex flex-col shadow-xl bg-card backdrop-blur-xl overflow-y-auto overflow-x-hidden scrollbar-none">
                         <div className="flex items-center w-full h-20 shrink-0 px-2 group-hover/sidebar:px-4">
-                            <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 mx-auto group-hover/sidebar:mx-0 shadow-lg shadow-indigo-500/10 overflow-hidden border border-slate-700/60">
+                            <div className="w-10 h-10 rounded-xl bg-background border border-border-main flex items-center justify-center shrink-0 mx-auto group-hover/sidebar:mx-0 shadow-lg shadow-primary/10 overflow-hidden">
                                 <img src="/A.png" alt="Logo" className="w-[85%] h-[85%] object-contain" />
                             </div>
-                            <h2 className="ml-4 text-xl brand-text animate-shimmer whitespace-nowrap overflow-hidden transition-all duration-300 max-w-0 opacity-0 group-hover/sidebar:max-w-xs group-hover/sidebar:opacity-100 tracking-tighter">
-                                CourseFlow
+                            <h2 className="ml-4 text-xl font-black uppercase tracking-tighter text-foreground whitespace-nowrap transition-all duration-300 max-w-0 opacity-0 group-hover/sidebar:max-w-xs group-hover/sidebar:opacity-100 italic">
+                                Course<span className="text-primary not-italic">Flow</span>
                             </h2>
                         </div>
                         
@@ -102,7 +120,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 const isActive = pathname === link.path;
                                 const Icon = link.icon;
                                 return (
-                                    <Link key={link.path} href={link.path} className={`relative w-full h-12 flex flex-row items-center justify-center group-hover/sidebar:justify-start group-hover/sidebar:px-4 rounded-xl transition-all duration-300 ease-in-out border border-transparent group/link ${isActive ? "shadow-lg bg-indigo-500/20 border-indigo-500/40 text-white" : "hover:bg-slate-800/80 text-slate-400 hover:text-white hover:border-slate-700/80"}`}>
+                                    <Link key={link.path} href={link.path} className={`relative w-full h-12 flex flex-row items-center justify-center group-hover/sidebar:justify-start group-hover/sidebar:px-4 rounded-xl transition-all duration-300 ease-in-out border border-transparent group/link ${isActive ? "shadow-lg bg-primary/20 border-primary/40 text-foreground" : "hover:bg-foreground/5 text-muted hover:text-foreground"}`}>
                                         <Icon size={22} className="stroke-[1.5]" />
                                         <div className="flex items-center justify-between overflow-hidden whitespace-nowrap transition-all duration-300 max-w-0 opacity-0 group-hover/sidebar:max-w-[200px] group-hover/sidebar:opacity-100 group-hover/sidebar:ml-4 flex-1">
                                             <span className="font-semibold text-[14px]">{link.name}</span>
@@ -114,15 +132,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 );
                             })}
                         </nav>
-                        <div className="w-full p-2 border-t border-slate-800/80">
-                            <button onClick={handleLogout} className="relative w-full h-12 flex flex-row items-center justify-center group-hover/sidebar:justify-start group-hover/sidebar:px-4 rounded-xl transition-all duration-300 text-rose-500 hover:bg-rose-500/20">
+                        <div className="w-full p-2 border-t border-border-main space-y-2">
+                            <button 
+                                onClick={toggleTheme}
+                                className="relative w-full h-12 flex flex-row items-center justify-center group-hover/sidebar:justify-start group-hover/sidebar:px-4 rounded-xl transition-all duration-300 text-muted hover:bg-foreground/5 hover:text-foreground"
+                            >
+                                {theme === 'dark' ? <Sun size={22} strokeWidth={1.5} /> : <Moon size={22} strokeWidth={1.5} />}
+                                <span className="ml-4 font-bold text-[14px] transition-all opacity-0 group-hover/sidebar:opacity-100">
+                                    {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                                </span>
+                            </button>
+                            <button onClick={handleLogout} className="relative w-full h-12 flex flex-row items-center justify-center group-hover/sidebar:justify-start group-hover/sidebar:px-4 rounded-xl transition-all duration-300 text-rose-500 hover:bg-rose-500/10">
                                 <LogOut size={22} strokeWidth={1.5} />
-                                <span className="ml-4 font-bold text-[14px] transition-all opacity-0 group-hover/sidebar:opacity-100">Sign Out</span>
+                                <span className="ml-4 font-bold text-[14px] transition-all opacity-0 group-hover/sidebar:opacity-100 whitespace-nowrap">Sign Out</span>
                             </button>
                         </div>
                     </article>
                 </div>
-                <main className="flex-1 bg-slate-950/20 transition-all duration-[450ms] ml-[80px] group-hover/sidebar:ml-[260px]">
+                <main className="flex-1 bg-muted/5 transition-all duration-[450ms] ml-[80px] group-hover/sidebar:ml-[260px]">
                     <div className="max-w-7xl mx-auto p-8 py-12 md:py-20">{children}</div>
                 </main>
             </div>

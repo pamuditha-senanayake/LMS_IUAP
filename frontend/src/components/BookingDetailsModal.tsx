@@ -128,15 +128,15 @@ export default function BookingDetailsModal({ isOpen, onClose, bookingId, onCanc
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-3xl bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 max-h-[90vh] overflow-hidden">
-        <div className="flex items-center justify-between p-6 border-b border-slate-700 bg-slate-900">
+      <div className="relative w-full max-w-3xl bg-card rounded-2xl shadow-2xl border border-border-main max-h-[90vh] overflow-hidden">
+        <div className="flex items-center justify-between p-6 border-b border-border-main bg-card">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold text-white">Booking Details</h2>
+            <h2 className="text-xl font-bold text-foreground">Booking Details</h2>
             {booking && getStatusBadge(booking.status)}
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-2 text-muted hover:text-foreground hover:bg-foreground/5 rounded-lg transition-colors"
           >
             <X size={20} />
           </button>
@@ -148,23 +148,23 @@ export default function BookingDetailsModal({ isOpen, onClose, bookingId, onCanc
           </div>
         ) : booking ? (
           <>
-            <div className="flex border-b border-slate-700">
+            <div className="flex border-b border-border-main">
               <button
                 onClick={() => setActiveTab("details")}
-                className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
+                className={`flex-1 px-6 py-3 text-sm font-bold uppercase tracking-widest transition-all ${
                   activeTab === "details"
-                    ? "text-indigo-400 border-b-2 border-indigo-400 bg-slate-800/50"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800"
+                    ? "text-primary border-b-2 border-primary bg-primary/5"
+                    : "text-muted hover:text-foreground hover:bg-foreground/5"
                 }`}
               >
                 Details
               </button>
               <button
                 onClick={() => setActiveTab("history")}
-                className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
+                className={`flex-1 px-6 py-3 text-sm font-bold uppercase tracking-widest transition-all ${
                   activeTab === "history"
-                    ? "text-indigo-400 border-b-2 border-indigo-400 bg-slate-800/50"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800"
+                    ? "text-primary border-b-2 border-primary bg-primary/5"
+                    : "text-muted hover:text-foreground hover:bg-foreground/5"
                 }`}
               >
                 History ({booking.history?.length || 0})
@@ -192,65 +192,65 @@ export default function BookingDetailsModal({ isOpen, onClose, bookingId, onCanc
                         </div>
                       </div>
 
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="text-sm font-medium text-slate-400 mb-1">Schedule</h3>
-                          <div className="flex items-center gap-2 text-white">
-                            <Calendar size={16} className="text-slate-400" />
-                            <span>{new Date(booking.startTime).toLocaleDateString()}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-white mt-1">
-                            <Clock size={16} className="text-slate-400" />
-                            <span>
-                              {new Date(booking.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                              {" - "}
-                              {new Date(booking.endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                          </div>
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-xs font-bold text-muted uppercase tracking-wider mb-1">Schedule</h3>
+                        <div className="flex items-center gap-2 text-foreground font-medium">
+                          <Calendar size={16} className="text-primary" />
+                          <span>{new Date(booking.startTime).toLocaleDateString()}</span>
                         </div>
-                        <div>
-                          <h3 className="text-sm font-medium text-slate-400 mb-1">Attendees</h3>
-                          <div className="flex items-center gap-2 text-white">
-                            <Users size={16} className="text-slate-400" />
-                            <span>{booking.expectedAttendees}</span>
-                          </div>
+                        <div className="flex items-center gap-2 text-primary font-bold mt-1">
+                          <Clock size={16} />
+                          <span>
+                            {new Date(booking.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            {" - "}
+                            {new Date(booking.endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </span>
                         </div>
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold text-muted uppercase tracking-wider mb-1">Attendees</h3>
+                        <div className="flex items-center gap-2 text-foreground font-medium">
+                          <Users size={16} className="text-primary" />
+                          <span>{booking.expectedAttendees}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold text-muted uppercase tracking-wider mb-1">Type</h3>
+                        <p className="text-foreground font-bold uppercase tracking-widest text-xs">{booking.type}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xs font-bold text-muted uppercase tracking-wider mb-1">Purpose</h3>
+                    <p className="text-foreground leading-relaxed">{booking.purpose}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-foreground/5 border border-border-main rounded-xl">
+                      <h3 className="text-xs font-bold text-muted uppercase tracking-wider mb-2">Requested By</h3>
+                      <div className="flex items-center gap-2">
+                        <User size={16} className="text-primary" />
                         <div>
-                          <h3 className="text-sm font-medium text-slate-400 mb-1">Type</h3>
-                          <p className="text-white">{booking.type}</p>
+                          <p className="text-foreground font-bold">{booking.requestedBy?.name || "N/A"}</p>
+                          <p className="text-xs text-muted font-medium">{booking.requestedBy?.email}</p>
                         </div>
                       </div>
                     </div>
-
-                    <div>
-                      <h3 className="text-sm font-medium text-slate-400 mb-1">Purpose</h3>
-                      <p className="text-white">{booking.purpose}</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-slate-800/50 rounded-xl">
-                        <h3 className="text-sm font-medium text-slate-400 mb-2">Requested By</h3>
+                    {booking.reviewedBy && (
+                      <div className="p-4 bg-foreground/5 border border-border-main rounded-xl">
+                        <h3 className="text-xs font-bold text-muted uppercase tracking-wider mb-2">Reviewed By</h3>
                         <div className="flex items-center gap-2">
-                          <User size={16} className="text-slate-400" />
+                          <User size={16} className="text-primary" />
                           <div>
-                            <p className="text-white font-medium">{booking.requestedBy?.name || "N/A"}</p>
-                            <p className="text-xs text-slate-400">{booking.requestedBy?.email}</p>
+                            <p className="text-foreground font-bold">{booking.reviewedBy.name}</p>
+                            <p className="text-xs text-muted font-medium">{booking.reviewedBy.email}</p>
                           </div>
                         </div>
                       </div>
-                      {booking.reviewedBy && (
-                        <div className="p-4 bg-slate-800/50 rounded-xl">
-                          <h3 className="text-sm font-medium text-slate-400 mb-2">Reviewed By</h3>
-                          <div className="flex items-center gap-2">
-                            <User size={16} className="text-slate-400" />
-                            <div>
-                              <p className="text-white font-medium">{booking.reviewedBy.name}</p>
-                              <p className="text-xs text-slate-400">{booking.reviewedBy.email}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    )}
+                  </div>
 
                     {booking.rejectionReason && (
                       <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
@@ -259,76 +259,75 @@ export default function BookingDetailsModal({ isOpen, onClose, bookingId, onCanc
                       </div>
                     )}
 
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <h3 className="text-slate-400 mb-1">Created</h3>
-                        <p className="text-white">{formatDateTime(booking.createdAt)}</p>
-                      </div>
-                      {booking.approvedAt && (
-                        <div>
-                          <h3 className="text-slate-400 mb-1">Approved</h3>
-                          <p className="text-emerald-400">{formatDateTime(booking.approvedAt)}</p>
-                        </div>
-                      )}
-                      {booking.cancelledAt && (
-                        <div>
-                          <h3 className="text-slate-400 mb-1">Cancelled</h3>
-                          <p className="text-slate-400">{formatDateTime(booking.cancelledAt)}</p>
-                        </div>
-                      )}
-                      <div>
-                        <h3 className="text-slate-400 mb-1">Last Updated</h3>
-                        <p className="text-white">{formatDateTime(booking.updatedAt)}</p>
-                      </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                    <div>
+                      <h3 className="text-muted font-bold uppercase tracking-widest mb-1">Created</h3>
+                      <p className="text-foreground font-medium">{formatDateTime(booking.createdAt)}</p>
                     </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {booking.history && booking.history.length > 0 ? (
-                      booking.history.map((entry, index) => (
-                        <div key={entry.id || index} className="relative pl-8 pb-6">
-                          {index !== booking.history.length - 1 && (
-                            <div className="absolute left-3 top-8 bottom-0 w-px bg-slate-700" />
-                          )}
-                          <div className="absolute left-0 top-1 p-1 bg-slate-800 rounded-full">
-                            {getHistoryIcon(entry.newStatus)}
-                          </div>
-                          <div className="bg-slate-800/50 rounded-xl p-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-slate-400 line-through text-sm">{entry.oldStatus}</span>
-                                <span className="text-slate-400">→</span>
-                                <span className="text-white font-medium">{entry.newStatus}</span>
-                              </div>
-                              <span className="text-xs text-slate-500">{formatDateTime(entry.changedAt)}</span>
-                            </div>
-                            <p className="text-sm text-slate-400">
-                              By <span className="text-white">{entry.changedByName || entry.changedById}</span>
-                            </p>
-                            {entry.note && (
-                              <p className="text-sm text-slate-300 mt-2 p-2 bg-slate-700/50 rounded-lg">
-                                {entry.note}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center text-slate-400 py-8">
-                        <History size={32} className="mx-auto mb-2 opacity-50" />
-                        <p>No history available</p>
+                    {booking.approvedAt && (
+                      <div>
+                        <h3 className="text-muted font-bold uppercase tracking-widest mb-1">Approved</h3>
+                        <p className="text-emerald-500 font-bold">{formatDateTime(booking.approvedAt)}</p>
                       </div>
                     )}
+                    {booking.cancelledAt && (
+                      <div>
+                        <h3 className="text-muted font-bold uppercase tracking-widest mb-1">Cancelled</h3>
+                        <p className="text-muted font-medium">{formatDateTime(booking.cancelledAt)}</p>
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="text-muted font-bold uppercase tracking-widest mb-1">Updated</h3>
+                      <p className="text-foreground font-medium">{formatDateTime(booking.updatedAt)}</p>
+                    </div>
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {booking.history && booking.history.length > 0 ? (
+                    booking.history.map((entry, index) => (
+                      <div key={entry.id || index} className="relative pl-8 pb-6">
+                        {index !== booking.history.length - 1 && (
+                          <div className="absolute left-3 top-8 bottom-0 w-px bg-slate-700" />
+                        )}
+                        <div className="absolute left-0 top-1 p-1 bg-slate-800 rounded-full">
+                          {getHistoryIcon(entry.newStatus)}
+                        </div>
+                        <div className="bg-foreground/5 border border-border-main rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted line-through text-xs font-bold uppercase tracking-widest">{entry.oldStatus}</span>
+                              <span className="text-muted">→</span>
+                              <span className="text-foreground font-black uppercase tracking-widest text-xs">{entry.newStatus}</span>
+                            </div>
+                            <span className="text-[10px] text-muted font-bold uppercase tracking-widest">{formatDateTime(entry.changedAt)}</span>
+                          </div>
+                          <p className="text-xs text-muted font-medium">
+                            Modified by <span className="text-foreground font-bold">{entry.changedByName || entry.changedById}</span>
+                          </p>
+                          {entry.note && (
+                            <p className="text-sm text-foreground/80 mt-2 p-2 bg-foreground/5 rounded-lg border border-border-main/50 italic">
+                              &quot;{entry.note}&quot;
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-slate-400 py-8">
+                      <History size={32} className="mx-auto mb-2 opacity-50" />
+                      <p>No history available</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {booking.status === "APPROVED" && onCancel && (
-              <div className="p-4 border-t border-slate-700 bg-slate-900 rounded-b-2xl flex-shrink-0">
+            {(booking.status === "APPROVED" || booking.status === "PENDING") && onCancel && (
+              <div className="p-6 border-t border-border-main bg-card">
                 <button
                   onClick={onCancel}
-                  className="w-full px-6 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-medium rounded-xl transition-colors"
+                  className="w-full px-6 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 font-black uppercase tracking-widest text-xs transition-all active:scale-[0.98] rounded-xl"
                 >
                   Cancel Booking
                 </button>

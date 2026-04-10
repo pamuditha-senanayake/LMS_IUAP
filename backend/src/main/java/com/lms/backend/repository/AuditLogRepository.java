@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface AuditLogRepository extends MongoRepository<AuditLog, String> {
     List<AuditLog> findByEntityTypeAndEntityId(String entityType, String entityId);
+    List<AuditLog> findAllByOrderByCreatedAtDesc();
+    List<AuditLog> findByActionTypeIgnoreCaseContainingOrderByCreatedAtDesc(String actionType);
 }

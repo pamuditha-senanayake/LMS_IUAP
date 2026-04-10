@@ -78,23 +78,22 @@ export default function Register() {
     };
 
     return (
-        <div className="flex h-screen bg-[#020617] overflow-hidden">
-            {/* Left Side: Immersive Imagery (Hidden on Mobile) */}
-            <div className="hidden lg:flex flex-[1.2] h-full bg-slate-900 overflow-hidden relative">
+        <div className="flex h-screen bg-[#020617] text-white selection:bg-primary/30 overflow-hidden">
+            <div className="hidden lg:flex flex-[1.2] h-full bg-[#020617] overflow-hidden relative border-r border-white/10">
                 <img 
                     src="/login-bg.jpg" 
                     alt="CourseFlow Ecosystem" 
                     className="absolute inset-0 w-full h-full object-cover opacity-60 scale-110 animate-pulse duration-[12s]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-l from-[#020617] via-transparent to-transparent z-10" />
-                <div className="absolute inset-0 bg-pink-500/10 mix-blend-overlay z-10" />
+                <div className="absolute inset-0 bg-primary/10 mix-blend-overlay z-10" />
                 
                 <div className="relative z-20 flex flex-col justify-center md:justify-end p-12 md:p-20 w-full md:pb-24 space-y-4">
-                    <div className="w-20 h-1 bg-pink-500 rounded-full" />
+                    <div className="w-20 h-1 bg-primary rounded-full" />
                     <h2 className="text-5xl font-black text-white leading-tight max-w-lg">
                         Empower Your Learning Journey
                     </h2>
-                    <p className="text-slate-300 text-lg font-medium max-w-md leading-relaxed opacity-80">
+                    <p className="text-white/80 text-lg font-medium max-w-md leading-relaxed">
                         Join the next generation of academics in a streamlined, high-performance management environment.
                     </p>
                 </div>
@@ -105,7 +104,7 @@ export default function Register() {
                 className="flex-1 h-full overflow-y-auto scrollbar-none z-10 relative"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
-                <div className="min-h-full w-full flex flex-col items-center justify-center p-8 md:p-12 py-12 text-slate-100">
+                <div className="min-h-full w-full flex flex-col items-center justify-center p-8 md:p-12 py-12">
                     {/* Background Glows */}
                     <div className="absolute top-0 right-0 w-64 h-64 bg-pink-500/10 blur-[100px] rounded-full" />
                     <div className="absolute bottom-0 right-0 w-64 h-64 bg-indigo-500/5 blur-[100px] rounded-full" />
@@ -113,18 +112,18 @@ export default function Register() {
                     <div className="w-full max-w-md space-y-8 relative animate-in fade-in slide-in-from-right-4 duration-700">
                         {/* Branding Section */}
                         <div className="flex flex-col items-center gap-4 text-center">
-                            <div className="w-16 h-16 rounded-2xl bg-slate-950 border border-slate-800 shadow-2xl flex items-center justify-center p-2">
+                            <div className="w-16 h-16 rounded-2xl bg-card border border-border-main shadow-2xl flex items-center justify-center p-2">
                                 <img src="/A.png" alt="CourseFlow" className="w-full h-full object-contain" />
                             </div>
                             <div className="space-y-1">
-                                <h2 className="text-2xl md:text-3xl leading-none brand-text animate-shimmer">
+                                <h2 className="text-2xl md:text-3xl leading-none font-black uppercase tracking-tight text-white">
                                     CourseFlow
                                 </h2>
-                                <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.3em]">Institutional Portal</p>
+                                <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em] opacity-70">Institutional Portal</p>
                             </div>
                         </div>
 
-                        <div className="glass-card rounded-3xl p-6 md:p-8 border border-slate-700/50 shadow-2xl shadow-black/40 bg-slate-900/40 backdrop-blur-xl">
+                        <div className="bg-slate-900/50 rounded-3xl p-6 md:p-8 border border-white/10 shadow-2xl backdrop-blur-xl">
                             <div className="mb-8 text-left">
                                 <h3 className="text-2xl font-bold text-white mb-2">Create Account</h3>
                                 <p className="text-slate-400 text-sm font-medium">Join the premier learning management system.</p>
@@ -166,7 +165,7 @@ export default function Register() {
                                         type="password"
                                         required
                                         minLength={6}
-                                        className="px-5 py-4 bg-slate-950/50 border border-slate-800 focus:border-pink-500/50 rounded-2xl outline-none text-white text-sm font-medium transition-all"
+                                        className="px-5 py-4 bg-slate-950/50 border border-slate-800 focus:border-primary/50 rounded-2xl outline-none text-white text-sm font-medium transition-all"
                                         placeholder="Create a strong password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
@@ -176,7 +175,7 @@ export default function Register() {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="mt-6 rounded-2xl bg-gradient-to-r from-pink-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 active:scale-95 transition-all text-white py-4 font-black text-sm shadow-xl shadow-pink-500/20 disabled:opacity-50"
+                                    className="mt-6 rounded-2xl bg-primary hover:bg-primary-dark active:scale-95 transition-all text-white py-4 font-black text-sm shadow-xl shadow-primary/20 disabled:opacity-50"
                                 >
                                     {loading ? "Registering..." : "Initialize Account"}
                                 </button>
@@ -185,10 +184,10 @@ export default function Register() {
                             <div className="mt-8">
                                 <div className="relative">
                                     <div className="absolute inset-0 flex items-center">
-                                        <div className="w-full border-t border-slate-800"></div>
+                                        <div className="w-full border-t border-white/10"></div>
                                     </div>
                                     <div className="relative flex justify-center text-xs">
-                                        <span className="bg-transparent px-4 text-slate-500 font-bold uppercase tracking-widest">Or join with</span>
+                                        <span className="bg-[#1e293b] px-4 text-slate-400 font-bold uppercase tracking-widest">Or join with</span>
                                     </div>
                                 </div>
                                 <div className="mt-6 flex justify-center">
@@ -203,9 +202,9 @@ export default function Register() {
                                 </div>
                             </div>
 
-                            <p className="mt-8 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">
+                            <p className="mt-8 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">
                                 Already registered?{" "}
-                                <Link href="/login" className="text-pink-400 hover:text-pink-300 transition-colors underline underline-offset-4">
+                                <Link href="/login" className="text-primary hover:text-primary-dark transition-colors underline underline-offset-4">
                                     Sign In
                                 </Link>
                             </p>

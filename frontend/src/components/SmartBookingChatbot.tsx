@@ -13,6 +13,8 @@ interface Resource {
     category?: "FACILITY" | "UTILITY";
     status?: string;
     capacity?: number;
+    location?: string;
+    serialNumber?: string;
     campusName?: string;
     building?: string;
     roomNumber?: string;
@@ -20,7 +22,7 @@ interface Resource {
     resourceCode?: string;
     description?: string;
     amenities?: string[];
-    location?: {
+    campusLocation?: {
         campusName?: string;
         buildingName?: string;
         roomNumber?: string;
@@ -143,14 +145,15 @@ function getLocationsFromResources(resources: Resource[]): ChatOption[] {
     const locationSet = new Set<string>();
     
     resources.forEach(r => {
+        const campusLoc = r.campusLocation;
         if (r.category === "FACILITY") {
-            const campus = r.location?.campusName || r.campusName;
-            const building = r.location?.buildingName || r.building;
+            const campus = campusLoc?.campusName || r.campusName;
+            const building = campusLoc?.buildingName || r.building || r.location;
             if (campus) locationSet.add(campus);
             if (building) locationSet.add(building);
         } else {
-            const campus = r.location?.campusName || r.campusName;
-            const storage = r.location?.buildingName || r.storageLocation;
+            const campus = campusLoc?.campusName || r.campusName;
+            const storage = campusLoc?.buildingName || r.storageLocation || r.location;
             if (campus) locationSet.add(campus);
             if (storage) locationSet.add(storage);
         }
@@ -175,8 +178,9 @@ function getBestFacilityMatch(resources: Resource[], criteria: {
     
     if (criteria.location) {
         facilities = facilities.filter(r => {
-            const campus = r.location?.campusName || r.campusName || "";
-            const building = r.location?.buildingName || r.building || "";
+            const campusLoc = r.campusLocation;
+            const campus = campusLoc?.campusName || r.campusName || "";
+            const building = campusLoc?.buildingName || r.building || r.location || "";
             return campus.toLowerCase() === criteria.location!.toLowerCase() ||
                    building.toLowerCase() === criteria.location!.toLowerCase();
         });
@@ -243,8 +247,9 @@ function getBestUtilityMatch(resources: Resource[], criteria: {
     
     if (criteria.location) {
         utilities = utilities.filter(r => {
-            const campus = r.location?.campusName || r.campusName || "";
-            const storage = r.location?.buildingName || r.storageLocation || "";
+            const campusLoc = r.campusLocation;
+            const campus = campusLoc?.campusName || r.campusName || "";
+            const storage = campusLoc?.buildingName || r.storageLocation || r.location || "";
             return campus.toLowerCase() === criteria.location!.toLowerCase() ||
                    storage.toLowerCase() === criteria.location!.toLowerCase();
         });
@@ -286,14 +291,15 @@ function getSameCategoryAlternatives(resources: Resource[], excludedId: string, 
     
     if (criteria.location) {
         filtered = filtered.filter(r => {
+            const campusLoc = r.campusLocation;
             if (criteria.category === "FACILITY") {
-                const campus = r.location?.campusName || r.campusName || "";
-                const building = r.location?.buildingName || r.building || "";
+                const campus = campusLoc?.campusName || r.campusName || "";
+                const building = campusLoc?.buildingName || r.building || r.location || "";
                 return campus.toLowerCase() === criteria.location!.toLowerCase() ||
                        building.toLowerCase() === criteria.location!.toLowerCase();
             } else {
-                const campus = r.location?.campusName || r.campusName || "";
-                const storage = r.location?.buildingName || r.storageLocation || "";
+                const campus = campusLoc?.campusName || r.campusName || "";
+                const storage = campusLoc?.buildingName || r.storageLocation || r.location || "";
                 return campus.toLowerCase() === criteria.location!.toLowerCase() ||
                        storage.toLowerCase() === criteria.location!.toLowerCase();
             }
@@ -382,18 +388,19 @@ function formatType(type: string): string {
 }
 
 function getLocationDisplay(resource: Resource): string {
+    const campusLoc = resource.campusLocation;
     if (resource.category === "FACILITY") {
         const parts = [];
-        if (resource.location?.campusName || resource.campusName) {
-            parts.push(resource.location?.campusName || resource.campusName);
+        if (campusLoc?.campusName || resource.campusName) {
+            parts.push(campusLoc?.campusName || resource.campusName);
         }
-        if (resource.location?.buildingName || resource.building) {
-            parts.push(resource.location?.buildingName || resource.building);
+        if (campusLoc?.buildingName || resource.building || resource.location) {
+            parts.push(campusLoc?.buildingName || resource.building || resource.location);
         }
-        return parts.join(" - ") || "N/A";
+        return parts.join(" - ") || resource.location || "N/A";
     } else {
-        const campus = resource.location?.campusName || resource.campusName;
-        const storage = resource.location?.buildingName || resource.storageLocation;
+        const campus = campusLoc?.campusName || resource.campusName;
+        const storage = campusLoc?.buildingName || resource.storageLocation || resource.location;
         if (campus && storage) return `${campus} - ${storage}`;
         return campus || storage || "N/A";
     }
