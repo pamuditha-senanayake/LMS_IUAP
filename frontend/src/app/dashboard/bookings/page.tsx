@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Calendar, CheckCircle, XCircle, AlertCircle, ChevronLeft, ChevronRight, Eye, Trash2, Edit } from "lucide-react";
+import { Plus, Search, Calendar, CheckCircle, XCircle, AlertCircle, ChevronLeft, ChevronRight, Eye, Trash2, Edit, Ban } from "lucide-react";
 import Swal from "sweetalert2";
 import BookingModal from "@/components/BookingModal";
 import BookingDetailsModal from "@/components/BookingDetailsModal";
@@ -141,10 +141,30 @@ export default function MyBookings() {
   }, [queryClient]);
 
   const handleCancel = useCallback((booking: Booking) => {
+    const commonReasons = [
+      'Schedule conflict',
+      'No longer needed',
+      'Changed plans',
+      'Resource not suitable',
+      'Booked by mistake',
+      'Other'
+    ];
+
     Swal.fire({
       title: "Cancel this booking?",
-      input: 'textarea',
-      inputPlaceholder: 'Reason for cancellation (required)...',
+      html: `
+        <div style="text-align: left; color: #94a3b8;">
+          <label for="cancel-reason" style="display: block; margin-bottom: 8px; font-size: 14px;">Select a reason for cancellation:</label>
+          <select id="cancel-reason" style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #475569; margin-bottom: 16px;">
+            <option value="">-- Select Reason --</option>
+            ${commonReasons.map(r => `<option value="${r}">${r}</option>`).join('')}
+          </select>
+          <div id="other-reason-container" style="display: none;">
+            <label for="other-reason" style="display: block; margin-bottom: 8px; font-size: 14px;">Please specify:</label>
+            <textarea id="other-reason" rows="3" style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #475569; resize: none;" placeholder="Enter the reason..."></textarea>
+          </div>
+        </div>
+      `,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#ef4444',
@@ -152,19 +172,39 @@ export default function MyBookings() {
       confirmButtonText: 'Cancel Booking',
       background: '#1e293b',
       color: '#fff',
-      inputValidator: (value) => {
-        if (!value || value.trim() === '') {
-          return 'Please provide a reason for cancellation';
+      didOpen: () => {
+        const reasonSelect = document.getElementById('cancel-reason') as HTMLSelectElement;
+        const otherContainer = document.getElementById('other-reason-container');
+        
+        reasonSelect?.addEventListener('change', () => {
+          if (otherContainer) {
+            otherContainer.style.display = reasonSelect.value === 'Other' ? 'block' : 'none';
+          }
+        });
+      },
+      preConfirm: () => {
+        const reasonSelect = document.getElementById('cancel-reason') as HTMLSelectElement;
+        const otherReason = document.getElementById('other-reason') as HTMLTextAreaElement;
+        
+        if (!reasonSelect?.value) {
+          Swal.showValidationMessage('Please select a reason');
+          return false;
         }
-        return null;
+        
+        if (reasonSelect.value === 'Other' && !otherReason?.value.trim()) {
+          Swal.showValidationMessage('Please specify the reason');
+          return false;
+        }
+        
+        return reasonSelect.value === 'Other' ? otherReason?.value.trim() : reasonSelect.value;
       }
     }).then(async (result) => {
-      if (result.isConfirmed) {
+      if (result.isConfirmed && result.value) {
         try {
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
           const url = new URL(`${apiUrl}/api/bookings/${booking.id}/cancel`);
           url.searchParams.append("userId", currentUser?.id || "");
-          url.searchParams.append("reason", result.value || "Cancelled by user");
+          url.searchParams.append("reason", result.value);
           
           const res = await fetch(url.toString(), {
             method: "POST",
@@ -357,6 +397,15 @@ export default function MyBookings() {
                                   <Trash2 size={16} />
                                 </button>
                               </>
+                            )}
+                            {b.status === "APPROVED" && (
+                              <button 
+                                onClick={() => handleCancel(b)}
+                                className="p-2 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-lg transition-all"
+                                title="Cancel Booking"
+                              >
+                                <Ban size={16} />
+                              </button>
                             )}
                           </div>
                         </td>
