@@ -9,6 +9,34 @@ import SmartBookingChatbot from "@/components/SmartBookingChatbot";
 import FilterPanel, { FilterState, FilterOption } from "@/components/FilterPanel";
 import { Search, Filter, X, Plus } from "lucide-react";
 
+interface BookingData {
+    category: string;
+    type: string;
+    location: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    capacity: number;
+    capacityLabel: string;
+    amenities: string[];
+    purpose?: string;
+}
+
+interface PrefillData {
+    date?: string;
+    startTime?: string;
+    endTime?: string;
+    capacity?: number;
+    category?: string;
+    type?: string;
+    location?: string;
+    amenities?: string[];
+    purpose?: string;
+    userId?: string;
+    userName?: string;
+    userEmail?: string;
+}
+
 interface Resource {
     id?: string;
     _id?: string;
@@ -94,6 +122,8 @@ export default function FacilitiesCatalogue() {
     const [isChatbotOpen, setIsChatbotOpen] = useState(false);
     const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const [chatbotBookingData, setChatbotBookingData] = useState<BookingData | null>(null);
+    const [chatbotPrefillData, setChatbotPrefillData] = useState<PrefillData | null>(null);
     const [filters, setFilters] = useState<FilterState>({
         category: "ALL",
         type: "ALL",
@@ -102,6 +132,18 @@ export default function FacilitiesCatalogue() {
         capacity: "ALL",
     });
     const filterButtonRef = useRef<HTMLButtonElement>(null);
+
+    const getCurrentUser = useCallback(async () => {
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+            const res = await fetch(`${apiUrl}/api/auth/me`, { credentials: "include" });
+            if (res.ok) {
+                const user = await res.json();
+                return { id: user.id, name: user.name, email: user.email };
+            }
+        } catch {}
+        return null;
+    }, []);
 
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
@@ -472,17 +514,8 @@ export default function FacilitiesCatalogue() {
                 onSuccess={fetchResources}
             />
 
-            {selectedResource && (
-                <FacilityDetailsModal
-                    resource={selectedResource}
-                    isOpen={isDetailsModalOpen}
-                    onClose={() => {
-                        setIsDetailsModalOpen(false);
-                        setSelectedResource(null);
-                    }}
-                />
-            )}
-
+            {!isAdmin && (
+            <>
             <SmartChatbotToggle
                 isOpen={isChatbotOpen}
                 onToggle={() => setIsChatbotOpen(!isChatbotOpen)}
@@ -490,16 +523,62 @@ export default function FacilitiesCatalogue() {
             <SmartBookingChatbot
                 isOpen={isChatbotOpen}
                 onClose={() => setIsChatbotOpen(false)}
-                onViewResource={(resource) => {
+                onViewResource={(resource, bookingData, prefillData) => {
+                    const incomingBookingData = bookingData || chatbotBookingData;
+                    const incomingPrefillData = prefillData || chatbotPrefillData;
+                    
+                    const currentBookingData: BookingData = {
+                        category: incomingBookingData?.category || "",
+                        type: incomingBookingData?.type || "",
+                        location: incomingBookingData?.location || "",
+                        date: incomingBookingData?.date || "",
+                        startTime: incomingBookingData?.startTime || "",
+                        endTime: incomingBookingData?.endTime || "",
+                        capacity: incomingBookingData?.capacity || 0,
+                        capacityLabel: incomingBookingData?.capacityLabel || "",
+                        amenities: incomingBookingData?.amenities || [],
+                    };
+                    const currentPrefillData: PrefillData = {
+                        ...incomingPrefillData,
+                        date: incomingBookingData?.date || incomingPrefillData?.date || "",
+                        startTime: incomingBookingData?.startTime || incomingPrefillData?.startTime || "",
+                        endTime: incomingBookingData?.endTime || incomingPrefillData?.endTime || "",
+                        capacity: incomingBookingData?.capacity || incomingPrefillData?.capacity,
+                        category: incomingBookingData?.category || incomingPrefillData?.category || "",
+                        type: incomingBookingData?.type || incomingPrefillData?.type || "",
+                        location: incomingBookingData?.location || incomingPrefillData?.location || "",
+                        amenities: incomingBookingData?.amenities || incomingPrefillData?.amenities || [],
+                    };
                     setSelectedResource(resource);
+                    setChatbotBookingData(currentBookingData);
+                    setChatbotPrefillData(currentPrefillData);
                     setIsDetailsModalOpen(true);
                 }}
-                onBookResource={(resource) => {
+                onBookResource={(resource, bookingData, prefillData) => {
                     setSelectedResource(resource);
+                    setChatbotBookingData(bookingData || null);
+                    setChatbotPrefillData(prefillData || null);
                     setIsDetailsModalOpen(true);
                 }}
+                onGetUser={getCurrentUser}
                 resources={resources}
             />
+            </>
+            )}
+            
+            {selectedResource && (
+                <FacilityDetailsModal
+                    resource={selectedResource}
+                    isOpen={isDetailsModalOpen}
+                    onClose={() => {
+                        setIsDetailsModalOpen(false);
+                        setSelectedResource(null);
+                        setChatbotBookingData(null);
+                        setChatbotPrefillData(null);
+                    }}
+                    prefillData={chatbotPrefillData || undefined}
+                />
+            )}
         </>
     );
 }

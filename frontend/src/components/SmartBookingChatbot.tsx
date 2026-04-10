@@ -39,6 +39,7 @@ interface BookingData {
     capacity: number;
     capacityLabel: string;
     amenities: string[];
+    purpose?: string;
 }
 
 interface ChatMessage {
@@ -49,6 +50,7 @@ interface ChatMessage {
     options?: ChatOption[];
     resource?: Resource;
     bookingData?: BookingData;
+    prefillData?: PrefillData;
     isDatePicker?: boolean;
     isTimePicker?: boolean;
     isCapacityPicker?: boolean;
@@ -62,12 +64,23 @@ interface ChatMessage {
     recommendationReason?: string;
     isBooked?: boolean;
     alternativeResource?: Resource;
+    conflictInfo?: ConflictInfo;
+    nextAvailableTime?: string;
+    missingAmenities?: string[];
+    needsConfirmation?: boolean;
+    hasAllAmenities?: boolean;
 }
 
 interface ChatOption {
     label: string;
     value: string;
     description?: string;
+}
+
+interface ConflictInfo {
+    startTime: string;
+    endTime: string;
+    purpose: string;
 }
 
 type BookingStep = 
@@ -83,11 +96,27 @@ type BookingStep =
     | "recommendation"
     | "done";
 
+interface PrefillData {
+    date?: string;
+    startTime?: string;
+    endTime?: string;
+    capacity?: number;
+    category?: string;
+    type?: string;
+    location?: string;
+    amenities?: string[];
+    purpose?: string;
+    userId?: string;
+    userName?: string;
+    userEmail?: string;
+}
+
 interface SmartBookingChatbotProps {
     isOpen: boolean;
     onClose: () => void;
-    onViewResource: (resource: Resource) => void;
-    onBookResource: (resource: Resource, bookingData?: BookingData) => void;
+    onViewResource: (resource: Resource, bookingData?: BookingData, prefillData?: PrefillData) => void;
+    onBookResource: (resource: Resource, bookingData?: BookingData, prefillData?: PrefillData) => void;
+    onGetUser: () => Promise<{ id: string; name: string; email: string } | null>;
     resources: Resource[];
 }
 
@@ -108,6 +137,7 @@ const UTILITY_TYPES: ChatOption[] = [
 ];
 
 const AMENITY_OPTIONS: ChatOption[] = [
+    { label: "WiFi", value: "WiFi" },
     { label: "Whiteboard", value: "Whiteboard" },
     { label: "Projector", value: "Projector" },
     { label: "Air Conditioning", value: "Air Conditioning" },
@@ -205,7 +235,21 @@ function rankAndSelectFacility(resources: Resource[], criteria: {
 }): Resource | null {
     if (resources.length === 0) return null;
     
-    const scored = resources.map(resource => {
+    let filteredResources = resources;
+    
+    if (criteria.amenities && criteria.amenities.length > 0) {
+        filteredResources = resources.filter(resource => {
+            if (!resource.amenities || resource.amenities.length === 0) return false;
+            const resourceAmenities = resource.amenities.map(a => a.toLowerCase());
+            return criteria.amenities!.every(a => resourceAmenities.includes(a.toLowerCase()));
+        });
+        
+        if (filteredResources.length === 0) {
+            return null;
+        }
+    }
+    
+    const scored = filteredResources.map(resource => {
         let score = 0;
         
         if (criteria.capacity && resource.capacity) {
@@ -222,9 +266,8 @@ function rankAndSelectFacility(resources: Resource[], criteria: {
         }
         
         if (criteria.amenities && criteria.amenities.length > 0 && resource.amenities) {
-            const resourceAmenities = resource.amenities.map(a => a.toLowerCase());
             const matched = criteria.amenities.filter(a => 
-                resourceAmenities.includes(a.toLowerCase())
+                resource.amenities!.map(am => am.toLowerCase()).includes(a.toLowerCase())
             ).length;
             score += matched * 15;
         }
@@ -412,9 +455,10 @@ const generateMessageId = (): string => {
     return `msg_${Date.now()}_${messageIdCounter}`;
 };
 
-export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, onBookResource, resources }: SmartBookingChatbotProps) {
+export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, onBookResource, onGetUser, resources }: SmartBookingChatbotProps) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [currentStep, setCurrentStep] = useState<BookingStep>("category");
+    const [currentUser, setCurrentUser] = useState<{ id: string; name: string; email: string } | null>(null);
     const [bookingData, setBookingData] = useState<BookingData>({
         category: "",
         type: "",
@@ -475,9 +519,62 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
         }
     }, [isOpen, startConversation, messages.length]);
 
+    useEffect(() => {
+        const loadUser = async () => {
+            if (onGetUser) {
+                const user = await onGetUser();
+                setCurrentUser(user);
+            }
+        };
+        if (isOpen) {
+            loadUser();
+        }
+    }, [isOpen, onGetUser]);
+
+    const checkAvailability = useCallback(async (resourceId: string, date: string, startTime: string, endTime: string): Promise<{ isBooked: boolean; conflict?: ConflictInfo; nextAvailable?: string }> => {
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+            const res = await fetch(`${apiUrl}/api/resources/${resourceId}/availability?date=${date}`, { credentials: "include" });
+            if (!res.ok) return { isBooked: false };
+            
+            const data = await res.json();
+            if (!data.conflicts || data.conflicts.length === 0) return { isBooked: false };
+            
+            const startHour = parseInt(startTime.split(":")[0]);
+            const endHour = parseInt(endTime.split(":")[0]);
+            
+            for (const conflict of data.conflicts) {
+                const conflictStart = typeof conflict.startTime === "string" ? conflict.startTime : conflict.startTime.toString();
+                const conflictEnd = typeof conflict.endTime === "string" ? conflict.endTime : conflict.endTime.toString();
+                
+                const conflictStartHour = parseInt(conflictStart.split(":")[0]);
+                const conflictEndHour = parseInt(conflictEnd.split(":")[0]);
+                
+                if (startHour < conflictEndHour && endHour > conflictStartHour) {
+                    let nextAvailable = null;
+                    if (conflictEndHour < 20) {
+                        nextAvailable = `${conflictEndHour.toString().padStart(2, "0")}:00`;
+                    }
+                    
+                    return {
+                        isBooked: true,
+                        conflict: {
+                            startTime: conflictStart,
+                            endTime: conflictEnd,
+                            purpose: conflict.purpose || "Booked"
+                        },
+                        nextAvailable: nextAvailable || undefined
+                    };
+                }
+            }
+            
+            return { isBooked: false };
+        } catch {
+            return { isBooked: false };
+        }
+    }, []);
+
     const processSelection = useCallback(async (option: ChatOption) => {
-        const shouldSimulateBooked = Math.random() < 0.3;
-        
         const userMsg: ChatMessage = {
             id: generateMessageId(),
             text: option.label,
@@ -617,9 +714,15 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
             setCurrentStep("recommendation");
             
             if (!bestMatch) {
+                let noMatchMessage = "";
+                if (currentBookingData.category === "FACILITY" && selectedAmenities.length > 0) {
+                    noMatchMessage = `No facilities match all of your selected requirements (${selectedAmenities.join(", ")}). Try removing some amenities or changing your filters. Would you like to try different options or start over?`;
+                } else {
+                    noMatchMessage = `I couldn't find any ${currentBookingData.category === "FACILITY" ? "facility" : "utility"} matching your requirements at this location. Would you like to try a different location or start over?`;
+                }
                 botMsg = {
                     id: generateMessageId(),
-                    text: `I couldn't find any ${currentBookingData.category === "FACILITY" ? "facility" : "utility"} matching your requirements at this location. Would you like to try a different location or start over?`,
+                    text: noMatchMessage,
                     sender: "bot",
                     timestamp: new Date(),
                     options: [
@@ -627,7 +730,9 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                     ],
                 };
             } else {
-                const isBooked = shouldSimulateBooked;
+                const resourceId = bestMatch.id || bestMatch._id || "";
+                const availability = await checkAvailability(resourceId, currentBookingData.date, currentBookingData.startTime, endTimeVal);
+                
                 const reason = buildRecommendationReason(bestMatch, {
                     category: currentBookingData.category,
                     type: currentBookingData.type,
@@ -636,8 +741,8 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                     amenities: selectedAmenities,
                 });
                 
-                if (isBooked) {
-                    const altOption = getSameCategoryAlternatives(resources, bestMatch.id || bestMatch._id || "", {
+                if (availability.isBooked) {
+                    const altOption = getSameCategoryAlternatives(resources, resourceId, {
                         category: currentBookingData.category,
                         type: currentBookingData.type,
                         location: currentBookingData.location,
@@ -645,24 +750,58 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                         amenities: selectedAmenities,
                     });
                     
+                    let conflictMessage = "This resource is already booked during the selected period.";
+                    if (availability.conflict) {
+                        conflictMessage = `This resource is already booked during the selected period. It is unavailable from ${availability.conflict.startTime} to ${availability.conflict.endTime}.`;
+                        if (availability.nextAvailable) {
+                            conflictMessage += ` You can book it after ${availability.nextAvailable} or choose another resource.`;
+                        } else {
+                            conflictMessage += " Please choose another time or select a different resource.";
+                        }
+                    }
+                    
                     botMsg = {
                         id: generateMessageId(),
-                        text: "This is the best match, but it is already booked for your selected time.",
+                        text: conflictMessage,
                         sender: "bot",
                         timestamp: new Date(),
                         resource: bestMatch,
                         recommendationReason: reason,
                         isBooked: true,
                         alternativeResource: altOption || undefined,
+                        conflictInfo: availability.conflict,
+                        nextAvailableTime: availability.nextAvailable,
                     };
                 } else {
+                    const missingAmenities = selectedAmenities.length > 0 && bestMatch.amenities 
+                        ? selectedAmenities.filter(a => !bestMatch.amenities!.map(am => am.toLowerCase()).includes(a.toLowerCase()))
+                        : [];
+                    const hasAllAmenities = missingAmenities.length === 0;
+                    
+                    const roomHasAmenities = bestMatch.amenities 
+                        ? bestMatch.amenities.join(", ") 
+                        : "no specific amenities";
+                    
+                    let messageText = "";
+                    let needsConfirmation = false;
+                    
+                    if (!hasAllAmenities && selectedAmenities.length > 0) {
+                        needsConfirmation = true;
+                        messageText = `This room only has ${roomHasAmenities}. ${missingAmenities.join(", ")} ${missingAmenities.length === 1 ? "is" : "are"} not available. Are you okay with this option?`;
+                    } else {
+                        messageText = "Perfect! Here's the best option for you:";
+                    }
+                    
                     botMsg = {
                         id: generateMessageId(),
-                        text: "Perfect! Here's the best option for you:",
+                        text: messageText,
                         sender: "bot",
                         timestamp: new Date(),
                         resource: bestMatch,
                         recommendationReason: reason,
+                        missingAmenities: missingAmenities,
+                        needsConfirmation: needsConfirmation,
+                        hasAllAmenities: hasAllAmenities,
                     };
                 }
             }
@@ -683,17 +822,62 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                 resetConversation();
                 setIsTyping(false);
                 return;
-            } else if (option.value === "view_alternative") {
+            } else if (option.value === "confirm_continue") {
                 const lastMsg = messages[messages.length - 1];
-                const altResource = lastMsg?.alternativeResource;
-                if (!altResource) {
+                if (lastMsg?.resource) {
                     botMsg = {
                         id: generateMessageId(),
-                        text: "No alternative available.",
+                        text: "Great! You can proceed with booking this room.",
+                        sender: "bot",
+                        timestamp: new Date(),
+                        resource: lastMsg.resource,
+                        hasAllAmenities: true,
+                    };
+                } else {
+                    botMsg = {
+                        id: generateMessageId(),
+                        text: "Going back is not supported. Please start again to make a new request.",
                         sender: "bot",
                         timestamp: new Date(),
                         options: [{ label: "Start over", value: "start" }],
                     };
+                }
+            } else if (option.value === "view_alternative") {
+                const lastMsg = messages[messages.length - 1];
+                const altResource = lastMsg?.alternativeResource;
+                if (!altResource) {
+                    const alternatives = getSameCategoryAlternatives(resources, lastMsg?.resource?.id || lastMsg?.resource?._id || "", {
+                        category: currentBookingData.category,
+                        type: currentBookingData.type,
+                        location: currentBookingData.location,
+                        capacity: currentBookingData.capacity,
+                        amenities: selectedAmenities,
+                    });
+                    if (alternatives) {
+                        const reason = buildRecommendationReason(alternatives, {
+                            category: currentBookingData.category,
+                            type: currentBookingData.type,
+                            location: currentBookingData.location,
+                            capacityLabel: currentBookingData.capacityLabel,
+                            amenities: selectedAmenities,
+                        });
+                        botMsg = {
+                            id: generateMessageId(),
+                            text: "Here's an alternative that's available:",
+                            sender: "bot",
+                            timestamp: new Date(),
+                            resource: alternatives,
+                            recommendationReason: reason,
+                        };
+                    } else {
+                        botMsg = {
+                            id: generateMessageId(),
+                            text: "No exact match was found. Here are the closest available options. Would you like to start over or try different filters?",
+                            sender: "bot",
+                            timestamp: new Date(),
+                            options: [{ label: "Start over", value: "start" }],
+                        };
+                    }
                 } else {
                     const reason = buildRecommendationReason(altResource, {
                         category: currentBookingData.category,
@@ -783,11 +967,37 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
     };
 
     const handleViewDetails = (resource: Resource) => {
-        onViewResource(resource);
+        const prefillData: PrefillData = {
+            date: bookingData.date,
+            startTime: bookingData.startTime,
+            endTime: bookingData.endTime,
+            capacity: bookingData.capacity,
+            category: bookingData.category,
+            type: bookingData.type,
+            location: bookingData.location,
+            amenities: bookingData.amenities,
+            userId: currentUser?.id,
+            userName: currentUser?.name,
+            userEmail: currentUser?.email,
+        };
+        onViewResource(resource, bookingData, prefillData);
     };
 
     const handleBookNow = (resource: Resource) => {
-        onBookResource(resource, bookingData);
+        const prefillData: PrefillData = {
+            date: bookingData.date,
+            startTime: bookingData.startTime,
+            endTime: bookingData.endTime,
+            capacity: bookingData.capacity,
+            category: bookingData.category,
+            type: bookingData.type,
+            location: bookingData.location,
+            amenities: bookingData.amenities,
+            userId: currentUser?.id,
+            userName: currentUser?.name,
+            userEmail: currentUser?.email,
+        };
+        onBookResource(resource, bookingData, prefillData);
     };
 
     const handleStartOver = () => {
@@ -807,41 +1017,57 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
 
     if (!isOpen) return null;
 
+    const isFirstMessage = messages.length === 1 && messages[0]?.sender === "bot";
+
     return (
-        <div className="fixed bottom-24 right-6 w-96 max-w-[calc(100vw-3rem)] h-[500px] max-h-[70vh] bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl flex flex-col overflow-hidden z-50">
-            <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-cyan-600 to-blue-600">
+        <div className="fixed bottom-24 right-6 w-[380px] max-w-[calc(100vw-2rem)] h-[580px] max-h-[75vh] bg-gradient-to-b from-slate-50 to-white rounded-3xl shadow-2xl border border-slate-200/60 flex flex-col overflow-hidden z-50">
+            <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-slate-100 rounded-t-3xl">
                 <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-                        <Bot className="w-5 h-5 text-white" />
+                    <div className="relative">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-md">
+                            <Bot className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white"></div>
                     </div>
                     <div>
-                        <h3 className="font-semibold text-white">Smart Booking</h3>
-                        <p className="text-xs text-white/70">Step-by-step assistant</p>
+                        <h3 className="font-semibold text-slate-800 text-sm">FitFinder</h3>
+                        <p className="text-xs text-slate-400">Smart facility assistant</p>
                     </div>
                 </div>
-                <button onClick={onClose} className="p-2 rounded-full hover:bg-white/20 transition-colors">
-                    <X className="w-5 h-5 text-white" />
+                <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 transition-colors">
+                    <X className="w-5 h-5 text-slate-400" />
                 </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-transparent">
+                {isFirstMessage && (
+                    <div className="flex flex-col items-center justify-center py-6 mb-2">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-lg mb-4">
+                            <Bot className="w-8 h-8 text-white" />
+                        </div>
+                        <h2 className="text-lg font-semibold text-slate-800 mb-1">Hi, I'm FitFinder 👋</h2>
+                        <p className="text-sm text-slate-500 text-center px-4">I help you find the best-fit facility for your needs.</p>
+                    </div>
+                )}
+
                 {messages.map((msg) => (
-                    <div key={msg.id}>
+                    <div key={msg.id} className="animate-fade-in">
                         <div className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-                            <div className={`flex items-end gap-2 max-w-[90%] ${msg.sender === "user" ? "flex-row-reverse" : "flex-row"}`}>
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                                    msg.sender === "user" ? "bg-indigo-500" : "bg-cyan-500"
-                                }`}>
-                                    {msg.sender === "user" ? (
-                                        <User className="w-4 h-4 text-white" />
-                                    ) : (
-                                        <Bot className="w-4 h-4 text-white" />
-                                    )}
-                                </div>
-                                <div className={`px-4 py-2.5 rounded-2xl text-sm ${
+                            <div className={`flex items-end gap-2 max-w-[85%] ${msg.sender === "user" ? "flex-row-reverse" : "flex-row"}`}>
+                                {msg.sender === "bot" && !isFirstMessage && (
+                                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shrink-0 shadow-sm">
+                                        <Bot className="w-3.5 h-3.5 text-white" />
+                                    </div>
+                                )}
+                                {msg.sender === "user" && (
+                                    <div className="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center shrink-0 shadow-sm">
+                                        <User className="w-3.5 h-3.5 text-white" />
+                                    </div>
+                                )}
+                                <div className={`px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
                                     msg.sender === "user"
-                                        ? "bg-indigo-500 text-white rounded-br-md"
-                                        : "bg-slate-700 text-slate-100 rounded-bl-md"
+                                        ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-br-md"
+                                        : "bg-white text-slate-700 rounded-bl-md border border-slate-100"
                                 }`}>
                                     {msg.text}
                                 </div>
@@ -849,13 +1075,13 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                         </div>
 
                         {msg.options && msg.options.length > 0 && !msg.isStartTimePicker && !msg.isEndTimePicker && (
-                            <div className="mt-3 ml-10 flex flex-wrap gap-2">
+                            <div className="mt-3 ml-9 flex flex-wrap gap-2">
                                 {msg.options.map((opt, idx) => (
                                     <button
                                         key={idx}
                                         onClick={() => processSelection(opt)}
                                         disabled={isTyping}
-                                        className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+                                        className="px-4 py-2 bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-slate-700 text-sm font-medium rounded-full transition-all disabled:opacity-50 shadow-sm hover:shadow-md"
                                     >
                                         {opt.label}
                                     </button>
@@ -864,7 +1090,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                         )}
 
                         {msg.isLocationPicker && (
-                            <div className="mt-3 ml-10">
+                            <div className="mt-3 ml-9">
                                 {locationOptions.length > 0 ? (
                                     <div className="grid grid-cols-1 gap-2">
                                         {locationOptions.map((opt, idx) => (
@@ -872,30 +1098,30 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                                                 key={idx}
                                                 onClick={() => processSelection(opt)}
                                                 disabled={isTyping}
-                                                className="text-left px-4 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-3"
+                                                className="text-left px-4 py-3 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-xl transition-all disabled:opacity-50 flex items-center gap-3 shadow-sm"
                                             >
-                                                <MapPinned className="w-5 h-5 text-slate-400" />
+                                                <MapPinned className="w-5 h-5 text-indigo-400" />
                                                 <div>
-                                                    <div className="font-medium text-white">{opt.label}</div>
+                                                    <div className="font-medium text-slate-700">{opt.label}</div>
                                                 </div>
                                             </button>
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="text-sm text-slate-400">No locations found. Please try again later.</div>
+                                    <div className="text-sm text-slate-400 bg-white/50 px-4 py-2 rounded-lg">No locations found. Please try again later.</div>
                                 )}
                             </div>
                         )}
 
                         {msg.isDatePicker && (
-                            <div className="mt-3 ml-10">
+                            <div className="mt-3 ml-9">
                                 <div className="flex flex-wrap gap-2">
                                     {getNextSevenDays().map((opt, idx) => (
                                         <button
                                             key={idx}
                                             onClick={() => handleDateSelect(opt.value)}
                                             disabled={isTyping}
-                                            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                                            className="px-3 py-2 bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-slate-600 text-sm rounded-lg transition-all disabled:opacity-50 shadow-sm"
                                         >
                                             {opt.label}
                                         </button>
@@ -905,14 +1131,14 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                         )}
 
                         {msg.isStartTimePicker && (
-                            <div className="mt-3 ml-10">
+                            <div className="mt-3 ml-9">
                                 <div className="flex flex-wrap gap-2">
                                     {TIME_SLOTS.map((time, idx) => (
                                         <button
                                             key={idx}
                                             onClick={() => handleStartTimeSelect(time)}
                                             disabled={isTyping}
-                                            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                                            className="px-3 py-2 bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-slate-600 text-sm rounded-lg transition-all disabled:opacity-50 shadow-sm"
                                         >
                                             {time}
                                         </button>
@@ -922,9 +1148,9 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                         )}
 
                         {msg.isEndTimePicker && (
-                            <div className="mt-3 ml-10">
+                            <div className="mt-3 ml-9">
                                 {timeError && (
-                                    <div className="mb-2 px-3 py-2 bg-red-500/20 border border-red-500/30 rounded-lg text-sm text-red-400 flex items-center gap-2">
+                                    <div className="mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-500 flex items-center gap-2">
                                         <AlertTriangle className="w-4 h-4" />
                                         {timeError}
                                     </div>
@@ -935,7 +1161,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                                             key={idx}
                                             onClick={() => handleEndTimeSelect(time)}
                                             disabled={isTyping}
-                                            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                                            className="px-3 py-2 bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-slate-600 text-sm rounded-lg transition-all disabled:opacity-50 shadow-sm"
                                         >
                                             {time}
                                         </button>
@@ -945,13 +1171,13 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                         )}
 
                         {msg.isCapacityPicker && (
-                            <div className="mt-3 ml-10 flex flex-wrap gap-2">
+                            <div className="mt-3 ml-9 flex flex-wrap gap-2">
                                 {CAPACITY_OPTIONS.map((opt, idx) => (
                                     <button
                                         key={idx}
                                         onClick={() => processSelection(opt)}
                                         disabled={isTyping}
-                                        className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                                        className="px-3 py-2 bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-slate-600 text-sm rounded-lg transition-all disabled:opacity-50 shadow-sm"
                                     >
                                         {opt.label}
                                     </button>
@@ -960,17 +1186,17 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                         )}
 
                         {msg.isAmenityPicker && (
-                            <div className="mt-3 ml-10">
+                            <div className="mt-3 ml-9">
                                 <div className="flex flex-wrap gap-2 mb-3">
                                     {AMENITY_OPTIONS.map((opt, idx) => (
                                         <button
                                             key={idx}
                                             onClick={() => handleAmenityToggle(opt.value)}
                                             disabled={isTyping}
-                                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors disabled:opacity-50 ${
+                                            className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm transition-all disabled:opacity-50 shadow-sm ${
                                                 selectedAmenities.includes(opt.value)
-                                                    ? "bg-cyan-500 text-white"
-                                                    : "bg-slate-700 hover:bg-slate-600 text-slate-300"
+                                                    ? "bg-indigo-500 text-white"
+                                                    : "bg-white border border-slate-200 hover:border-indigo-300 text-slate-600"
                                             }`}
                                         >
                                             {selectedAmenities.includes(opt.value) ? (
@@ -985,7 +1211,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                                 <button
                                     onClick={() => processSelection({ label: "Continue", value: "continue" })}
                                     disabled={isTyping}
-                                    className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+                                    className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white text-sm font-medium rounded-full transition-all disabled:opacity-50 shadow-md hover:shadow-lg"
                                 >
                                     {selectedAmenities.length > 0 ? `Continue (${selectedAmenities.length} selected)` : "Continue without amenities"}
                                 </button>
@@ -993,16 +1219,16 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                         )}
 
                         {msg.isTypePicker && (
-                            <div className="mt-3 ml-10">
+                            <div className="mt-3 ml-9">
                                 <div className="grid grid-cols-1 gap-2">
                                     {FACILITY_TYPES.map((opt, idx) => (
                                         <button
                                             key={idx}
                                             onClick={() => processSelection(opt)}
                                             disabled={isTyping}
-                                            className="text-left px-4 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl transition-colors disabled:opacity-50"
+                                            className="text-left px-4 py-3 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-xl transition-all disabled:opacity-50 shadow-sm"
                                         >
-                                            <div className="font-medium text-white">{opt.label}</div>
+                                            <div className="font-medium text-slate-700">{opt.label}</div>
                                             {opt.description && (
                                                 <div className="text-xs text-slate-400">{opt.description}</div>
                                             )}
@@ -1013,16 +1239,16 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                         )}
 
                         {msg.isUtilityTypePicker && (
-                            <div className="mt-3 ml-10">
+                            <div className="mt-3 ml-9">
                                 <div className="grid grid-cols-1 gap-2">
                                     {UTILITY_TYPES.map((opt, idx) => (
                                         <button
                                             key={idx}
                                             onClick={() => processSelection(opt)}
                                             disabled={isTyping}
-                                            className="text-left px-4 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl transition-colors disabled:opacity-50"
+                                            className="text-left px-4 py-3 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-xl transition-all disabled:opacity-50 shadow-sm"
                                         >
-                                            <div className="font-medium text-white">{opt.label}</div>
+                                            <div className="font-medium text-slate-700">{opt.label}</div>
                                             {opt.description && (
                                                 <div className="text-xs text-slate-400">{opt.description}</div>
                                             )}
@@ -1033,95 +1259,144 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                         )}
 
                         {msg.resource && (
-                            <div className="mt-3 ml-10">
-                                <div className="bg-slate-700/50 rounded-xl border border-slate-600/30 overflow-hidden">
+                            <div className="mt-3 ml-9">
+                                <div className="bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden">
                                     {msg.isBooked && (
-                                        <div className="px-4 py-3 bg-amber-500/20 border-b border-amber-500/30 flex items-center gap-2">
-                                            <AlertTriangle className="w-5 h-5 text-amber-400" />
-                                            <span className="text-sm text-amber-400">This option is booked for your selected time</span>
+                                        <div className="px-4 py-3 bg-amber-50 border-b border-amber-100">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                                                <span className="text-sm font-medium text-amber-700">
+                                                    Already booked for your time
+                                                </span>
+                                            </div>
+                                            {msg.conflictInfo && (
+                                                <div className="text-xs text-amber-600 mb-1">
+                                                    Booked: {msg.conflictInfo.startTime} - {msg.conflictInfo.endTime}
+                                                </div>
+                                            )}
+                                            {msg.nextAvailableTime && (
+                                                <div className="text-xs text-indigo-600">
+                                                    Available after {msg.nextAvailableTime}. You can book then or choose another resource.
+                                                </div>
+                                            )}
+                                            {!msg.nextAvailableTime && (
+                                                <div className="text-xs text-amber-600">
+                                                    Please choose another time or select a different resource.
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    
+                                    {msg.needsConfirmation && msg.missingAmenities && msg.missingAmenities.length > 0 && (
+                                        <div className="px-4 py-3 bg-orange-50 border-b border-orange-100">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <AlertTriangle className="w-5 h-5 text-orange-500" />
+                                                <span className="text-sm font-medium text-orange-700">
+                                                    Not all amenities available
+                                                </span>
+                                            </div>
+                                            <div className="text-xs text-orange-600">
+                                                Missing: {msg.missingAmenities.join(", ")}
+                                            </div>
                                         </div>
                                     )}
                                     
                                     <div className="p-4">
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="flex items-center gap-2">
-                                                <Sparkles className="w-5 h-5 text-cyan-400" />
-                                                <span className="text-sm font-semibold text-cyan-400">Best option for you</span>
+                                                <Sparkles className="w-5 h-5 text-indigo-500" />
+                                                <span className="text-sm font-semibold text-indigo-600">
+                                                    {msg.hasAllAmenities ? "Best option for you" : "Partial match"}
+                                                </span>
                                             </div>
-                                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                                                 msg.resource.status === "ACTIVE" 
-                                                    ? "bg-emerald-500/20 text-emerald-400" 
-                                                    : "bg-red-500/20 text-red-400"
+                                                    ? "bg-emerald-50 text-emerald-600 border border-emerald-200" 
+                                                    : "bg-red-50 text-red-600 border border-red-200"
                                             }`}>
                                                 {msg.resource.status === "ACTIVE" ? "Available" : msg.resource.status}
                                             </span>
                                         </div>
                                         
-                                        <h4 className="text-lg font-bold text-white mb-1">
+                                        <h4 className="text-base font-bold text-slate-800 mb-1">
                                             {msg.resource.resourceName || msg.resource.name}
                                         </h4>
-                                        <div className="text-xs text-slate-400 mb-2">
+                                        <div className="text-xs text-slate-400 mb-3">
                                             {formatType(msg.resource.resourceType || msg.resource.type || "")} • {msg.resource.category}
                                         </div>
                                         
-                                        <div className="flex items-center gap-2 text-sm text-slate-300 mb-3">
-                                            <MapPin className="w-4 h-4 text-slate-500" />
+                                        <div className="flex items-center gap-2 text-sm text-slate-600 mb-3">
+                                            <MapPin className="w-4 h-4 text-slate-400" />
                                             <span>{getLocationDisplay(msg.resource)}</span>
                                         </div>
                                         
                                         {msg.recommendationReason && (
-                                            <div className="text-sm text-slate-300 mb-3 italic">
+                                            <div className="text-sm text-slate-500 mb-3 italic bg-slate-50 px-3 py-2 rounded-lg">
                                                 &quot;{msg.recommendationReason}&quot;
                                             </div>
                                         )}
                                         
-                                        <div className="space-y-2 text-sm">
-                                            <div className="flex items-center gap-2 text-slate-300">
-                                                <Calendar className="w-4 h-4 text-slate-500" />
+                                        <div className="space-y-2 text-sm bg-slate-50 p-3 rounded-xl">
+                                            <div className="flex items-center gap-2 text-slate-600">
+                                                <Calendar className="w-4 h-4 text-slate-400" />
                                                 <span>{bookingData.date}</span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-slate-300">
-                                                <Clock className="w-4 h-4 text-slate-500" />
+                                            <div className="flex items-center gap-2 text-slate-600">
+                                                <Clock className="w-4 h-4 text-slate-400" />
                                                 <span>{bookingData.startTime} - {bookingData.endTime}</span>
                                             </div>
                                             {msg.resource.category === "FACILITY" && (
-                                                <div className="flex items-center gap-2 text-slate-300">
-                                                    <Users className="w-4 h-4 text-slate-500" />
+                                                <div className="flex items-center gap-2 text-slate-600">
+                                                    <Users className="w-4 h-4 text-slate-400" />
                                                     <span>Capacity: {msg.resource.capacity || "N/A"}</span>
                                                 </div>
                                             )}
                                         </div>
                                         
                                         {msg.resource.description && (
-                                            <div className="mt-3 text-sm text-slate-400">
+                                            <div className="mt-3 text-sm text-slate-500">
                                                 {msg.resource.description}
                                             </div>
                                         )}
                                     </div>
                                     
                                     {msg.resource && (
-                                    <div className="p-4 pt-0 flex gap-2">
-                                        {(() => {
-                                            const resource = msg.resource;
-                                            return (
-                                                <>
-                                                    <button
-                                                        onClick={() => handleViewDetails(resource)}
-                                                        className="flex-1 px-3 py-2.5 bg-slate-600 hover:bg-slate-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-                                                    >
-                                                        <Users className="w-4 h-4" />
-                                                        View Details
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleBookNow(resource)}
-                                                        className="flex-1 px-3 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-                                                    >
-                                                        <Calendar className="w-4 h-4" />
-                                                        Book Now
-                                                    </button>
-                                                </>
-                                            );
-                                        })()}
+                                    <div className="p-4 pt-0 flex gap-2 flex-col">
+                                        {msg.needsConfirmation ? (
+                                            <div className="space-y-2">
+                                                <button
+                                                    onClick={() => processSelection({ label: "Continue with this room", value: "confirm_continue" })}
+                                                    className="w-full px-3 py-2.5 bg-orange-100 hover:bg-orange-200 border border-orange-300 text-orange-700 text-sm font-medium rounded-xl transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    <CheckCircle className="w-4 h-4" />
+                                                    Continue Anyway
+                                                </button>
+                                                <button
+                                                    onClick={() => processSelection({ label: "Show available alternatives", value: "view_alternative" })}
+                                                    className="w-full px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-xl transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    <ArrowRight className="w-4 h-4" />
+                                                    Show Available Alternatives
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => msg.resource && handleViewDetails(msg.resource)}
+                                                    className="flex-1 px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-xl transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    <Users className="w-4 h-4" />
+                                                    Details
+                                                </button>
+                                                <button
+                                                    onClick={() => msg.resource && handleBookNow(msg.resource)}
+                                                    className="flex-1 px-3 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white text-sm font-medium rounded-xl transition-all flex items-center justify-center gap-2 shadow-md"
+                                                >
+                                                    <Calendar className="w-4 h-4" />
+                                                    Book Now
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                     )}
                                     
@@ -1129,7 +1404,7 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                                         <div className="p-4 pt-0">
                                             <button
                                                 onClick={() => processSelection({ label: "View alternative", value: "view_alternative" })}
-                                                className="w-full px-3 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                className="w-full px-3 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 text-sm font-medium rounded-xl transition-all flex items-center justify-center gap-2"
                                             >
                                                 <ArrowRight className="w-4 h-4" />
                                                 Show available alternative
@@ -1145,11 +1420,11 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
                 {isTyping && (
                     <div className="flex justify-start">
                         <div className="flex items-end gap-2">
-                            <div className="w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center shrink-0">
-                                <Bot className="w-4 h-4 text-white" />
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shrink-0 shadow-sm">
+                                <Bot className="w-3.5 h-3.5 text-white" />
                             </div>
-                            <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-slate-700">
-                                <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
+                            <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-white border border-slate-100 shadow-sm">
+                                <Loader2 className="w-5 h-5 text-indigo-500 animate-spin" />
                             </div>
                         </div>
                     </div>
@@ -1159,13 +1434,13 @@ export default function SmartBookingChatbot({ isOpen, onClose, onViewResource, o
             </div>
 
             {messages.length > 1 && (
-                <div className="px-4 py-2 border-t border-slate-700">
+                <div className="px-4 py-2.5 border-t border-slate-100 bg-white/80">
                     <button
                         onClick={handleStartOver}
                         disabled={isTyping}
-                        className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-indigo-500 transition-colors disabled:opacity-50"
                     >
-                        <RotateCcw className="w-4 h-4" />
+                        <RotateCcw className="w-3.5 h-3.5" />
                         Start Over
                     </button>
                 </div>

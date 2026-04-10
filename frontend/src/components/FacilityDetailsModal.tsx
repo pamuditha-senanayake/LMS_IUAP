@@ -48,6 +48,20 @@ interface FacilityDetailsModalProps {
     resource: Resource;
     isOpen: boolean;
     onClose: () => void;
+    prefillData?: {
+        date?: string;
+        startTime?: string;
+        endTime?: string;
+        capacity?: number;
+        category?: string;
+        type?: string;
+        location?: string;
+        amenities?: string[];
+        purpose?: string;
+        userId?: string;
+        userName?: string;
+        userEmail?: string;
+    };
 }
 
 const formatType = (type: string): string => {
@@ -66,7 +80,7 @@ const UTILITY_TYPES = [
     "PROJECTOR", "SOUND_SYSTEM", "MICROPHONE", "WHITEBOARD", "FLAGS", "OTHER"
 ];
 
-export default function FacilityDetailsModal({ resource, isOpen, onClose }: FacilityDetailsModalProps) {
+export default function FacilityDetailsModal({ resource, isOpen, onClose, prefillData }: FacilityDetailsModalProps) {
     const router = useRouter();
     const resourceId = resource.id || resource._id;
     const resourceName = resource.resourceName || resource.name || "Unnamed Resource";
@@ -123,8 +137,36 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
             setAttendees(1);
             setSupportNotes("");
             setQuantity(1);
+        } else if (prefillData) {
+            if (prefillData.date) {
+                setSelectedDate(prefillData.date);
+            }
+            if (prefillData.startTime) {
+                setSelectedStartTime(prefillData.startTime);
+            }
+            if (prefillData.endTime) {
+                setSelectedEndTime(prefillData.endTime);
+            }
+            if (prefillData.capacity) {
+                setAttendees(prefillData.capacity);
+            }
+            if (prefillData.purpose) {
+                setPurpose(prefillData.purpose);
+            }
+            if (prefillData.category) {
+                // category stored for reference but not directly used in form
+            }
+            if (prefillData.type) {
+                // type stored for reference but not directly used in form
+            }
+            if (prefillData.location) {
+                // location stored for reference but not directly used in form
+            }
+            if (prefillData.amenities && prefillData.amenities.length > 0) {
+                // amenities stored for reference but not directly used in form
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, prefillData]);
 
     const getLocationDisplay = () => {
         if (!isUtility) {
@@ -180,6 +222,19 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
         return end > start;
     };
 
+    const isTimeSlotAvailable = (): boolean => {
+        if (!selectedDate || !selectedStartTime || !selectedEndTime) return true;
+        const bookedSlots = getBookedSlotsForDate(selectedDate);
+        const startHour = parseInt(selectedStartTime.split(':')[0]);
+        const endHour = parseInt(selectedEndTime.split(':')[0]);
+        
+        return !bookedSlots.some(slot => {
+            const bookedStart = parseInt(slot.start.split(':')[0]);
+            const bookedEnd = parseInt(slot.end.split(':')[0]);
+            return startHour < bookedEnd && endHour > bookedStart;
+        });
+    };
+
     const canBook = isAvailable && !isOutOfService;
 
     const handleBook = async () => {
@@ -198,25 +253,51 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose }: Faci
             return;
         }
 
+        if (!isTimeSlotAvailable()) {
+            Swal.fire({
+                title: "Time Slot Unavailable",
+                html: `
+                    <div class="text-left">
+                        <p class="mb-2">This resource is already booked for the selected time.</p>
+                        <p class="text-sm text-gray-400">Please choose another time or select a different resource.</p>
+                    </div>
+                `,
+                icon: "error",
+                confirmButtonText: "Choose Another Time"
+            });
+            return;
+        }
+
         setIsBooking(true);
         try {
-            const storedUser = localStorage.getItem("user");
-            if (!storedUser) {
-                Swal.fire("Error", "Please log in to make a booking", "error");
-                return;
+            let userId: string;
+            let userName: string;
+            let userEmail: string;
+            
+            if (prefillData?.userId && prefillData?.userName && prefillData?.userEmail) {
+                userId = prefillData.userId;
+                userName = prefillData.userName;
+                userEmail = prefillData.userEmail;
+            } else {
+                const storedUser = localStorage.getItem("user");
+                if (!storedUser) {
+                    Swal.fire("Error", "Please log in to make a booking", "error");
+                    return;
+                }
+                const user = JSON.parse(storedUser);
+                userId = user.userId || user.id;
+                userName = user.name || user.fullName;
+                userEmail = user.email;
             }
-            const user = JSON.parse(storedUser);
 
             const startDateTime = `${selectedDate}T${selectedStartTime}:00`;
             const endDateTime = `${selectedDate}T${selectedEndTime}:00`;
 
             const bookingData: any = {
                 resourceId: resourceId,
-                requestedBy: {
-                    userId: user.userId || user.id,
-                    name: user.name || user.fullName,
-                    email: user.email
-                },
+                requestedByUserId: userId,
+                requestedByName: userName,
+                requestedByEmail: userEmail,
                 purpose: purpose,
                 startTime: startDateTime,
                 endTime: endDateTime,

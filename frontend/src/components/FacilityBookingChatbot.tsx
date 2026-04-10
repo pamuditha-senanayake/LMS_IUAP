@@ -57,7 +57,16 @@ interface FacilityBookingChatbotProps {
     isOpen: boolean;
     onClose: () => void;
     onViewResource: (resource: Resource) => void;
-    onBookResource: (resource: Resource) => void;
+    onBookResource: (resource: Resource, prefillData?: {
+        date?: string;
+        startTime?: string;
+        endTime?: string;
+        capacity?: number;
+        category?: string;
+        type?: string;
+        location?: string;
+        purpose?: string;
+    }) => void;
     resources: Resource[];
 }
 
@@ -92,7 +101,7 @@ export default function FacilityBookingChatbot({ isOpen, onClose, onViewResource
     const startConversation = useCallback(() => {
         const welcomeMsg: ChatMessage = {
             id: generateMessageId(),
-            text: "Hi! I'm your Booking Assistant. Let me help you find and book a resource. What would you like to book?",
+            text: "Hi! I'm FitFinder. Let me help you find and book a resource. What would you like to book?",
             sender: "bot",
             timestamp: new Date(),
             options: [
@@ -235,8 +244,11 @@ export default function FacilityBookingChatbot({ isOpen, onClose, onViewResource
     }, [onViewResource]);
 
     const handleBookNow = useCallback((resource: Resource) => {
-        onBookResource(resource);
-    }, [onBookResource]);
+        onBookResource(resource, {
+            category: selectedCategory,
+            type: selectedType,
+        });
+    }, [onBookResource, selectedCategory, selectedType]);
 
     const handleStartOver = useCallback(() => {
         setIsTyping(true);
