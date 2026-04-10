@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Swal from "sweetalert2";
 
 export default function AdminTickets() {
@@ -15,16 +15,22 @@ export default function AdminTickets() {
         search: ''
     });
     const [resources, setResources] = useState<any[]>([]);
+    const resourcesRef = useRef(resources);
+    
+    useEffect(() => {
+        resourcesRef.current = resources;
+    }, [resources]);
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
     const fetchTickets = useCallback(async (resourceData?: any[]) => {
-        if (resourceData === undefined) {
-            resourceData = resources;
-        }
-        setRefreshing(true);
+        const currentResources = resourceData !== undefined ? resourceData : resourcesRef.current;
         
         try {
+            if (resourceData === undefined) {
+                setRefreshing(true);
+            }
+            
             const res = await fetch(`${apiUrl}/api/tickets`, { credentials: "include" });
             if (res.ok) {
                 const data = await res.json();
@@ -35,7 +41,7 @@ export default function AdminTickets() {
                 const ticketsWithAttachments = await Promise.all(
                     sortedTickets.map(async (ticket: any) => {
                         const attRes = await fetch(`${apiUrl}/api/tickets/${ticket.id}/attachments`, { credentials: "include" });
-                        const resourceDisplay = (resourceData || []).find((r: any) => r.id === ticket.resourceId);
+                        const resourceDisplay = currentResources.find((r: any) => r.id === ticket.resourceId);
                         return { 
                             ...ticket, 
                             attachments: attRes.ok ? await attRes.json() : [],
@@ -53,7 +59,7 @@ export default function AdminTickets() {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [apiUrl, resources]);
+    }, [apiUrl]);
 
     useEffect(() => {
         const fetchResources = async () => {
