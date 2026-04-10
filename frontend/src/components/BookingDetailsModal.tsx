@@ -171,159 +171,161 @@ export default function BookingDetailsModal({ isOpen, onClose, bookingId, onCanc
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
-              {activeTab === "details" ? (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-sm font-medium text-slate-400 mb-1">Resource</h3>
-                        <p className="text-white font-medium">{booking.resourceName || booking.resourceId}</p>
-                        {booking.resourceType && <p className="text-sm text-slate-400">{booking.resourceType}</p>}
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-medium text-slate-400 mb-1">Location</h3>
-                        <p className="text-white">{booking.resourceLocation || "N/A"}</p>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-medium text-slate-400 mb-1">Capacity</h3>
-                        <p className="text-white">{booking.resourceCapacity || "N/A"}</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-sm font-medium text-slate-400 mb-1">Schedule</h3>
-                        <div className="flex items-center gap-2 text-white">
-                          <Calendar size={16} className="text-slate-400" />
-                          <span>{new Date(booking.startTime).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-white mt-1">
-                          <Clock size={16} className="text-slate-400" />
-                          <span>
-                            {new Date(booking.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                            {" - "}
-                            {new Date(booking.endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                          </span>
-                        </div>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-medium text-slate-400 mb-1">Attendees</h3>
-                        <div className="flex items-center gap-2 text-white">
-                          <Users size={16} className="text-slate-400" />
-                          <span>{booking.expectedAttendees}</span>
-                        </div>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-medium text-slate-400 mb-1">Type</h3>
-                        <p className="text-white">{booking.type}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-medium text-slate-400 mb-1">Purpose</h3>
-                    <p className="text-white">{booking.purpose}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-slate-800/50 rounded-xl">
-                      <h3 className="text-sm font-medium text-slate-400 mb-2">Requested By</h3>
-                      <div className="flex items-center gap-2">
-                        <User size={16} className="text-slate-400" />
+            <div className="overflow-y-auto max-h-[calc(90vh-200px)]">
+              <div className="p-6">
+                {activeTab === "details" ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-4">
                         <div>
-                          <p className="text-white font-medium">{booking.requestedBy?.name || "N/A"}</p>
-                          <p className="text-xs text-slate-400">{booking.requestedBy?.email}</p>
+                          <h3 className="text-sm font-medium text-slate-400 mb-1">Resource</h3>
+                          <p className="text-white font-medium">{booking.resourceName || booking.resourceId}</p>
+                          {booking.resourceType && <p className="text-sm text-slate-400">{booking.resourceType}</p>}
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium text-slate-400 mb-1">Location</h3>
+                          <p className="text-white">{booking.resourceLocation || "N/A"}</p>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium text-slate-400 mb-1">Capacity</h3>
+                          <p className="text-white">{booking.resourceCapacity || "N/A"}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="text-sm font-medium text-slate-400 mb-1">Schedule</h3>
+                          <div className="flex items-center gap-2 text-white">
+                            <Calendar size={16} className="text-slate-400" />
+                            <span>{new Date(booking.startTime).toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-white mt-1">
+                            <Clock size={16} className="text-slate-400" />
+                            <span>
+                              {new Date(booking.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              {" - "}
+                              {new Date(booking.endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium text-slate-400 mb-1">Attendees</h3>
+                          <div className="flex items-center gap-2 text-white">
+                            <Users size={16} className="text-slate-400" />
+                            <span>{booking.expectedAttendees}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium text-slate-400 mb-1">Type</h3>
+                          <p className="text-white">{booking.type}</p>
                         </div>
                       </div>
                     </div>
-                    {booking.reviewedBy && (
+
+                    <div>
+                      <h3 className="text-sm font-medium text-slate-400 mb-1">Purpose</h3>
+                      <p className="text-white">{booking.purpose}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="p-4 bg-slate-800/50 rounded-xl">
-                        <h3 className="text-sm font-medium text-slate-400 mb-2">Reviewed By</h3>
+                        <h3 className="text-sm font-medium text-slate-400 mb-2">Requested By</h3>
                         <div className="flex items-center gap-2">
                           <User size={16} className="text-slate-400" />
                           <div>
-                            <p className="text-white font-medium">{booking.reviewedBy.name}</p>
-                            <p className="text-xs text-slate-400">{booking.reviewedBy.email}</p>
+                            <p className="text-white font-medium">{booking.requestedBy?.name || "N/A"}</p>
+                            <p className="text-xs text-slate-400">{booking.requestedBy?.email}</p>
                           </div>
                         </div>
                       </div>
-                    )}
-                  </div>
-
-                  {booking.rejectionReason && (
-                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-                      <h3 className="text-sm font-medium text-red-400 mb-1">Rejection Reason</h3>
-                      <p className="text-white">{booking.rejectionReason}</p>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <h3 className="text-slate-400 mb-1">Created</h3>
-                      <p className="text-white">{formatDateTime(booking.createdAt)}</p>
-                    </div>
-                    {booking.approvedAt && (
-                      <div>
-                        <h3 className="text-slate-400 mb-1">Approved</h3>
-                        <p className="text-emerald-400">{formatDateTime(booking.approvedAt)}</p>
-                      </div>
-                    )}
-                    {booking.cancelledAt && (
-                      <div>
-                        <h3 className="text-slate-400 mb-1">Cancelled</h3>
-                        <p className="text-slate-400">{formatDateTime(booking.cancelledAt)}</p>
-                      </div>
-                    )}
-                    <div>
-                      <h3 className="text-slate-400 mb-1">Last Updated</h3>
-                      <p className="text-white">{formatDateTime(booking.updatedAt)}</p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {booking.history && booking.history.length > 0 ? (
-                    booking.history.map((entry, index) => (
-                      <div key={entry.id || index} className="relative pl-8 pb-6">
-                        {index !== booking.history.length - 1 && (
-                          <div className="absolute left-3 top-8 bottom-0 w-px bg-slate-700" />
-                        )}
-                        <div className="absolute left-0 top-1 p-1 bg-slate-800 rounded-full">
-                          {getHistoryIcon(entry.newStatus)}
-                        </div>
-                        <div className="bg-slate-800/50 rounded-xl p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-slate-400 line-through text-sm">{entry.oldStatus}</span>
-                              <span className="text-slate-400">→</span>
-                              <span className="text-white font-medium">{entry.newStatus}</span>
+                      {booking.reviewedBy && (
+                        <div className="p-4 bg-slate-800/50 rounded-xl">
+                          <h3 className="text-sm font-medium text-slate-400 mb-2">Reviewed By</h3>
+                          <div className="flex items-center gap-2">
+                            <User size={16} className="text-slate-400" />
+                            <div>
+                              <p className="text-white font-medium">{booking.reviewedBy.name}</p>
+                              <p className="text-xs text-slate-400">{booking.reviewedBy.email}</p>
                             </div>
-                            <span className="text-xs text-slate-500">{formatDateTime(entry.changedAt)}</span>
                           </div>
-                          <p className="text-sm text-slate-400">
-                            By <span className="text-white">{entry.changedByName || entry.changedById}</span>
-                          </p>
-                          {entry.note && (
-                            <p className="text-sm text-slate-300 mt-2 p-2 bg-slate-700/50 rounded-lg">
-                              {entry.note}
-                            </p>
-                          )}
                         </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center text-slate-400 py-8">
-                      <History size={32} className="mx-auto mb-2 opacity-50" />
-                      <p>No history available</p>
+                      )}
                     </div>
-                  )}
-                </div>
-              )}
+
+                    {booking.rejectionReason && (
+                      <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+                        <h3 className="text-sm font-medium text-red-400 mb-1">Rejection Reason</h3>
+                        <p className="text-white">{booking.rejectionReason}</p>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <h3 className="text-slate-400 mb-1">Created</h3>
+                        <p className="text-white">{formatDateTime(booking.createdAt)}</p>
+                      </div>
+                      {booking.approvedAt && (
+                        <div>
+                          <h3 className="text-slate-400 mb-1">Approved</h3>
+                          <p className="text-emerald-400">{formatDateTime(booking.approvedAt)}</p>
+                        </div>
+                      )}
+                      {booking.cancelledAt && (
+                        <div>
+                          <h3 className="text-slate-400 mb-1">Cancelled</h3>
+                          <p className="text-slate-400">{formatDateTime(booking.cancelledAt)}</p>
+                        </div>
+                      )}
+                      <div>
+                        <h3 className="text-slate-400 mb-1">Last Updated</h3>
+                        <p className="text-white">{formatDateTime(booking.updatedAt)}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {booking.history && booking.history.length > 0 ? (
+                      booking.history.map((entry, index) => (
+                        <div key={entry.id || index} className="relative pl-8 pb-6">
+                          {index !== booking.history.length - 1 && (
+                            <div className="absolute left-3 top-8 bottom-0 w-px bg-slate-700" />
+                          )}
+                          <div className="absolute left-0 top-1 p-1 bg-slate-800 rounded-full">
+                            {getHistoryIcon(entry.newStatus)}
+                          </div>
+                          <div className="bg-slate-800/50 rounded-xl p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-slate-400 line-through text-sm">{entry.oldStatus}</span>
+                                <span className="text-slate-400">→</span>
+                                <span className="text-white font-medium">{entry.newStatus}</span>
+                              </div>
+                              <span className="text-xs text-slate-500">{formatDateTime(entry.changedAt)}</span>
+                            </div>
+                            <p className="text-sm text-slate-400">
+                              By <span className="text-white">{entry.changedByName || entry.changedById}</span>
+                            </p>
+                            {entry.note && (
+                              <p className="text-sm text-slate-300 mt-2 p-2 bg-slate-700/50 rounded-lg">
+                                {entry.note}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center text-slate-400 py-8">
+                        <History size={32} className="mx-auto mb-2 opacity-50" />
+                        <p>No history available</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {(booking.status === "APPROVED" || booking.status === "PENDING") && onCancel && (
-              <div className="p-6 border-t border-slate-700 bg-slate-900">
+              <div className="p-4 border-t border-slate-700 bg-slate-900 rounded-b-2xl flex-shrink-0">
                 <button
                   onClick={onCancel}
                   className="w-full px-6 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-medium rounded-xl transition-colors"

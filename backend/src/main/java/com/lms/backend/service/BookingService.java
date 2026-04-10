@@ -281,7 +281,7 @@ public class BookingService {
         return updatedBooking;
     }
 
-    public Booking cancelBooking(String bookingId, String userId) {
+    public Booking cancelBooking(String bookingId, String userId, String reason) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
         
@@ -290,20 +290,31 @@ public class BookingService {
                     "Only APPROVED or PENDING bookings can be cancelled");
         }
         
-        if (booking.getRequestedBy() != null && 
+        boolean isAdmin = false;
+        try {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user != null && user.getRoles() != null && 
+                (user.getRoles().contains("ADMIN") || user.getRoles().contains("ROLE_ADMIN"))) {
+                isAdmin = true;
+            }
+        } catch (Exception ignored) {}
+        
+        if (!isAdmin && booking.getRequestedBy() != null && 
             !booking.getRequestedBy().getUserId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, 
                     "You can only cancel your own bookings");
         }
         
         String oldStatus = booking.getStatus();
+        String cancelReason = reason != null && !reason.trim().isEmpty() ? reason.trim() : "Cancelled by " + (isAdmin ? "admin" : "user");
+        
         booking.setStatus("CANCELLED");
         booking.setCancelledAt(LocalDateTime.now());
         booking.setUpdatedAt(LocalDateTime.now());
         
         Booking cancelledBooking = bookingRepository.save(booking);
         
-        createStatusHistory(bookingId, userId, oldStatus, "CANCELLED", "Cancelled by user");
+        createStatusHistory(bookingId, userId, oldStatus, "CANCELLED", cancelReason);
         
         return cancelledBooking;
     }

@@ -357,7 +357,7 @@ class BookingServiceTest {
             when(historyRepository.save(any(BookingStatusHistory.class)))
                     .thenReturn(BookingStatusHistory.builder().build());
 
-            Booking result = bookingService.cancelBooking("booking-1", "user-1");
+            Booking result = bookingService.cancelBooking("booking-1", "user-1", "Test cancellation");
 
             assertNotNull(result);
             assertEquals("CANCELLED", result.getStatus());
@@ -372,7 +372,7 @@ class BookingServiceTest {
             when(historyRepository.save(any(BookingStatusHistory.class)))
                     .thenReturn(BookingStatusHistory.builder().build());
 
-            Booking result = bookingService.cancelBooking("booking-1", "user-1");
+            Booking result = bookingService.cancelBooking("booking-1", "user-1", "Test cancellation");
 
             assertNotNull(result);
             assertEquals("CANCELLED", result.getStatus());
@@ -386,7 +386,7 @@ class BookingServiceTest {
 
             ResponseStatusException exception = assertThrows(
                     ResponseStatusException.class,
-                    () -> bookingService.cancelBooking("booking-1", "user-1")
+                    () -> bookingService.cancelBooking("booking-1", "user-1", "Test reason")
             );
 
             assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
@@ -401,7 +401,7 @@ class BookingServiceTest {
 
             ResponseStatusException exception = assertThrows(
                     ResponseStatusException.class,
-                    () -> bookingService.cancelBooking("booking-1", "other-user")
+                    () -> bookingService.cancelBooking("booking-1", "other-user", "Test reason")
             );
 
             assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());

@@ -143,7 +143,8 @@ export default function MyBookings() {
   const handleCancel = useCallback((booking: Booking) => {
     Swal.fire({
       title: "Cancel this booking?",
-      text: "This action cannot be undone.",
+      input: 'textarea',
+      inputPlaceholder: 'Reason for cancellation (required)...',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#ef4444',
@@ -151,12 +152,19 @@ export default function MyBookings() {
       confirmButtonText: 'Cancel Booking',
       background: '#1e293b',
       color: '#fff',
+      inputValidator: (value) => {
+        if (!value || value.trim() === '') {
+          return 'Please provide a reason for cancellation';
+        }
+        return null;
+      }
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
           const url = new URL(`${apiUrl}/api/bookings/${booking.id}/cancel`);
           url.searchParams.append("userId", currentUser?.id || "");
+          url.searchParams.append("reason", result.value || "Cancelled by user");
           
           const res = await fetch(url.toString(), {
             method: "POST",
@@ -327,7 +335,7 @@ export default function MyBookings() {
                           <div className="flex justify-end gap-2">
                             <button 
                               onClick={() => { setSelectedBooking(b.id); setShowDetailsModal(true); }}
-                              className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-slate-700 rounded-lg transition-colors"
+                              className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-all"
                               title="View Details"
                             >
                               <Eye size={16} />
@@ -336,14 +344,14 @@ export default function MyBookings() {
                               <>
                                 <button 
                                   onClick={() => { setEditBooking(b); setShowModal(true); }}
-                                  className="p-2 text-slate-400 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors"
+                                  className="p-2 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-lg transition-all"
                                   title="Edit"
                                 >
                                   <Edit size={16} />
                                 </button>
                                 <button 
                                   onClick={() => handleDelete(b)}
-                                  className="p-2 text-slate-400 hover:text-pink-400 hover:bg-slate-700 rounded-lg transition-colors"
+                                  className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all"
                                   title="Delete"
                                 >
                                   <Trash2 size={16} />

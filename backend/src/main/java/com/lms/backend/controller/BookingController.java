@@ -99,8 +99,9 @@ public class BookingController {
     @PostMapping("/{bookingId}/cancel")
     public ResponseEntity<Booking> cancelBooking(
             @PathVariable String bookingId,
-            @RequestParam String userId) {
-        return ResponseEntity.ok(bookingService.cancelBooking(bookingId, userId));
+            @RequestParam String userId,
+            @RequestParam(required = false) String reason) {
+        return ResponseEntity.ok(bookingService.cancelBooking(bookingId, userId, reason));
     }
 
     @DeleteMapping("/{bookingId}")
