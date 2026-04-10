@@ -306,7 +306,7 @@ export default function BookingDetailsModal({ isOpen, onClose, bookingId, onCanc
                           </p>
                           {entry.note && (
                             <p className="text-sm text-foreground/80 mt-2 p-2 bg-foreground/5 rounded-lg border border-border-main/50 italic">
-                              "{entry.note}"
+                              &quot;{entry.note}&quot;
                             </p>
                           )}
                         </div>

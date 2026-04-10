@@ -14,8 +14,7 @@ import {
     Calendar,
     CalendarDays,
     Sun,
-    Moon,
-    ClipboardList
+    Moon
 } from "lucide-react";
 
 
