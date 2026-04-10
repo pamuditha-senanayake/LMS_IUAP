@@ -1,30 +1,17 @@
 @import "tailwindcss";
 
-@theme {
-  --color-brand-cream: var(--brand-cream);
-  --color-brand-peach: var(--brand-peach);
-  --color-brand-pink: var(--brand-pink);
-  --color-brand-purple: var(--brand-purple);
-  
-  /* Semantic brand mapping - map to indigo to support existing classes */
-  --color-indigo-400: var(--primary-light);
-  --color-indigo-500: var(--primary);
-  --color-indigo-600: var(--primary-dark);
-  
-  /* Text and BG mappings */
-  --color-foreground: var(--foreground);
-  --color-muted: var(--text-muted);
-  --color-card: var(--card-bg);
-  --color-border-main: var(--border-color);
-}
-
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 
 .animate-shimmer {
-  color: var(--primary);
+  background: linear-gradient(90deg, #fff 0%, #94a3b8 25%, #fff 50%, #94a3b8 75%, #fff 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 4s linear infinite;
 }
 
 .brand-text {
@@ -32,66 +19,11 @@
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: -0.05em;
-  color: var(--foreground);
 }
 
 :root {
   --background: #020617;
-  --foreground: #ffffff;
-  --text-muted: #94a3b8;
-  
-  /* Brand Palette for Students/Lecturers */
-  --brand-cream: #FFF1D3;
-  --brand-peach: #FFB090;
-  --brand-pink: #CA5995;
-  --brand-purple: #5D1C6A;
-  
-  /* Semantic Colors */
-  --primary: #6366f1;
-  --primary-light: #818cf8;
-  --primary-dark: #4f46e5;
-  --card-bg: #0f172a;
-  --input-bg: #0f172a;
-  --border-color: rgba(255, 255, 255, 0.08);
-}
-
-[data-theme="light"] {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --text-muted: #64748b;
-  --card-bg: #ffffff;
-  --input-bg: #ffffff;
-  --border-color: rgba(15, 23, 42, 0.08);
-  --primary: #1e1b4b; /* Even Deeper Navy for maximum contrast */
-  --primary-light: #3730a3;
-  --primary-dark: #312e81;
-}
-
-[data-account="student"] {
-  --primary: var(--brand-pink);
-  --primary-light: var(--brand-peach);
-  --primary-dark: var(--brand-purple);
-}
-
-
-/* Corrected Compound Selectors - Attributes are now on html */
-html[data-account="student"][data-theme="light"] {
-  --background: #f8fafc;
-  --card-bg: #ffffff;
-  --border-color: rgba(131, 43, 94, 0.15);
-  --foreground: #2d0a35;
-
-  --primary: #832b5e; /* Dark Magenta */
-  --primary-light: #ca5995;
-  --primary-dark: #5d1c6a;
-}
-
-html[data-account="admin"][data-theme="light"] {
-  --background: #f1f5f9;
-  --card-bg: #ffffff;
-  --border-color: rgba(15, 23, 42, 0.1);
-  --foreground: #0f172a;
-  --primary: #1e1b4b;
+  --foreground: #f1f5f9;
 }
 
 html {
@@ -122,17 +54,11 @@ body::before {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle at 50% 50%, var(--primary) 0%, rgba(15, 23, 42, 0) 50%),
-              radial-gradient(circle at 80% 20%, var(--primary-light) 0%, rgba(15, 23, 42, 0) 40%);
-  opacity: 0.15;
+  background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.1) 0%, rgba(15, 23, 42, 0) 50%),
+              radial-gradient(circle at 80% 20%, rgba(236, 72, 153, 0.08) 0%, rgba(15, 23, 42, 0) 40%);
+  animation: bg-pulse 15s ease-in-out infinite alternate;
   z-index: -1;
   pointer-events: none;
-}
-
-[data-theme="light"] body::before {
-  opacity: 0.4;
-  background: radial-gradient(circle at 50% 40%, var(--primary) 0%, rgba(255, 255, 255, 0) 60%),
-              radial-gradient(circle at 10% 20%, var(--brand-peach) 0%, rgba(255, 255, 255, 0) 40%);
 }
 
 @keyframes bg-pulse {
@@ -141,18 +67,18 @@ body::before {
 }
 
 .glass-card {
-  background: var(--card-bg);
+  background: rgba(30, 41, 59, 0.7);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--border-color);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .input-field {
-  background: var(--input-bg);
-  border: 1px solid var(--border-color);
-  color: var(--foreground);
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
   transition: all 0.3s ease;
 }
 
@@ -291,78 +217,40 @@ body::before {
   }
 }
 
-/* Theme-Aware Primary Action Button Utility */
+/* Theme-Aware Button Utilities */
 .btn-primary-action {
-    @apply transition-all active:scale-95 shadow-xl;
     background-color: var(--primary);
     color: white;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
 }
 
 [data-theme="light"] .btn-primary-action {
-    background-color: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    color: #000000 !important;
-}
-
-/* Specific tinting for Student/Admin Light Modes */
-html[data-account="student"][data-theme="light"] .btn-primary-action {
-    background-color: rgba(202, 89, 149, 0.12); /* brand-pink tint */
-    border: 1px solid rgba(202, 89, 149, 0.2);
-}
-
-html[data-account="admin"][data-theme="light"] .btn-primary-action {
-    background-color: rgba(30, 27, 75, 0.08); /* Deep Navy tint */
+    background-color: rgba(30, 27, 75, 0.08);
     border: 1px solid rgba(30, 27, 75, 0.15);
+    color: #0f172a !important;
 }
 
-/* Theme-Aware Danger Action Button Utility */
 .btn-danger-action {
-    @apply transition-all active:scale-95 shadow-xl;
-    background-color: #ef4444; /* rose-500 */
+    background-color: #ef4444;
     color: white;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
 }
 
 [data-theme="light"] .btn-danger-action {
-    background-color: rgba(239, 68, 68, 0.12) !important; /* rose-500 tint */
-    border: 1px solid rgba(239, 68, 68, 0.2) !important;
+    background-color: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.2);
     color: #000000 !important;
-}
-
-
-/* Global SweetAlert2 Button Overrides for Light Mode */
-[data-theme="light"] .swal2-styled.swal2-confirm,
-[data-theme="light"] .swal2-styled.swal2-cancel,
-[data-theme="light"] .swal2-styled.swal2-deny {
-    color: #000000 !important;
-    font-weight: 700 !important;
-    transition: all 0.2s ease !important;
-    box-shadow: none !important;
 }
 
 [data-theme="light"] .swal2-styled.swal2-confirm {
-    background-color: rgba(0, 0, 0, 0.08) !important;
-    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    background-color: rgba(30, 27, 75, 0.08) !important;
+    border: 1px solid rgba(30, 27, 75, 0.15) !important;
+    color: #000000 !important;
 }
 
 [data-theme="light"] .swal2-styled.swal2-cancel {
     background-color: transparent !important;
-    color: #64748b !important; /* Gray-500 */
-    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    color: #475569 !important;
 }
-
-/* Specific Tints for Swal Buttons */
-html[data-account="student"][data-theme="light"] .swal2-styled.swal2-confirm {
-    background-color: rgba(202, 89, 149, 0.15) !important;
-    border: 1px solid rgba(202, 89, 149, 0.2) !important;
-}
-
-html[data-account="admin"][data-theme="light"] .swal2-styled.swal2-confirm {
-    background-color: rgba(30, 27, 75, 0.08) !important;
-    border: 1px solid rgba(30, 27, 75, 0.15) !important;
-}
-
-[data-theme="light"] .swal2-popup {
-    border: 1px solid var(--border-color) !important;
-}
-
-
