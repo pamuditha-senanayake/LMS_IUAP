@@ -353,12 +353,12 @@ export default function TicketingPage() {
                 </div>
 
             {showReportModal && (
-                <div className="fixed inset-0 z-[110] flex items-start justify-center p-4 pt-[5vh]">
+                <div className="fixed inset-0 z-[110] flex items-start justify-center p-4 pt-[20vh]">
                     <div 
                         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                         onClick={() => setShowReportModal(false)}
                     />
-                    <div className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-slate-900 rounded-3xl border border-slate-700/50 shadow-2xl shadow-pink-500/10 animate-in slide-in-from-top-4 duration-300">
+                    <div className="relative w-full max-w-2xl max-h-[75vh] overflow-y-auto bg-slate-900 rounded-3xl border border-slate-700/50 shadow-2xl shadow-pink-500/10 animate-in slide-in-from-top-4 duration-300">
                         <div className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50 p-6 rounded-t-3xl">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
