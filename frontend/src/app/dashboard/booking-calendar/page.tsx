@@ -11,34 +11,18 @@ interface CalendarBooking {
   id: string;
   resourceId: string;
   resourceName?: string;
+  resourceType?: string;
   purpose: string;
   startTime: string;
   endTime: string;
   status: string;
-  requestedBy?: {
-    userId: string;
-    name: string;
-  };
+  requestedByUserId?: string;
+  requestedByName?: string;
 }
 
-interface PaginatedResponse {
-  content: CalendarBooking[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-}
-
-const fetchBookings = async (page: number, size: number): Promise<PaginatedResponse> => {
+const fetchCalendarBookings = async (): Promise<CalendarBooking[]> => {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-  const params = new URLSearchParams({
-    page: page.toString(),
-    size: size.toString(),
-    sortBy: "startTime",
-    sortDirection: "ASC",
-  });
-  
-  const res = await fetch(`${apiUrl}/api/bookings?${params}`, { credentials: "include" });
+  const res = await fetch(`${apiUrl}/api/bookings/calendar`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch bookings");
   return res.json();
 };
@@ -61,9 +45,9 @@ export default function BookingCalendarPage() {
 
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  const { data, isLoading } = useQuery({
+  const { data: allBookings, isLoading } = useQuery({
     queryKey: ["calendar-bookings"],
-    queryFn: () => fetchBookings(0, 1000),
+    queryFn: fetchCalendarBookings,
     staleTime: 60 * 1000,
   });
 
@@ -173,9 +157,9 @@ export default function BookingCalendarPage() {
   const nextMonth = () => setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
   const goToToday = () => setCurrentDate(new Date());
 
-  const allBookings: CalendarBooking[] = data?.content || [];
+  const calendarBookings: CalendarBooking[] = allBookings || [];
   
-  const monthBookings = allBookings.filter((b) => {
+  const monthBookings = calendarBookings.filter((b) => {
     const bookingDate = new Date(b.startTime);
     return bookingDate.getMonth() === currentMonth && bookingDate.getFullYear() === currentYear;
   });
@@ -206,8 +190,8 @@ export default function BookingCalendarPage() {
     }
   };
 
-  const uniqueResources = Array.from(new Set(allBookings.map((b) => b.resourceId))).map((id) => {
-    const booking = allBookings.find((b) => b.resourceId === id);
+  const uniqueResources = Array.from(new Set(calendarBookings.map((b) => b.resourceId))).map((id) => {
+    const booking = calendarBookings.find((b) => b.resourceId === id);
     return { id, name: booking?.resourceName || id };
   });
 
@@ -357,7 +341,7 @@ export default function BookingCalendarPage() {
         }}
         bookingId={selectedBookingId}
         onCancel={() => {
-          const booking = allBookings.find((b) => b.id === selectedBookingId);
+          const booking = calendarBookings.find((b) => b.id === selectedBookingId);
           if (booking) handleCancel(booking);
         }}
       />

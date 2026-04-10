@@ -324,7 +324,7 @@ export default function BookingDetailsModal({ isOpen, onClose, bookingId, onCanc
               </div>
             </div>
 
-            {(booking.status === "APPROVED" || booking.status === "PENDING") && onCancel && (
+            {booking.status === "APPROVED" && onCancel && (
               <div className="p-4 border-t border-slate-700 bg-slate-900 rounded-b-2xl flex-shrink-0">
                 <button
                   onClick={onCancel}
