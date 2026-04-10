@@ -519,6 +519,10 @@ export default function AdminBookings() {
         isOpen={showDetailsModal}
         onClose={() => { setShowDetailsModal(false); setSelectedBookingId(null); }}
         bookingId={selectedBookingId}
+        onCancel={() => {
+          const booking = bookings.find((b) => b.id === selectedBookingId);
+          if (booking) handleCancelAdmin(booking.id, booking.requestedBy?.name || "User");
+        }}
       />
     </div>
   );

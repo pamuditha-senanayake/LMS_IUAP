@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import Swal from "sweetalert2";
 import BookingDetailsModal from "@/components/BookingDetailsModal";
 import { CalendarSkeleton } from "@/components/Skeleton";
 
@@ -15,6 +16,7 @@ interface CalendarBooking {
   endTime: string;
   status: string;
   requestedBy?: {
+    userId: string;
     name: string;
   };
 }
@@ -42,6 +44,8 @@ const fetchBookings = async (page: number, size: number): Promise<PaginatedRespo
 };
 
 export default function BookingCalendarPage() {
+  const queryClient = useQueryClient();
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -62,6 +66,105 @@ export default function BookingCalendarPage() {
     queryFn: () => fetchBookings(0, 1000),
     staleTime: 60 * 1000,
   });
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+        const res = await fetch(`${apiUrl}/api/auth/me`, { credentials: "include" });
+        if (res.ok) {
+          const user = await res.json();
+          setCurrentUser(user);
+        }
+      } catch {}
+    };
+    loadUser();
+  }, []);
+
+  const handleCancel = async (booking: CalendarBooking) => {
+    const commonReasons = [
+      'Schedule conflict',
+      'No longer needed',
+      'Changed plans',
+      'Resource not suitable',
+      'Booked by mistake',
+      'Other'
+    ];
+
+    const result = await Swal.fire({
+      title: "Cancel this booking?",
+      html: `
+        <div style="text-align: left; color: #94a3b8;">
+          <label for="cancel-reason" style="display: block; margin-bottom: 8px; font-size: 14px;">Select a reason for cancellation:</label>
+          <select id="cancel-reason" style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #475569; margin-bottom: 16px;">
+            <option value="">-- Select Reason --</option>
+            ${commonReasons.map(r => `<option value="${r}">${r}</option>`).join('')}
+          </select>
+          <div id="other-reason-container" style="display: none;">
+            <label for="other-reason" style="display: block; margin-bottom: 8px; font-size: 14px;">Please specify:</label>
+            <textarea id="other-reason" rows="3" style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #475569; resize: none;" placeholder="Enter the reason..."></textarea>
+          </div>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6366f1',
+      confirmButtonText: 'Cancel Booking',
+      background: '#1e293b',
+      color: '#fff',
+      didOpen: () => {
+        const reasonSelect = document.getElementById('cancel-reason') as HTMLSelectElement;
+        const otherContainer = document.getElementById('other-reason-container');
+        
+        reasonSelect?.addEventListener('change', () => {
+          if (otherContainer) {
+            otherContainer.style.display = reasonSelect.value === 'Other' ? 'block' : 'none';
+          }
+        });
+      },
+      preConfirm: () => {
+        const reasonSelect = document.getElementById('cancel-reason') as HTMLSelectElement;
+        const otherReason = document.getElementById('other-reason') as HTMLTextAreaElement;
+        
+        if (!reasonSelect?.value) {
+          Swal.showValidationMessage('Please select a reason');
+          return false;
+        }
+        
+        if (reasonSelect.value === 'Other' && !otherReason?.value.trim()) {
+          Swal.showValidationMessage('Please specify the reason');
+          return false;
+        }
+        
+        return reasonSelect.value === 'Other' ? otherReason?.value.trim() : reasonSelect.value;
+      }
+    });
+
+    if (result.isConfirmed && result.value) {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+        const url = new URL(`${apiUrl}/api/bookings/${booking.id}/cancel`);
+        url.searchParams.append("userId", currentUser?.id || "");
+        url.searchParams.append("reason", result.value);
+
+        const res = await fetch(url.toString(), {
+          method: "POST",
+          credentials: "include"
+        });
+
+        if (res.ok) {
+          Swal.fire({ title: "Cancelled!", icon: "success", background: '#1e293b', color: '#fff' });
+          queryClient.invalidateQueries({ queryKey: ["calendar-bookings"] });
+          setShowDetailsModal(false);
+        } else {
+          Swal.fire({ title: "Error", text: await res.text(), icon: "error", background: '#1e293b', color: '#fff' });
+        }
+      } catch {
+        Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#1e293b', color: '#fff' });
+      }
+    }
+  };
 
   const getDaysInMonth = (month: number, year: number) => new Date(year, month + 1, 0).getDate();
   const getFirstDayOfMonth = (month: number, year: number) => new Date(year, month, 1).getDay();
@@ -253,6 +356,10 @@ export default function BookingCalendarPage() {
           setSelectedBookingId(null);
         }}
         bookingId={selectedBookingId}
+        onCancel={() => {
+          const booking = allBookings.find((b) => b.id === selectedBookingId);
+          if (booking) handleCancel(booking);
+        }}
       />
     </div>
   );
