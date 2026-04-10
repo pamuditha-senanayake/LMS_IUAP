@@ -179,7 +179,7 @@ export default function MyBookings() {
       confirmButtonText: 'Cancel Booking',
       background: 'var(--card-bg)',
       color: 'var(--foreground)',
-      customClass: { popup: 'rounded-[1.5rem] border border-border-main glass-card p-6' }
+      customClass: { popup: 'rounded-[1.5rem] border border-border-main glass-card p-6' },
       didOpen: () => {
         const reasonSelect = document.getElementById('cancel-reason') as HTMLSelectElement;
         const otherContainer = document.getElementById('other-reason-container');
