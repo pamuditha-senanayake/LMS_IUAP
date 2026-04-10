@@ -387,9 +387,10 @@ export default function TicketingPage() {
                         <p className="text-xs font-bold text-muted uppercase tracking-widest leading-relaxed">Report facility issues and track their resolution progress.</p>
                     </div>
                     <button 
-                        onClick={handleReportIssue} 
+                        onClick={handleReport} 
                         className="group relative rounded-xl btn-primary-action font-bold px-8 py-3 overflow-hidden"
                     >
+
 
                         <span className="relative z-10 flex items-center gap-2">
                             <Zap size={18} className="group-hover:rotate-12 transition-transform" />
