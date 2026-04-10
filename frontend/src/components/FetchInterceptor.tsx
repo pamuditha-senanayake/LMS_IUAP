@@ -8,16 +8,18 @@
  */
 if (typeof window !== "undefined") {
   const originalFetch = window.fetch;
-  window.fetch = async (resource, config = {}) => {
+  window.fetch = async (resource, config: RequestInit = {}) => {
     const url = typeof resource === 'string' ? resource : resource instanceof Request ? resource.url : "";
     
-    console.log("FetchInterceptor: URL =", url);
-    
-    console.log("FetchInterceptor: URL =", url);
+    console.log("[FetchInterceptor] Request:", {
+      url,
+      method: config.method || "GET",
+      headers: config.headers ? Object.fromEntries(new Headers(config.headers).entries()) : {},
+    });
     
     // Only intercept internal API calls
     if (url.includes('/api/')) {
-      console.log("FetchInterceptor: intercepted API call to", url);
+      console.log("[FetchInterceptor] Intercepted API call to", url);
       try {
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
@@ -29,6 +31,7 @@ if (typeof window !== "undefined") {
             // Only add if not already present
             if (!headers.has("Authorization")) {
               headers.set("Authorization", `Bearer ${user.token}`);
+              console.log("[FetchInterceptor] Added Authorization header");
             }
             
             config.headers = headers;
@@ -38,14 +41,27 @@ if (typeof window !== "undefined") {
           }
         }
       } catch (e) {
-        console.error("FetchInterceptor: Auth error:", e);
+        console.error("[FetchInterceptor] Auth error:", e);
       }
     }
     
     try {
-      return await originalFetch(resource, config);
+      const response = await originalFetch(resource, config);
+      console.log("[FetchInterceptor] Response:", {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+      });
+      return response;
     } catch (err) {
-      console.error("FetchInterceptor: Network error:", err);
+      console.error("[FetchInterceptor] Network error:", {
+        url,
+        config: {
+          method: config.method,
+          headers: config.headers ? Object.fromEntries(new Headers(config.headers).entries()) : {},
+        },
+        error: err,
+      });
       throw err;
     }
   };

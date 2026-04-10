@@ -122,12 +122,38 @@ export default function FacilitiesCatalogue() {
         setError(null);
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-            console.log("Fetching from:", `${apiUrl}/api/resources`);
-            const res = await fetch(`${apiUrl}/api/resources`, {
+            const url = `${apiUrl}/api/resources`;
+            console.log("Fetching resources from:", url);
+            
+            const headers: Record<string, string> = {
+                "Content-Type": "application/json",
+            };
+            
+            const storedUser = localStorage.getItem("user");
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                if (user.token) {
+                    headers["Authorization"] = `Bearer ${user.token}`;
+                    console.log("Added Bearer token to request");
+                }
+                console.log("User roles:", user.roles);
+            } else {
+                console.log("No user in localStorage");
+            }
+            
+            const res = await fetch(url, {
                 credentials: "include",
+                headers,
             });
-            if (res.ok) {
+            console.log("Resources response status:", res.status);
+            
+            if (!res.ok) {
+                const errorText = await res.text();
+                console.error("Failed to fetch resources:", res.status, errorText);
+                setError(`Failed to load resources: ${res.status} - ${errorText || res.statusText}`);
+            } else {
                 const data = await res.json();
+                console.log("Resources fetched successfully, count:", data.length);
                 const transformed = data.map((r: Resource) => ({
                     ...r,
                     resourceName: r.resourceName || r.name,
@@ -141,9 +167,6 @@ export default function FacilitiesCatalogue() {
                     },
                 }));
                 setResources(transformed);
-            } else {
-                console.error("Failed to fetch resources:", res.status, res.statusText);
-                setError("Failed to load resources");
             }
         } catch (err) {
             console.error("Failed to fetch resources", err);

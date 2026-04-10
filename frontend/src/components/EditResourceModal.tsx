@@ -1,6 +1,6 @@
 "use client";
 
-import { X, MapPin, Users, Building, DoorOpen } from "lucide-react";
+import { X, MapPin, Users, DoorOpen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
 
@@ -43,11 +43,11 @@ const FACILITY_TYPE_VALUES = ["ROOM", "LECTURE_HALL", "LAB", "AUDITORIUM", "MEET
 const UTILITY_TYPE_VALUES = ["PROJECTOR", "SOUND_SYSTEM", "MICROPHONE", "WHITEBOARD", "FLAGS", "OTHER"];
 
 function getCategoryFromType(type: string): "FACILITY" | "UTILITY" {
-    if (type.startsWith("OTHER:")) return "UTILITY";
+    if (type?.startsWith("OTHER:")) return "UTILITY";
     if (FACILITY_TYPE_VALUES.includes(type)) return "FACILITY";
     if (UTILITY_TYPE_VALUES.includes(type)) return "UTILITY";
-    if (type.includes("LECTURE") || type.includes("LAB") || type.includes("AUDITORIUM") || type.includes("MEETING") || type.includes("ROOM")) return "FACILITY";
-    if (type.includes("PROJECTOR") || type.includes("MICROPHONE") || type.includes("SOUND") || type.includes("WHITEBOARD") || type.includes("FLAGS")) return "UTILITY";
+    if (type?.includes("LECTURE") || type?.includes("LAB") || type?.includes("AUDITORIUM") || type?.includes("MEETING") || type?.includes("ROOM")) return "FACILITY";
+    if (type?.includes("PROJECTOR") || type?.includes("MICROPHONE") || type?.includes("SOUND") || type?.includes("WHITEBOARD") || type?.includes("FLAGS")) return "UTILITY";
     return "FACILITY";
 }
 
@@ -64,11 +64,8 @@ interface Resource {
     location?: string;
     serialNumber?: string;
     roomNumber?: string;
-    building?: string;
-    floor?: string;
     resourceCode?: string;
     description?: string;
-    amenities?: string[];
 }
 
 interface EditResourceModalProps {
@@ -110,10 +107,10 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
         setCategory(newCategory);
         setEditedResource(prev => ({ 
             ...prev, 
-            resourceType: newCategory === "FACILITY" ? "ROOM" : "PROJECTOR",
+            resourceType: newCategory === "FACILITY" ? "LECTURE_HALL" : "PROJECTOR",
             location: "",
-            roomNumber: undefined,
-            serialNumber: undefined,
+            roomNumber: "",
+            serialNumber: "",
             capacity: undefined
         }));
         setErrors({});
@@ -141,9 +138,9 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
         if (category === "UTILITY" && !ed.serialNumber?.trim()) {
             newErrors.serialNumber = "Serial Number is required for utilities";
         }
-        if (category === "UTILITY") {
+        if (category === "FACILITY") {
             if (ed.capacity === undefined || ed.capacity === null) {
-                newErrors.capacity = "Capacity is required for utilities";
+                newErrors.capacity = "Capacity is required for facilities";
             } else if (typeof ed.capacity === "number" && ed.capacity < 0) {
                 newErrors.capacity = "Capacity cannot be negative";
             }
@@ -155,19 +152,18 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
 
     useEffect(() => {
         if (resource) {
-            const resourceType = resource.resourceType || resource.type || "LECTURE_HALL";
-            const detectedCategory = getCategoryFromType(resourceType);
+            const resourceCategory = resource.category;
+            const detectedCategory = resourceCategory || getCategoryFromType(resource.resourceType || resource.type || "");
             setCategory(detectedCategory);
             setEditedResource({
                 resourceName: resource.resourceName || resource.name,
-                resourceType: resourceType,
+                resourceType: resource.resourceType || resource.type,
                 status: resource.status || "ACTIVE",
-                location: resource.location || resource.building || "",
+                location: resource.location || "",
                 roomNumber: resource.roomNumber || "",
                 serialNumber: resource.serialNumber || "",
                 capacity: resource.capacity,
                 description: resource.description,
-                amenities: resource.amenities,
             });
         }
     }, [resource]);
@@ -199,7 +195,7 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
     const handleSave = async () => {
         if (!onSave) return;
 
-        if (category === "UTILITY" && editedResource.capacity !== undefined && editedResource.capacity < 0) {
+        if (category === "FACILITY" && editedResource.capacity !== undefined && editedResource.capacity < 0) {
             Swal.fire({ 
                 title: "Invalid Capacity", 
                 text: "Capacity cannot be negative", 
@@ -216,10 +212,7 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
 
         setIsSubmitting(true);
         try {
-            await onSave({
-                ...editedResource,
-                building: editedResource.location
-            });
+            await onSave(editedResource);
             setIsEditing(false);
         } finally {
             setIsSubmitting(false);
@@ -253,19 +246,18 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
 
     const handleCancel = () => {
         if (resource) {
-            const resourceType = resource.resourceType || resource.type || "LECTURE_HALL";
-            const detectedCategory = getCategoryFromType(resourceType);
+            const resourceCategory = resource.category;
+            const detectedCategory = resourceCategory || getCategoryFromType(resource.resourceType || resource.type || "");
             setCategory(detectedCategory);
             setEditedResource({
                 resourceName: resource.resourceName || resource.name,
-                resourceType: resourceType,
+                resourceType: resource.resourceType || resource.type,
                 status: resource.status || "ACTIVE",
-                location: resource.location || resource.building || "",
+                location: resource.location || "",
                 roomNumber: resource.roomNumber || "",
                 serialNumber: resource.serialNumber || "",
                 capacity: resource.capacity,
                 description: resource.description,
-                amenities: resource.amenities,
             });
         }
         setIsEditing(false);
@@ -389,147 +381,72 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
                             </div>
 
                             {category === "FACILITY" ? (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-400 mb-2">Room Number *</label>
-                                        <input
-                                            type="text"
-                                            value={editedResource.roomNumber || ""}
-                                            onChange={(e) => setEditedResource({ ...editedResource, roomNumber: e.target.value })}
-                                            placeholder="A-101"
-                                            className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.roomNumber ? 'border-red-500' : 'border-slate-700/50'}`}
-                                        />
-                                        {errors.roomNumber && <p className="mt-1 text-xs text-red-400">{errors.roomNumber}</p>}
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-400 mb-2">Capacity</label>
-                                            <input
-                                                type="number"
-                                                value={editedResource.capacity ?? ""}
-                                                onChange={(e) => setEditedResource({ ...editedResource, capacity: e.target.value === "" ? undefined : parseInt(e.target.value) })}
-                                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-400 mb-2">Amenities (comma-separated)</label>
-                                            <input
-                                                type="text"
-                                                value={editedResource.amenities?.join(', ') || ""}
-                                                onChange={(e) => setEditedResource({ 
-                                                    ...editedResource, 
-                                                    amenities: e.target.value.split(',').map(a => a.trim()).filter(a => a.length > 0)
-                                                })}
-                                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
-                                                placeholder="Projector, WiFi, AC"
-                                            />
-                                        </div>
-                                    </div>
-                                </>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-400 mb-2">Room Number *</label>
+                                    <input
+                                        type="text"
+                                        value={editedResource.roomNumber || ""}
+                                        onChange={(e) => setEditedResource({ ...editedResource, roomNumber: e.target.value })}
+                                        placeholder="A-101"
+                                        className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.roomNumber ? 'border-red-500' : 'border-slate-700/50'}`}
+                                    />
+                                    {errors.roomNumber && <p className="mt-1 text-xs text-red-400">{errors.roomNumber}</p>}
+                                </div>
                             ) : (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-400 mb-2">Serial Number *</label>
-                                        <input
-                                            type="text"
-                                            value={editedResource.serialNumber || ""}
-                                            onChange={(e) => setEditedResource({ ...editedResource, serialNumber: e.target.value })}
-                                            placeholder="SN-12345"
-                                            className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.serialNumber ? 'border-red-500' : 'border-slate-700/50'}`}
-                                        />
-                                        {errors.serialNumber && <p className="mt-1 text-xs text-red-400">{errors.serialNumber}</p>}
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-400 mb-2">Capacity *</label>
-                                        <input
-                                            type="number"
-                                            value={editedResource.capacity ?? ""}
-                                            onChange={(e) => setEditedResource({ ...editedResource, capacity: e.target.value === "" ? undefined : parseInt(e.target.value) })}
-                                            placeholder="10"
-                                            className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.capacity ? 'border-red-500' : 'border-slate-700/50'}`}
-                                        />
-                                        {errors.capacity && <p className="mt-1 text-xs text-red-400">{errors.capacity}</p>}
-                                    </div>
-                                </>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-400 mb-2">Serial Number *</label>
+                                    <input
+                                        type="text"
+                                        value={editedResource.serialNumber || ""}
+                                        onChange={(e) => setEditedResource({ ...editedResource, serialNumber: e.target.value })}
+                                        placeholder="SN-12345"
+                                        className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.serialNumber ? 'border-red-500' : 'border-slate-700/50'}`}
+                                    />
+                                    {errors.serialNumber && <p className="mt-1 text-xs text-red-400">{errors.serialNumber}</p>}
+                                </div>
                             )}
                         </div>
                     ) : (
                         <div className="space-y-5">
-                            {category === "FACILITY" ? (
-                                <>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
-                                            <div className="flex items-center text-slate-400 text-sm mb-2">
-                                                <Users className="w-4 h-4 mr-2" />
-                                                Capacity
-                                            </div>
-                                            <p className="text-2xl font-bold text-white">{resource.capacity || 0}</p>
-                                            <p className="text-xs text-slate-500">seats</p>
-                                        </div>
-                                        <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
-                                            <div className="flex items-center text-slate-400 text-sm mb-2">
-                                                <Building className="w-4 h-4 mr-2" />
-                                                Location
-                                            </div>
-                                            <p className="text-lg font-semibold text-white">{resource.location || resource.building || "N/A"}</p>
-                                        </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
+                                    <div className="flex items-center text-slate-400 text-sm mb-2">
+                                        <MapPin className="w-4 h-4 mr-2" />
+                                        Location
                                     </div>
-
+                                    <p className="text-lg font-semibold text-white">{resource.location || "N/A"}</p>
+                                </div>
+                                {resource.category === "FACILITY" && (
                                     <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
                                         <div className="flex items-center text-slate-400 text-sm mb-2">
-                                            <DoorOpen className="w-4 h-4 mr-2" />
-                                            Room
+                                            <Users className="w-4 h-4 mr-2" />
+                                            Capacity
                                         </div>
-                                        <p className="text-xl font-bold text-white">{resource.roomNumber || "N/A"}</p>
+                                        <p className="text-lg font-semibold text-white">{resource.capacity ?? 0}</p>
                                     </div>
+                                )}
+                            </div>
 
-                                    {resource.amenities && resource.amenities.length > 0 && (
-                                        <div>
-                                            <div className="text-slate-400 text-sm mb-3">Amenities</div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {resource.amenities.map((amenity, idx) => (
-                                                    <span 
-                                                        key={idx} 
-                                                        className="px-3 py-1.5 text-sm rounded-lg bg-slate-800/50 text-slate-300 border border-slate-700/50"
-                                                    >
-                                                        {amenity}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
-                                            <div className="flex items-center text-slate-400 text-sm mb-2">
-                                                <MapPin className="w-4 h-4 mr-2" />
-                                                Location
-                                            </div>
-                                            <p className="text-lg font-semibold text-white">{resource.location || resource.building || "N/A"}</p>
-                                        </div>
-                                        <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
-                                            <div className="flex items-center text-slate-400 text-sm mb-2">
-                                                <Users className="w-4 h-4 mr-2" />
-                                                Capacity
-                                            </div>
-                                            <p className="text-lg font-semibold text-white">{resource.capacity || 0}</p>
-                                        </div>
+                            {resource.category === "FACILITY" && (
+                                <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
+                                    <div className="flex items-center text-slate-400 text-sm mb-2">
+                                        <DoorOpen className="w-4 h-4 mr-2" />
+                                        Room Number
                                     </div>
-                                    {resource.serialNumber && (
-                                        <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
-                                            <div className="text-slate-400 text-sm mb-2">Serial Number</div>
-                                            <p className="text-lg font-semibold text-white">{resource.serialNumber}</p>
-                                        </div>
-                                    )}
-                                </>
+                                    <p className="text-xl font-bold text-white">{resource.roomNumber || "N/A"}</p>
+                                </div>
+                            )}
+
+                            {resource.category === "UTILITY" && resource.serialNumber && (
+                                <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
+                                    <div className="text-slate-400 text-sm mb-2">Serial Number</div>
+                                    <p className="text-lg font-semibold text-white">{resource.serialNumber}</p>
+                                </div>
                             )}
 
                             {resource.description && (
                                 <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
-                                    <div className="text-slate-400 text-sm mb-2">{category === "FACILITY" ? "Description" : "Notes / Description"}</div>
+                                    <div className="text-slate-400 text-sm mb-2">{resource.category === "UTILITY" ? "Notes" : "Description"}</div>
                                     <p className="text-slate-300 leading-relaxed">{resource.description}</p>
                                 </div>
                             )}

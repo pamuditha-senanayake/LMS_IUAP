@@ -74,31 +74,23 @@ export default function ResourceCard({ resource }: ResourceCardProps) {
     const getLocationDisplay = () => {
         if (isFacility) {
             const parts = [];
-            const campusLoc = resource.campusLocation;
-            if (campusLoc?.campusName || resource.campusName) {
-                parts.push(campusLoc?.campusName || resource.campusName);
+            if (resource.location) {
+                parts.push(resource.location);
             }
-            if (campusLoc?.buildingName || resource.building) {
-                parts.push(campusLoc?.buildingName || resource.building);
+            if (resource.roomNumber) {
+                parts.push(resource.roomNumber);
             }
-            if (campusLoc?.roomNumber || resource.roomNumber) {
-                parts.push(campusLoc?.roomNumber || resource.roomNumber);
-            }
-            return parts.length > 0 ? parts.join(' - ') : resource.location || "N/A";
+            return parts.length > 0 ? parts.join(' - ') : "N/A";
         } else if (isUtility) {
-            const campusLoc = resource.campusLocation;
-            const storageLoc = campusLoc?.buildingName || resource.storageLocation || resource.location;
-            const campus = campusLoc?.campusName || resource.campusName;
-            if (storageLoc && campus) {
-                return `${campus} - ${storageLoc}`;
+            const storageLoc = resource.storageLocation || resource.location;
+            if (storageLoc && resource.serialNumber) {
+                return `${storageLoc} - ${resource.serialNumber}`;
             } else if (storageLoc) {
                 return storageLoc;
-            } else if (campus) {
-                return campus;
             }
-            return "N/A";
+            return resource.serialNumber || "N/A";
         }
-        return resource.building || "N/A";
+        return resource.location || "N/A";
     };
 
     const locationDisplay = getLocationDisplay();

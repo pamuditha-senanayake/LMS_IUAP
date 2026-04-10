@@ -40,6 +40,7 @@ const UTILITY_TYPES = [
 ];
 
 interface ValidationErrors {
+    resourceName?: string;
     category?: string;
     type?: string;
     status?: string;
@@ -89,37 +90,68 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
         }
     };
 
+    const handleCapacityChange = (value: string) => {
+        const num = value === "" ? "" : Number(value);
+        setCapacity(num);
+        if (num !== "" && num < 0) {
+            setErrors(prev => ({ ...prev, capacity: "Capacity cannot be negative" }));
+        } else {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors.capacity;
+                return newErrors;
+            });
+        }
+    };
+
     const validate = (): boolean => {
         const newErrors: ValidationErrors = {};
+        let isValid = true;
 
+        if (!resourceName.trim()) {
+            newErrors.resourceName = "Resource Name is required";
+            isValid = false;
+        }
         if (!category) {
             newErrors.category = "Category is required";
+            isValid = false;
         }
         if (!resourceType) {
             newErrors.type = "Type is required";
+            isValid = false;
         }
         if (!status) {
             newErrors.status = "Status is required";
+            isValid = false;
         }
         if (!location) {
             newErrors.location = "Location is required";
+            isValid = false;
         }
-        if (category === "FACILITY" && !roomNumber.trim()) {
-            newErrors.roomNumber = "Room Number is required for facilities";
-        }
-        if (category === "UTILITY" && !serialNumber.trim()) {
-            newErrors.serialNumber = "Serial Number is required for utilities";
-        }
-        if (category === "UTILITY") {
+        if (category === "FACILITY") {
+            if (!roomNumber.trim()) {
+                newErrors.roomNumber = "Room Number is required";
+                isValid = false;
+            }
             if (capacity === "" || capacity === null) {
-                newErrors.capacity = "Capacity is required for utilities";
+                newErrors.capacity = "Capacity is required";
+                isValid = false;
             } else if (typeof capacity === "number" && capacity < 0) {
                 newErrors.capacity = "Capacity cannot be negative";
+                isValid = false;
+            }
+        }
+        if (category === "UTILITY") {
+            if (!serialNumber.trim()) {
+                newErrors.serialNumber = "Serial Number is required";
+                isValid = false;
             }
         }
 
+        console.log("Validation:", { resourceName, category, resourceType, status, location, roomNumber, serialNumber, capacity, errors: newErrors, isValid });
+        
         setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        return isValid;
     };
 
     const resetForm = () => {
@@ -137,40 +169,11 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
     };
 
     const handleSubmit = async () => {
-        if (!resourceName.trim()) {
-            Swal.fire({ 
-                title: "Required Field", 
-                text: "Resource name is required", 
-                icon: "warning", 
-                background: '#1e293b', 
-                color: '#fff' 
-            });
-            return;
-        }
-
-        if (showCustomTypeField && !customUtilityType.trim()) {
-            Swal.fire({ 
-                title: "Required Field", 
-                text: "Please specify the utility type", 
-                icon: "warning", 
-                background: '#1e293b', 
-                color: '#fff' 
-            });
-            return;
-        }
-
-        if (category === "UTILITY" && capacity !== "" && typeof capacity === "number" && capacity < 0) {
-            Swal.fire({ 
-                title: "Invalid Capacity", 
-                text: "Capacity cannot be negative", 
-                icon: "error", 
-                background: '#1e293b', 
-                color: '#fff' 
-            });
-            return;
-        }
+        console.log("Form submit started");
+        console.log("Form state:", { resourceName, category, resourceType, status, location, roomNumber, serialNumber, capacity, customUtilityType });
 
         if (!validate()) {
+            console.log("Validation failed, not submitting");
             return;
         }
 
@@ -184,31 +187,31 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
             finalDescription = customUtilityType.trim();
         }
 
-        const payload: any = {
+        const payload: Record<string, any> = {
             resourceName: resourceName.trim(),
             category: category,
             type: finalType,
             description: finalDescription,
             status: status,
-            location: location,
             resourceCode: `RES-${Math.floor(1000 + Math.random() * 9000)}`
         };
 
         if (category === "FACILITY") {
             payload.capacity = capacity !== "" ? capacity : 0;
             payload.roomNumber = roomNumber;
-            payload.campusName = "Main Campus";
             payload.building = location;
             payload.amenities = [];
+            payload.campusName = location;
         } else {
-            payload.capacity = capacity !== "" ? capacity : 0;
             payload.serialNumber = serialNumber;
             payload.storageLocation = location;
-            payload.campusName = "Main Campus";
             payload.building = "";
             payload.roomNumber = "";
             payload.amenities = description ? [description] : [];
+            payload.campusName = location;
         }
+
+        console.log("Request payload:", JSON.stringify(payload, null, 2));
 
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -218,6 +221,10 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                 credentials: "include",
                 body: JSON.stringify(payload)
             });
+
+            const responseData = await res.text();
+            console.log("Response status:", res.status);
+            console.log("Response body:", responseData);
 
             if (res.ok) {
                 Swal.fire({ 
@@ -231,16 +238,26 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                 onSuccess();
                 onClose();
             } else {
+                let errorMessage = responseData;
+                try {
+                    const errorJson = JSON.parse(responseData);
+                    if (errorJson.message) {
+                        errorMessage = errorJson.message;
+                    } else if (errorJson.errors) {
+                        errorMessage = Object.entries(errorJson.errors).map(([k, v]) => `${k}: ${v}`).join(", ");
+                    }
+                } catch {}
                 Swal.fire({ 
                     title: "Failed", 
-                    text: await res.text(), 
+                    text: errorMessage, 
                     icon: "error", 
                     background: '#1e293b', 
                     color: '#fff'
                 });
             }
-        } catch {
-            Swal.fire({ title: "Error", text: "Network processing failed", icon: "error", background: '#1e293b', color: '#fff' });
+        } catch (error) {
+            console.error("Network error:", error);
+            Swal.fire({ title: "Error", text: "Network processing failed: " + (error as Error).message, icon: "error", background: '#1e293b', color: '#fff' });
         } finally {
             setIsSubmitting(false);
         }
@@ -252,7 +269,7 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
     };
 
     const isValid = resourceName.trim() && category && resourceType && status && location && 
-        (category === "FACILITY" ? roomNumber.trim() : (serialNumber.trim() && capacity !== "" && capacity >= 0));
+        (category === "FACILITY" ? (roomNumber.trim() && capacity !== "" && (capacity as number) >= 0) : serialNumber.trim());
 
     if (!isOpen) return null;
 
@@ -283,6 +300,7 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                                 onChange={(e) => handleCategoryChange(e.target.value as "FACILITY" | "UTILITY")}
                                 className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none cursor-pointer ${errors.category ? 'border-red-500' : 'border-slate-700/50'}`}
                             >
+                                <option value="">Select Category</option>
                                 {CATEGORY_OPTIONS.map(opt => (
                                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                                 ))}
@@ -296,8 +314,9 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                                 value={resourceName}
                                 onChange={(e) => setResourceName(e.target.value)}
                                 placeholder={category === "FACILITY" ? "Main Auditorium" : "Epson Projector #1"}
-                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
+                                className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none ${errors.resourceName ? 'border-red-500' : 'border-slate-700/50'}`}
                             />
+                            {errors.resourceName && <p className="mt-1 text-xs text-red-400">{errors.resourceName}</p>}
                         </div>
                     </div>
 
@@ -309,6 +328,7 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                                 onChange={(e) => handleTypeChange(e.target.value)}
                                 className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none cursor-pointer ${errors.type ? 'border-red-500' : 'border-slate-700/50'}`}
                             >
+                                <option value="">Select Type</option>
                                 {typeOptions.map(opt => (
                                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                                 ))}
@@ -322,6 +342,7 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                                 onChange={(e) => setStatus(e.target.value)}
                                 className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none cursor-pointer ${errors.status ? 'border-red-500' : 'border-slate-700/50'}`}
                             >
+                                <option value="">Select Status</option>
                                 {STATUS_OPTIONS.map(opt => (
                                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                                 ))}
@@ -384,6 +405,18 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                                 />
                                 {errors.roomNumber && <p className="mt-1 text-xs text-red-400">{errors.roomNumber}</p>}
                             </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-400 mb-2">Capacity *</label>
+                                <input
+                                    type="number"
+                                    value={capacity}
+                                    onChange={(e) => handleCapacityChange(e.target.value)}
+                                    placeholder="50"
+                                    min="0"
+                                    className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none ${errors.capacity ? 'border-red-500' : 'border-slate-700/50'}`}
+                                />
+                                {errors.capacity && <p className="mt-1 text-xs text-red-400">{errors.capacity}</p>}
+                            </div>
                         </>
                     ) : (
                         <>
@@ -397,20 +430,6 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                                     className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none ${errors.serialNumber ? 'border-red-500' : 'border-slate-700/50'}`}
                                 />
                                 {errors.serialNumber && <p className="mt-1 text-xs text-red-400">{errors.serialNumber}</p>}
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-2">Capacity *</label>
-                                <input
-                                    type="number"
-                                    value={capacity}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        setCapacity(val === "" ? "" : parseInt(val));
-                                    }}
-                                    placeholder="10"
-                                    className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none ${errors.capacity ? 'border-red-500' : 'border-slate-700/50'}`}
-                                />
-                                {errors.capacity && <p className="mt-1 text-xs text-red-400">{errors.capacity}</p>}
                             </div>
                         </>
                     )}
