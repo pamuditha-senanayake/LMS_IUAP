@@ -2,15 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Swal from "sweetalert2";
-import { X, Upload, AlertTriangle, MapPin, Type, FileText, Zap, Image as ImageIcon, Loader2, CheckCircle2 } from "lucide-react";
-
-const BACKGROUND_IMAGES = [
-    "https://www.ox.ac.uk/sites/files/oxford/styles/ow_large_feature/s3/field/field_image_main/b_AllSoulsquad.jpg?itok=tTcH-5ix",
-    "https://oxford.tours/wp-content/uploads/2022/10/courtyard-oxford-university.jpg",
-    "https://i.natgeofe.com/n/17b50f51-1d61-4b1d-b64e-f3060b1bbc1c/oxfordpittriversmuseum.jpg",
-    "https://ifsa-butler.org/wp-content/uploads/2023/09/HERO-Oxford_1231106194.jpg",
-    "https://images.ohmyhosting.se/B_f30FriCvfM-s1CW-zvyM0NbHo=/fit-in/1680x1050/smart/filters:quality(85)/https%3A%2F%2Fengelsbergideas.com%2Fwp-content%2Fuploads%2F2024%2F10%2FOxford-University.jpg"
-];
+import { X, Upload, AlertTriangle, MapPin, Type, FileText, Zap, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function TicketingPage() {
     const [tickets, setTickets] = useState<any[]>([]);
@@ -69,12 +61,7 @@ export default function TicketingPage() {
         }
     }, [apiUrl]);
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentBgIndex((prev) => (prev + 1) % BACKGROUND_IMAGES.length);
-        }, 6000);
-        return () => clearInterval(interval);
-    }, []);
+
 
     const fetchResources = useCallback(async () => {
         try {
@@ -204,7 +191,14 @@ export default function TicketingPage() {
         const formData = new FormData(form);
         
         if (!formData.get('title') || !formData.get('description')) {
-            Swal.fire({ title: "Error", text: "Title and description are required", icon: "error", background: '#1e293b', color: '#fff' });
+            Swal.fire({ 
+                title: "Error", 
+                text: "Title and description are required", 
+                icon: "error", 
+                background: 'var(--card-bg)', 
+                color: 'var(--foreground)',
+                customClass: { popup: 'glass-card border-none rounded-[2rem]' }
+            });
             return;
         }
 
@@ -232,7 +226,14 @@ export default function TicketingPage() {
             });
 
             if (res.ok) {
-                Swal.fire({ title: "Issue Reported!", text: "Your ticket has been submitted successfully.", icon: "success", background: '#1e293b', color: '#fff' });
+                Swal.fire({ 
+                    title: "Issue Reported!", 
+                    text: "Your ticket has been submitted successfully.", 
+                    icon: "success", 
+                    background: 'var(--card-bg)', 
+                    color: 'var(--foreground)',
+                    customClass: { popup: 'glass-card border-none rounded-[2rem]' }
+                });
                 setShowReportModal(false);
                 setSelectedImages([]);
                 setImagePreviews([]);
@@ -241,10 +242,24 @@ export default function TicketingPage() {
                 form.reset();
                 fetchTickets(currentUser!.id);
             } else {
-                Swal.fire({ title: "Error", text: "Failed to submit ticket", icon: "error", background: '#1e293b', color: '#fff' });
+                Swal.fire({ 
+                    title: "Error", 
+                    text: "Failed to submit ticket", 
+                    icon: "error", 
+                    background: 'var(--card-bg)', 
+                    color: 'var(--foreground)',
+                    customClass: { popup: 'glass-card border-none rounded-[2rem]' }
+                });
             }
         } catch {
-            Swal.fire({ title: "Error", text: "Network error. Please try again.", icon: "error", background: '#1e293b', color: '#fff' });
+            Swal.fire({ 
+                title: "Error", 
+                text: "Network error. Please try again.", 
+                icon: "error", 
+                background: 'var(--card-bg)', 
+                color: 'var(--foreground)',
+                customClass: { popup: 'glass-card border-none rounded-[2rem]' }
+            });
         } finally {
             setSubmitting(false);
         }
@@ -259,8 +274,13 @@ export default function TicketingPage() {
             confirmButtonColor: '#ec4899',
             cancelButtonColor: '#6366f1',
             confirmButtonText: 'Yes, delete it!',
-            background: '#1e293b',
-            color: '#fff',
+            background: 'var(--card-bg)',
+            color: 'var(--foreground)',
+            customClass: {
+                popup: 'glass-card border-none rounded-[2rem]',
+                confirmButton: 'px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-xs',
+                cancelButton: 'px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-xs'
+            }
         }).then(async (result) => {
             if (result.isConfirmed) {
                 const res = await fetch(`${apiUrl}/api/tickets/${ticketId}`, {
@@ -268,10 +288,23 @@ export default function TicketingPage() {
                     credentials: "include"
                 });
                 if (res.ok) {
-                    Swal.fire({ title: "Deleted!", icon: "success", background: '#1e293b', color: '#fff' });
+                    Swal.fire({ 
+                        title: "Deleted!", 
+                        icon: "success", 
+                        background: 'var(--card-bg)', 
+                        color: 'var(--foreground)',
+                        customClass: { popup: 'glass-card border-none rounded-[2rem]' }
+                    });
                     fetchTickets(currentUser!.id);
                 } else {
-                    Swal.fire({ title: "Error", text: "Failed to delete ticket", icon: "error", background: '#1e293b', color: '#fff' });
+                    Swal.fire({ 
+                        title: "Error", 
+                        text: "Failed to delete ticket", 
+                        icon: "error", 
+                        background: 'var(--card-bg)', 
+                        color: 'var(--foreground)',
+                        customClass: { popup: 'glass-card border-none rounded-[2rem]' }
+                    });
                 }
             }
         });
@@ -290,7 +323,14 @@ export default function TicketingPage() {
 
     const handleSaveEdit = async () => {
         if (!editForm.title || !editForm.description) {
-            Swal.fire({ title: "Error", text: "Title and description are required", icon: "error", background: '#1e293b', color: '#fff' });
+            Swal.fire({ 
+                title: "Error", 
+                text: "Title and description are required", 
+                icon: "error", 
+                background: 'var(--card-bg)', 
+                color: 'var(--foreground)',
+                customClass: { popup: 'glass-card border-none rounded-[2rem]' }
+            });
             return;
         }
 
@@ -303,48 +343,54 @@ export default function TicketingPage() {
                 body: JSON.stringify(editForm)
             });
             if (res.ok) {
-                Swal.fire({ title: "Updated!", icon: "success", background: '#1e293b', color: '#fff' });
+                Swal.fire({ 
+                    title: "Updated!", 
+                    icon: "success", 
+                    background: 'var(--card-bg)', 
+                    color: 'var(--foreground)',
+                    customClass: { popup: 'glass-card border-none rounded-[2rem]' }
+                });
                 setShowEditModal(false);
                 fetchTickets(currentUser!.id);
             } else {
-                Swal.fire({ title: "Error", text: "Failed to update ticket", icon: "error", background: '#1e293b', color: '#fff' });
+                Swal.fire({ 
+                    title: "Error", 
+                    text: "Failed to update ticket", 
+                    icon: "error", 
+                    background: 'var(--card-bg)', 
+                    color: 'var(--foreground)',
+                    customClass: { popup: 'glass-card border-none rounded-[2rem]' }
+                });
             }
         } catch {
-            Swal.fire({ title: "Error", text: "Network error", icon: "error", background: '#1e293b', color: '#fff' });
+            Swal.fire({ 
+                title: "Error", 
+                text: "Network error", 
+                icon: "error", 
+                background: 'var(--card-bg)', 
+                color: 'var(--foreground)',
+                customClass: { popup: 'glass-card border-none rounded-[2rem]' }
+            });
         } finally {
             setSubmitting(false);
         }
     };
 
     return (
-        <div className="relative min-h-screen overflow-hidden">
-            <div className="fixed inset-0 z-0">
-                {BACKGROUND_IMAGES.map((img, index) => (
-                    <div
-                        key={img}
-                        className="absolute inset-0 transition-opacity duration-1000"
-                        style={{
-                            backgroundImage: `url(${img})`,
-                            backgroundSize: "cover",
-                            backgroundPosition: "center",
-                            backgroundAttachment: "fixed",
-                            opacity: index === currentBgIndex ? 1 : 0,
-                        }}
-                    />
-                ))}
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-900/70 to-slate-900/90" />
-            </div>
-
-            <div className="relative z-10 max-w-6xl mx-auto p-4 md:p-6 text-white min-h-screen overflow-y-auto">
+        <div className="relative min-h-screen">
+            <div className="relative z-10 max-w-6xl mx-auto p-4 md:p-6 text-foreground min-h-screen overflow-y-auto">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-pink-500 mb-2">My Tickets</h1>
-                        <p className="text-slate-300">Report facility issues and track their resolution progress.</p>
+                        <h1 className="text-3xl md:text-5xl font-black tracking-tight text-foreground uppercase italic leading-none mb-2">
+                            My <span className="text-primary not-italic">Tickets</span>
+                        </h1>
+                        <p className="text-xs font-bold text-muted uppercase tracking-widest leading-relaxed">Report facility issues and track their resolution progress.</p>
                     </div>
                     <button 
-                        onClick={handleReport} 
-                        className="group relative rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white font-medium px-6 py-3 transition-all active:scale-95 shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50 overflow-hidden"
+                        onClick={handleReportIssue} 
+                        className="group relative rounded-xl btn-primary-action font-bold px-8 py-3 overflow-hidden"
                     >
+
                         <span className="relative z-10 flex items-center gap-2">
                             <Zap size={18} className="group-hover:rotate-12 transition-transform" />
                             Report Issue
@@ -358,31 +404,31 @@ export default function TicketingPage() {
                         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                         onClick={() => setShowReportModal(false)}
                     />
-                    <div className="relative w-full max-w-2xl max-h-[75vh] overflow-y-auto bg-slate-900 rounded-3xl border border-slate-700/50 shadow-2xl shadow-pink-500/10 animate-in slide-in-from-top-4 duration-300">
-                        <div className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50 p-6 rounded-t-3xl">
+                    <div className="relative w-full max-w-2xl max-h-[75vh] overflow-y-auto bg-card rounded-3xl border border-border-main shadow-2xl shadow-primary/10 animate-in slide-in-from-top-4 duration-300">
+                        <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-md border-b border-border-main p-6 rounded-t-3xl">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-pink-500/10 rounded-xl">
-                                        <AlertTriangle size={24} className="text-pink-400" />
+                                    <div className="p-2 bg-primary/10 rounded-xl">
+                                        <AlertTriangle size={24} className="text-primary" />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-bold text-white">Report New Incident</h2>
-                                        <p className="text-sm text-slate-400">Describe the issue you are experiencing</p>
+                                        <h2 className="text-xl font-bold text-foreground">Report New Incident</h2>
+                                        <p className="text-sm text-muted">Describe the issue you are experiencing</p>
                                     </div>
                                 </div>
                                 <button 
                                     onClick={() => setShowReportModal(false)}
-                                    className="p-2 hover:bg-slate-800 rounded-xl transition-colors"
+                                    className="p-2 hover:bg-foreground/5 rounded-xl transition-colors"
                                 >
-                                    <X size={20} className="text-slate-400" />
+                                    <X size={20} className="text-muted" />
                                 </button>
                             </div>
                         </div>
 
                         <form onSubmit={handleSubmitReport} className="p-6 space-y-6">
                             <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
-                                    <Type size={16} className="text-pink-400" />
+                                <label className="flex items-center gap-2 text-sm font-semibold text-muted">
+                                    <Type size={16} className="text-primary" />
                                     Issue Title
                                     <span className="text-red-400">*</span>
                                 </label>
@@ -390,14 +436,14 @@ export default function TicketingPage() {
                                     name="title"
                                     type="text"
                                     placeholder="Brief title describing the issue..."
-                                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all"
+                                    className="w-full px-4 py-3 bg-card border border-border-main rounded-xl text-foreground placeholder-muted focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all"
                                     required
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
-                                    <FileText size={16} className="text-pink-400" />
+                                <label className="flex items-center gap-2 text-sm font-semibold text-muted">
+                                    <FileText size={16} className="text-primary" />
                                     Description
                                     <span className="text-red-400">*</span>
                                 </label>
@@ -405,21 +451,21 @@ export default function TicketingPage() {
                                     name="description"
                                     rows={4}
                                     placeholder="Provide detailed information about the issue, including location, time, and impact..."
-                                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all resize-none"
+                                    className="w-full px-4 py-3 bg-card border border-border-main rounded-xl text-foreground placeholder-muted focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all resize-none"
                                     required
                                 />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
-                                        <MapPin size={16} className="text-pink-400" />
+                                    <label className="flex items-center gap-2 text-sm font-semibold text-muted">
+                                        <MapPin size={16} className="text-primary" />
                                         Location / Resource
                                     </label>
                                     <select
                                         value={reportResource}
                                         onChange={(e) => setReportResource(e.target.value)}
-                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all cursor-pointer"
+                                        className="w-full px-4 py-3 bg-card border border-border-main rounded-xl text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all cursor-pointer"
                                     >
                                         <option value="other">Other (specify below)</option>
                                         {resources.map((resource) => (
@@ -435,19 +481,19 @@ export default function TicketingPage() {
                                             value={reportOtherResource}
                                             onChange={(e) => setReportOtherResource(e.target.value)}
                                             placeholder="Enter location or resource..."
-                                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all mt-2"
+                                            className="w-full px-4 py-3 bg-card border border-border-main rounded-xl text-foreground placeholder-muted focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all mt-2"
                                         />
                                     )}
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
-                                        <Zap size={16} className="text-pink-400" />
+                                    <label className="flex items-center gap-2 text-sm font-semibold text-muted">
+                                        <Zap size={16} className="text-primary" />
                                         Priority Level
                                     </label>
                                     <select
                                         name="priority"
-                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all cursor-pointer"
+                                        className="w-full px-4 py-3 bg-card border border-border-main rounded-xl text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all cursor-pointer"
                                         defaultValue="MEDIUM"
                                     >
                                         <option value="LOW">Low - Minor inconvenience</option>
@@ -459,14 +505,14 @@ export default function TicketingPage() {
                             </div>
 
                             <div className="space-y-3">
-                                <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
-                                    <ImageIcon size={16} className="text-pink-400" />
+                                <label className="flex items-center gap-2 text-sm font-semibold text-muted">
+                                    <ImageIcon size={16} className="text-primary" />
                                     Attach Images
-                                    <span className="text-xs text-slate-500 font-normal">(up to 3)</span>
+                                    <span className="text-xs text-muted/50 font-normal">(up to 3)</span>
                                 </label>
                                 
                                 <div 
-                                    className="relative border-2 border-dashed border-slate-700 hover:border-pink-500/50 rounded-xl p-6 transition-colors cursor-pointer"
+                                    className="relative border-2 border-dashed border-border-main hover:border-primary/50 rounded-xl p-6 transition-colors cursor-pointer"
                                     onClick={() => fileInputRef.current?.click()}
                                 >
                                     <input
@@ -479,13 +525,13 @@ export default function TicketingPage() {
                                         disabled={selectedImages.length >= 3}
                                     />
                                     <div className="flex flex-col items-center justify-center text-center">
-                                        <div className="p-3 bg-slate-800 rounded-xl mb-3">
-                                            <Upload size={24} className="text-slate-400" />
+                                        <div className="p-3 bg-foreground/5 rounded-xl mb-3 border border-border-main">
+                                            <Upload size={24} className="text-muted" />
                                         </div>
-                                        <p className="text-sm text-slate-400">
-                                            <span className="text-pink-400 font-medium">Click to upload</span> or drag and drop
+                                        <p className="text-sm text-muted">
+                                            <span className="text-primary font-bold">Click to upload</span> or drag and drop
                                         </p>
-                                        <p className="text-xs text-slate-500 mt-1">PNG, JPG, GIF up to 10MB</p>
+                                        <p className="text-[10px] font-bold text-muted/50 uppercase tracking-widest mt-1">PNG, JPG, GIF up to 10MB</p>
                                     </div>
                                 </div>
 
@@ -520,18 +566,18 @@ export default function TicketingPage() {
                                 )}
                             </div>
 
-                            <div className="flex gap-3 pt-4 border-t border-slate-800">
+                            <div className="flex gap-3 pt-4 border-t border-border-main">
                                 <button
                                     type="button"
                                     onClick={() => setShowReportModal(false)}
-                                    className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium transition-colors"
+                                    className="flex-1 px-4 py-3 bg-foreground/5 hover:bg-foreground/10 text-muted rounded-xl font-bold uppercase text-[10px] tracking-widest transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="flex-1 px-4 py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-pink-500/30"
+                                    className="flex-1 px-4 py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
                                 >
                                     {submitting ? (
                                         <>
@@ -552,34 +598,34 @@ export default function TicketingPage() {
             )}
 
             {showEditModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowEditModal(false)} />
-                    <div className="relative w-full max-w-lg bg-slate-900/95 backdrop-blur-xl rounded-3xl border border-slate-700/50 shadow-2xl shadow-pink-500/10 overflow-hidden">
+                    <div className="relative w-full max-w-lg bg-card rounded-3xl border border-border-main shadow-2xl overflow-hidden">
                         <div className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 via-transparent to-rose-500/10" />
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-brand-pink/10" />
                             <div className="relative p-6 pb-4">
                                 <div className="flex items-center justify-between mb-6">
                                     <div className="flex items-center gap-3">
-                                        <div className="p-3 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl border border-pink-500/30">
-                                            <FileText size={24} className="text-pink-400" />
+                                        <div className="p-3 bg-primary/10 rounded-xl border border-primary/20">
+                                            <FileText size={24} className="text-primary" />
                                         </div>
                                         <div>
-                                            <h2 className="text-xl font-bold text-white">Edit Ticket</h2>
-                                            <p className="text-xs text-slate-400">Update your ticket information</p>
+                                            <h2 className="text-xl font-bold text-foreground">Edit Ticket</h2>
+                                            <p className="text-xs text-muted">Update your ticket information</p>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => setShowEditModal(false)}
-                                        className="p-2 hover:bg-slate-800 rounded-xl transition-colors"
+                                        className="p-2 hover:bg-foreground/5 rounded-xl transition-colors"
                                     >
-                                        <X size={20} className="text-slate-400" />
+                                        <X size={20} className="text-muted" />
                                     </button>
                                 </div>
 
                                 <div className="space-y-5">
                                     <div className="space-y-2">
-                                        <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
-                                            <Type size={16} className="text-pink-400" />
+                                        <label className="flex items-center gap-2 text-sm font-semibold text-muted">
+                                            <Type size={16} className="text-primary" />
                                             Ticket Title
                                             <span className="text-red-400">*</span>
                                         </label>
@@ -588,14 +634,14 @@ export default function TicketingPage() {
                                             value={editForm.title}
                                             onChange={(e) => setEditForm({...editForm, title: e.target.value})}
                                             placeholder="Brief title describing the issue..."
-                                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all"
+                                            className="w-full px-4 py-3 bg-card border border-border-main rounded-xl text-foreground placeholder-muted focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all"
                                             required
                                         />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
-                                            <FileText size={16} className="text-pink-400" />
+                                        <label className="flex items-center gap-2 text-sm font-semibold text-muted">
+                                            <FileText size={16} className="text-primary" />
                                             Description
                                             <span className="text-red-400">*</span>
                                         </label>
@@ -604,21 +650,21 @@ export default function TicketingPage() {
                                             onChange={(e) => setEditForm({...editForm, description: e.target.value})}
                                             rows={4}
                                             placeholder="Provide detailed information about the issue..."
-                                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all resize-none"
+                                            className="w-full px-4 py-3 bg-card border border-border-main rounded-xl text-foreground placeholder-muted focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all resize-none"
                                             required
                                         />
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
-                                                <MapPin size={16} className="text-pink-400" />
+                                            <label className="flex items-center gap-2 text-sm font-semibold text-muted">
+                                                <MapPin size={16} className="text-primary" />
                                                 Location / Resource
                                             </label>
                                             <select
                                                 value={editForm.resourceId}
                                                 onChange={(e) => setEditForm({...editForm, resourceId: e.target.value})}
-                                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all cursor-pointer"
+                                                className="w-full px-4 py-3 bg-card border border-border-main rounded-xl text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all cursor-pointer"
                                             >
                                                 <option value="other">Other (specify below)</option>
                                                 {resources.map((resource) => (
@@ -631,14 +677,14 @@ export default function TicketingPage() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
-                                                <Zap size={16} className="text-pink-400" />
+                                            <label className="flex items-center gap-2 text-sm font-semibold text-muted">
+                                                <Zap size={16} className="text-primary" />
                                                 Priority Level
                                             </label>
                                             <select
                                                 value={editForm.priority}
                                                 onChange={(e) => setEditForm({...editForm, priority: e.target.value})}
-                                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all cursor-pointer"
+                                                className="w-full px-4 py-3 bg-card border border-border-main rounded-xl text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all cursor-pointer"
                                             >
                                                 <option value="LOW">Low - Minor inconvenience</option>
                                                 <option value="MEDIUM">Medium - Partially affected</option>
@@ -649,17 +695,17 @@ export default function TicketingPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex gap-3 pt-6 mt-6 border-t border-slate-800">
+                                <div className="flex gap-3 pt-6 mt-6 border-t border-border-main">
                                     <button
                                         onClick={() => setShowEditModal(false)}
-                                        className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium transition-colors"
+                                        className="flex-1 px-4 py-3 bg-foreground/5 hover:bg-foreground/10 text-muted rounded-xl font-bold uppercase text-[10px] tracking-widest transition-colors"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={handleSaveEdit}
                                         disabled={submitting}
-                                        className="flex-1 px-4 py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                        className="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-brand-pink hover:opacity-90 text-white rounded-xl font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-xl shadow-primary/20"
                                     >
                                         {submitting ? (
                                             <>
@@ -680,24 +726,24 @@ export default function TicketingPage() {
                 </div>
             )}
 
-            <div className="glass-card rounded-2xl p-4 mb-6 border border-slate-700/50">
+            <div className="bg-card rounded-2xl p-4 mb-6 border border-border-main">
                 <div className="flex flex-wrap gap-4 items-end">
                     <div className="flex-1 min-w-[200px]">
-                        <label className="block text-xs font-semibold text-slate-400 mb-1">Search</label>
+                        <label className="block text-xs font-semibold text-muted mb-1">Search</label>
                         <input
                             type="text"
                             placeholder="Search tickets..."
                             value={filters.search}
                             onChange={(e) => setFilters({...filters, search: e.target.value})}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:border-pink-500 focus:outline-none"
+                            className="w-full px-3 py-2 bg-background border border-border-main rounded-lg text-sm text-foreground placeholder-muted focus:border-primary focus:outline-none"
                         />
                     </div>
                     <div className="min-w-[130px]">
-                        <label className="block text-xs font-semibold text-slate-400 mb-1">Status</label>
+                        <label className="block text-xs font-semibold text-muted mb-1">Status</label>
                         <select
                             value={filters.status}
                             onChange={(e) => setFilters({...filters, status: e.target.value})}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white focus:border-pink-500 focus:outline-none"
+                            className="w-full px-3 py-2 bg-background border border-border-main rounded-lg text-sm text-foreground focus:border-primary focus:outline-none"
                         >
                             <option value="">All</option>
                             <option value="OPEN">Open</option>
@@ -707,11 +753,11 @@ export default function TicketingPage() {
                         </select>
                     </div>
                     <div className="min-w-[130px]">
-                        <label className="block text-xs font-semibold text-slate-400 mb-1">Priority</label>
+                        <label className="block text-xs font-semibold text-muted mb-1">Priority</label>
                         <select
                             value={filters.priority}
                             onChange={(e) => setFilters({...filters, priority: e.target.value})}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white focus:border-pink-500 focus:outline-none"
+                            className="w-full px-3 py-2 bg-background border border-border-main rounded-lg text-sm text-foreground focus:border-primary focus:outline-none"
                         >
                             <option value="">All</option>
                             <option value="CRITICAL">Critical</option>
@@ -723,13 +769,13 @@ export default function TicketingPage() {
                     {hasActiveFilters && (
                         <button
                             onClick={clearFilters}
-                            className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-lg text-sm font-medium transition-colors"
+                            className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 rounded-lg text-sm font-medium transition-colors"
                         >
                             Clear
                         </button>
                     )}
                 </div>
-                <div className="mt-3 text-sm text-slate-400">
+                <div className="mt-3 text-sm text-muted">
                     Showing {filteredTickets.length} of {tickets.length} tickets
                 </div>
             </div>
@@ -739,24 +785,30 @@ export default function TicketingPage() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredTickets.length === 0 ? (
-                        <div className="col-span-full text-center p-10 glass-card rounded-2xl border border-slate-700/50 text-slate-400">
+                        <div className="col-span-full text-center p-20 bg-card rounded-[2.5rem] border border-border-main shadow-inner">
                             {hasActiveFilters ? (
                                 <div>
-                                    <div className="mb-2">No tickets match your filters</div>
-                                    <button onClick={clearFilters} className="text-pink-400 hover:text-pink-300 text-sm">Clear filters</button>
+                                    <div className="text-lg font-bold text-foreground mb-2">No tickets match your filters</div>
+                                    <button onClick={clearFilters} className="text-primary hover:text-primary-dark font-black uppercase text-[10px] tracking-widest">Clear filters</button>
                                 </div>
                             ) : (
-                                "No tickets reported."
+                                <div className="space-y-4">
+                                    <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-primary/20">
+                                        <AlertCircle size={32} className="text-primary opacity-50" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-foreground">No reports found</h3>
+                                    <p className="text-muted text-sm font-medium">Your reported issues and incident tickets will appear here.</p>
+                                </div>
                             )}
                         </div>
                     ) : (
                         filteredTickets.map(ticket => (
-                            <div key={ticket.id} className={`glass-card flex flex-col p-6 rounded-2xl border-l-4 group transition-all hover:bg-slate-800/50 ${isOverdue(ticket) ? 'animate-pulse-glow' : ''}`} style={{ borderLeftColor: ticket.priority === 'CRITICAL' ? '#f43f5e' : ticket.priority === 'HIGH' ? '#fb923c' : '#3b82f6' }}>
+                            <div key={ticket.id} className={`bg-card flex flex-col p-6 rounded-2xl border-l-4 group transition-all hover:bg-foreground/5`} style={{ borderLeftColor: ticket.priority === 'CRITICAL' ? '#f43f5e' : ticket.priority === 'HIGH' ? '#fb923c' : '#CA5995' }}>
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xs font-mono font-medium text-slate-400 bg-slate-800/80 px-2 py-1 rounded">#{ticket.id?.substring(0,6).toUpperCase()}</span>
+                                        <span className="text-xs font-mono font-medium text-muted bg-foreground/5 px-2 py-1 rounded">#{ticket.id?.substring(0,6).toUpperCase()}</span>
                                         {isOverdue(ticket) && (
-                                            <span className="animate-pulse text-[10px] font-bold px-2 py-1 rounded bg-red-500/20 text-red-400 border border-red-500/30">
+                                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-rose-500/20 text-rose-500 border border-rose-500/30">
                                                 OVERDUE
                                             </span>
                                         )}
@@ -765,8 +817,8 @@ export default function TicketingPage() {
                                         {(ticket.status || 'OPEN').replace("_", " ")}
                                     </span>
                                 </div>
-                                <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">{ticket.title}</h3>
-                                <p className="text-sm text-slate-400 line-clamp-3 mb-2 flex-grow">{ticket.description}</p>
+                                <h3 className="text-lg font-bold text-foreground mb-2 line-clamp-2">{ticket.title}</h3>
+                                <p className="text-sm text-muted line-clamp-3 mb-2 flex-grow">{ticket.description}</p>
                                 
                                 {ticket.attachments && ticket.attachments.length > 0 && (
                                     <div className="flex gap-2 mb-4 overflow-x-auto">
@@ -782,54 +834,55 @@ export default function TicketingPage() {
                                     </div>
                                 )}
                                 
-                                <div className="text-slate-400 text-xs flex flex-col gap-2 mt-auto">
-                                    <div className="flex justify-between border-t border-slate-700/50 pt-3">
-                                        <span className="font-semibold text-slate-300">Resource:</span>
-                                        <span className="text-right max-w-[180px] truncate" title={getResourceName(ticket.resourceId)}>
-                                            {getResourceName(ticket.resourceId)}
+                                <div className="space-y-3 mt-4 pt-4 border-t border-border-main/50">
+                                    <div className="flex items-center gap-3 text-xs">
+                                        <MapPin size={14} className="text-primary" />
+                                        <span className="font-bold text-muted uppercase tracking-widest opacity-60 min-w-[70px]">Resource</span>
+                                        <span className="text-foreground font-black">{resources.find(r => r.id === ticket.resourceId)?.resourceCode || 'General'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-xs">
+                                        <Zap size={14} className="text-primary" />
+                                        <span className="font-bold text-muted uppercase tracking-widest opacity-60 min-w-[70px]">Priority</span>
+                                        <span className={`font-black ${ticket.priority === 'CRITICAL' ? 'text-rose-500' : ticket.priority === 'HIGH' ? 'text-orange-500' : 'text-primary'}`}>
+                                            {ticket.priority || 'MEDIUM'}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="font-semibold text-slate-300">Priority:</span>
-                                        <span className={
-                                            ticket.priority === 'CRITICAL' ? 'text-red-400 font-bold' : 
-                                            ticket.priority === 'HIGH' ? 'text-orange-400 font-semibold' : 'text-slate-300'
-                                        }>{ticket.priority || 'LOW'}</span>
-                                    </div>
                                     {isOverdue(ticket) && (
-                                        <div className="flex justify-between text-red-400">
-                                            <span className="font-semibold">Overdue:</span>
-                                            <span className="font-bold animate-pulse">{getOverdueLabel(ticket)}</span>
+                                        <div className="flex items-center gap-3 text-xs text-rose-500">
+                                            <AlertCircle size={14} className="font-bold" />
+                                            <span className="font-bold uppercase tracking-widest opacity-60 min-w-[70px]">Overdue</span>
+                                            <span className="font-black">{getOverdueLabel(ticket)}</span>
                                         </div>
                                     )}
-                                    <div className="flex justify-between">
-                                        <span className="font-semibold text-slate-300">Created:</span>
-                                        <span>{ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</span>
+                                    <div className="flex items-center gap-3 text-xs">
+                                        <FileText size={14} className="text-primary" />
+                                        <span className="font-bold text-muted uppercase tracking-widest opacity-60 min-w-[70px]">Created</span>
+                                        <span className="text-foreground font-black">{ticket.createdAt ? new Date(ticket.createdAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A'}</span>
                                     </div>
                                 </div>
 
                                 {ticket.resolutionNotes && ticket.status === 'RESOLVED' && (
-                                    <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-300">
+                                    <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-600 font-medium">
                                         <span className="font-bold d-block mb-1">Resolution:</span> {ticket.resolutionNotes}
                                     </div>
                                 )}
                                 {ticket.rejectionReason && ticket.status === 'REJECTED' && (
-                                    <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-300">
+                                    <div className="mt-4 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-600 font-medium">
                                         <span className="font-bold d-block mb-1">Feedback:</span> {ticket.rejectionReason}
                                     </div>
                                 )}
 
                                 {ticket.status === 'OPEN' && (
-                                    <div className="flex gap-2 mt-4 pt-4 border-t border-slate-700/50">
+                                    <div className="flex gap-2 mt-4 pt-4 border-t border-border-main/50">
                                         <button 
                                             onClick={() => handleEdit(ticket)}
-                                            className="flex-1 px-3 py-2 text-sm font-medium bg-slate-700 hover:bg-indigo-500 text-slate-200 rounded-lg transition-colors"
+                                            className="flex-1 px-3 py-2 text-sm font-bold bg-background border border-border-main hover:border-primary text-foreground rounded-xl transition-all active:scale-95"
                                         >
                                             Edit
                                         </button>
                                         <button 
                                             onClick={() => handleDelete(ticket.id, ticket.title)}
-                                            className="flex-1 px-3 py-2 text-sm font-medium bg-slate-700/50 hover:bg-pink-500 hover:text-white text-pink-400 rounded-lg transition-colors"
+                                            className="flex-1 px-3 py-2 text-sm font-bold bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-500 rounded-xl transition-all border border-rose-500/20 active:scale-95"
                                         >
                                             Delete
                                         </button>

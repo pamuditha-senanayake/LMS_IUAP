@@ -189,8 +189,8 @@ export default function TicketStatistics() {
                             </div>
                         </div>
                         <div>
-                            <h1 className="text-4xl font-bold text-white mb-2">
-                                Analytics Dashboard
+                            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-foreground mb-2">
+                                Analytics <span className="text-primary">Dashboard</span>
                             </h1>
                             <p className="text-slate-400 flex items-center gap-2">
                                 <Activity size={14} className="text-indigo-400" />

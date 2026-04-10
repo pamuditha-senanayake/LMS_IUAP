@@ -308,17 +308,17 @@ export default function FacilitiesCatalogue() {
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">
-                            Facilities & Assets
+                        <h1 className="text-3xl md:text-5xl font-black tracking-tight text-foreground mb-2">
+                            Facilities & <span className="text-primary">Assets</span>
                         </h1>
-                        <p className="text-slate-400">
+                        <p className="text-muted">
                             Browse and search available resources for booking.
                         </p>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="text-sm text-slate-500">
+                        <div className="text-sm text-muted">
                             Showing{" "}
-                            <span className="text-indigo-400 font-semibold">
+                            <span className="text-primary font-semibold">
                                 {filteredResources.length}
                             </span>{" "}
                             of {resources.length} resources
@@ -326,8 +326,9 @@ export default function FacilitiesCatalogue() {
                         {isAdmin && (
                             <button
                                 onClick={() => setIsAddModalOpen(true)}
-                                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 active:scale-[0.98]"
+                                className="flex items-center gap-2 px-4 py-2.5 btn-primary-action font-semibold rounded-xl"
                             >
+
                                 <Plus className="w-5 h-5" />
                                 Add Resource
                             </button>
@@ -337,18 +338,18 @@ export default function FacilitiesCatalogue() {
 
                 <div className="flex flex-col lg:flex-row gap-4 mb-8">
                     <div className="relative flex-1">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
                         <input
                             type="text"
                             placeholder="Search resources by name, type, or code..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                            className="w-full pl-12 pr-4 py-3.5 bg-card border border-border-main rounded-xl text-foreground placeholder-muted focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                         />
                         {searchQuery && (
                             <button
                                 onClick={() => setSearchQuery("")}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-700/50"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-foreground transition-colors p-1 rounded-lg hover:bg-foreground/5"
                                 aria-label="Clear search"
                             >
                                 <X className="w-4 h-4" />
@@ -362,16 +363,16 @@ export default function FacilitiesCatalogue() {
                                 ref={filterButtonRef}
                                 data-filter-trigger
                                 onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-                                className={`flex items-center gap-2 px-4 py-3.5 bg-slate-800/50 border rounded-xl font-medium transition-all ${
+                                className={`flex items-center gap-2 px-4 py-3.5 bg-card border rounded-xl font-medium transition-all ${
                                     hasActiveFilters
-                                        ? "border-indigo-500/50 text-indigo-400 hover:bg-slate-700/50"
-                                        : "border-slate-700/50 text-slate-300 hover:text-white hover:border-slate-600/50"
+                                        ? "border-primary/50 text-primary hover:bg-foreground/5"
+                                        : "border-border-main text-muted hover:text-foreground hover:border-foreground/10"
                                 }`}
                             >
                                 <Filter className="w-4 h-4" />
                                 <span>Filter</span>
                                 {activeFilterCount > 0 && (
-                                    <span className="ml-1 px-1.5 py-0.5 text-xs font-bold bg-indigo-500 text-white rounded-full">
+                                    <span className="ml-1 px-1.5 py-0.5 text-xs font-bold bg-primary text-white rounded-full">
                                         {activeFilterCount}
                                     </span>
                                 )}
@@ -398,7 +399,7 @@ export default function FacilitiesCatalogue() {
                         {hasActiveFilters && (
                             <button
                                 onClick={clearFilters}
-                                className="px-4 py-3.5 text-sm font-medium text-slate-400 hover:text-white bg-slate-800/50 border border-slate-700/50 rounded-xl transition-colors"
+                                className="px-4 py-3.5 text-sm font-medium text-muted hover:text-foreground bg-card border border-border-main rounded-xl transition-colors"
                             >
                                 Clear All
                             </button>
@@ -412,14 +413,14 @@ export default function FacilitiesCatalogue() {
                     </div>
                 ) : error ? (
                     <div className="text-center py-16">
-                        <div className="text-5xl mb-4">⚠️</div>
-                        <h3 className="text-xl font-semibold text-white mb-2">
+                        <div className="text-5xl mb-4 text-rose-500 opacity-50">⚠️</div>
+                        <h3 className="text-xl font-semibold text-foreground mb-2">
                             Connection Error
                         </h3>
-                        <p className="text-slate-400 mb-6">{error}</p>
+                        <p className="text-muted mb-6">{error}</p>
                         <button
                             onClick={fetchResources}
-                            className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-xl transition-colors"
+                            className="px-6 py-3 bg-primary hover:bg-primary-dark text-white font-medium rounded-xl transition-colors"
                         >
                             Retry
                         </button>
@@ -428,27 +429,27 @@ export default function FacilitiesCatalogue() {
                     <div className="text-center py-16">
                         {hasActiveFilters ? (
                             <>
-                                <div className="text-5xl mb-4">🔍</div>
-                                <h3 className="text-xl font-semibold text-white mb-2">
+                                <div className="text-5xl mb-4 opacity-50">🔍</div>
+                                <h3 className="text-xl font-semibold text-foreground mb-2">
                                     No resources found
                                 </h3>
-                                <p className="text-slate-400 mb-6">
+                                <p className="text-muted mb-6">
                                     Try adjusting your search or filter criteria
                                 </p>
                                 <button
                                     onClick={clearFilters}
-                                    className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-xl transition-colors"
+                                    className="px-6 py-3 bg-primary hover:bg-primary-dark text-white font-medium rounded-xl transition-colors"
                                 >
                                     Clear all filters
                                 </button>
                             </>
                         ) : (
                             <>
-                                <div className="text-5xl mb-4">📦</div>
-                                <h3 className="text-xl font-semibold text-white mb-2">
+                                <div className="text-5xl mb-4 opacity-50">📦</div>
+                                <h3 className="text-xl font-semibold text-foreground mb-2">
                                     No resources available
                                 </h3>
-                                <p className="text-slate-400">
+                                <p className="text-muted">
                                     Check back later or contact admin for assistance
                                 </p>
                             </>

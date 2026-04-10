@@ -134,16 +134,16 @@ export default function FilterPanel({
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" />
 
             <div
-                className="relative w-full max-w-lg bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-300"
+                className="relative w-full max-w-lg bg-card border border-border-main rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-300"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/50 bg-gradient-to-r from-slate-800 via-slate-800/95 to-slate-800/80">
+                <div className="flex items-center justify-between px-6 py-5 border-b border-border-main bg-foreground/[0.02]">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-500/10 rounded-xl">
-                            <SlidersHorizontal className="w-5 h-5 text-indigo-400" />
+                        <div className="p-2 bg-primary/10 rounded-xl">
+                            <SlidersHorizontal className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold text-white">Filters</h3>
+                            <h3 className="text-lg font-black uppercase tracking-tight text-foreground">Filters</h3>
                             {activeFilterCount > 0 && (
                                 <p className="text-xs text-slate-400">
                                     {activeFilterCount} filter{activeFilterCount !== 1 ? "s" : ""} active
@@ -238,19 +238,19 @@ export default function FilterPanel({
                     </div>
                 </div>
 
-                <div className="flex gap-3 p-5 border-t border-slate-700/50 bg-gradient-to-r from-slate-800/50 via-slate-800/80 to-slate-800/50">
+                <div className="flex gap-3 p-6 border-t border-border-main bg-foreground/[0.02]">
                     <button
                         type="button"
                         onClick={handleReset}
                         disabled={!hasActiveFilters}
-                        className="flex-1 px-5 py-3 text-sm font-medium text-slate-300 bg-slate-700/50 border border-slate-600/50 rounded-xl hover:bg-slate-700 hover:text-white hover:border-slate-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="flex-1 px-5 py-3 text-sm font-bold uppercase tracking-widest text-muted bg-card border border-border-main rounded-xl hover:text-foreground hover:bg-foreground/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                         Clear All
                     </button>
                     <button
                         type="button"
                         onClick={handleApply}
-                        className="flex-1 px-5 py-3 text-sm font-bold text-white bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 hover:from-indigo-600 hover:via-purple-600 hover:to-indigo-600 rounded-xl transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 active:scale-[0.98]"
+                        className="flex-1 px-5 py-3 text-sm font-black uppercase tracking-widest text-white bg-primary hover:bg-primary-dark rounded-xl transition-all shadow-xl shadow-primary/20 active:scale-[0.98]"
                     >
                         Apply Filters
                     </button>

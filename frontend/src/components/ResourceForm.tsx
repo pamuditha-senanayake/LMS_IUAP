@@ -59,7 +59,7 @@ export default function ResourceForm({
                         value={formData.resourceName || ""}
                         onChange={(e) => onFormChange({ resourceName: e.target.value })}
                         placeholder={category === "FACILITY" ? "Main Auditorium" : "Epson Projector #1"}
-                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
+                        className="w-full px-4 py-3 bg-card border border-border-main rounded-xl text-foreground placeholder-muted focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                     />
                 </div>
                 <div>
@@ -143,7 +143,7 @@ export default function ResourceForm({
                     onChange={(e) => onFormChange({ description: e.target.value })}
                     rows={2}
                     placeholder={category === "FACILITY" ? "Large auditorium with AV equipment..." : "Serial number, condition, notes..."}
-                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none resize-none"
+                    className="w-full px-4 py-3 bg-card border border-border-main rounded-xl text-foreground placeholder-muted focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none"
                 />
             </div>
 
@@ -209,7 +209,7 @@ export default function ResourceForm({
                 <button
                     onClick={onSubmit}
                     disabled={isSubmitting}
-                    className="px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 rounded-xl transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-8 py-2.5 text-sm font-black uppercase tracking-widest text-white bg-primary hover:bg-primary-dark rounded-xl transition-all shadow-xl shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                 >
                     {isSubmitting ? "Saving..." : submitLabel}
                 </button>

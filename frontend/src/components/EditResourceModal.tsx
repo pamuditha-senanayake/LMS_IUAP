@@ -344,13 +344,13 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
         >
             <div 
                 ref={modalRef}
-                className="relative w-full max-w-2xl bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-slate-700/50 shadow-2xl shadow-indigo-500/10 overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col"
+                className="relative w-full max-w-2xl bg-card rounded-[2rem] border border-border-main shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col"
             >
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
                 
-                <div className="flex items-center justify-between p-6 border-b border-slate-700/50 shrink-0">
+                <div className="flex items-center justify-between p-6 border-b border-border-main bg-foreground/[0.02] shrink-0">
                     <div>
-                        <h2 className="text-xl font-bold text-white">{resourceName}</h2>
+                        <h2 className="text-xl font-black uppercase tracking-tight text-foreground">{resourceName}</h2>
                         <p className="text-sm text-slate-400 mt-0.5">
                             {resourceTypeDisplay.replace(/_/g, ' ')} {resource.resourceCode && `• #${resource.resourceCode}`}
                         </p>
@@ -431,18 +431,18 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
 
                             <div>
                                 <label className="block text-sm font-medium text-slate-400 mb-2">Location *</label>
-                                <select
-                                    value={editedResource.location || ""}
-                                    onChange={(e) => setEditedResource({ ...editedResource, location: e.target.value, campusName: e.target.value, building: e.target.value, storageLocation: e.target.value })}
-                                    className={`w-full px-4 py-3 bg-slate-800/50 border rounded-xl text-white focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer ${errors.location ? 'border-red-500' : 'border-slate-700/50'}`}
-                                >
-                                    <option value="">Select Location</option>
-                                    {LOCATION_OPTIONS.map(opt => (
-                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                    ))}
-                                </select>
-                                {errors.location && <p className="mt-1 text-xs text-red-400">{errors.location}</p>}
-                            </div>
+                                    <select
+                                        value={editedResource.location || ""}
+                                        onChange={(e) => setEditedResource({ ...editedResource, location: e.target.value, campusName: e.target.value, building: e.target.value, storageLocation: e.target.value })}
+                                        className={`w-full px-4 py-3 bg-foreground/[0.03] border rounded-xl text-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer ${errors.location ? 'border-red-500' : 'border-border-main'}`}
+                                    >
+                                        <option value="">Select Location</option>
+                                        {LOCATION_OPTIONS.map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                    {errors.location && <p className="mt-1 text-xs text-red-400">{errors.location}</p>}
+                                </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-slate-400 mb-2">
@@ -611,7 +611,7 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
                                 <button
                                     onClick={handleSave}
                                     disabled={isSubmitting}
-                                    className="px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 rounded-xl transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-8 py-2.5 text-sm font-black uppercase tracking-widest text-white bg-primary hover:bg-primary-dark rounded-xl transition-all shadow-xl shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                                 >
                                     {isSubmitting ? "Saving..." : "Save Changes"}
                                 </button>
@@ -619,7 +619,7 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
                         ) : (
                             <button
                                 onClick={onClose}
-                                className="px-5 py-2.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-700/50 hover:bg-slate-700 rounded-xl transition-all border border-slate-600/50"
+                                className="px-5 py-2.5 text-sm font-bold uppercase tracking-widest text-muted bg-card border border-border-main hover:text-foreground hover:bg-foreground/5 rounded-xl transition-all active:scale-95"
                             >
                                 Close
                             </button>
