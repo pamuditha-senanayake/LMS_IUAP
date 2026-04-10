@@ -58,6 +58,11 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getBookingStats());
     }
 
+    @GetMapping("/calendar")
+    public ResponseEntity<List<BookingCalendarDto>> getCalendarBookings() {
+        return ResponseEntity.ok(bookingService.getCalendarBookings());
+    }
+
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Booking>> getUserBookings(@PathVariable String userId) {
         return ResponseEntity.ok(bookingService.getUserBookings(userId));
@@ -99,8 +104,9 @@ public class BookingController {
     @PostMapping("/{bookingId}/cancel")
     public ResponseEntity<Booking> cancelBooking(
             @PathVariable String bookingId,
-            @RequestParam String userId) {
-        return ResponseEntity.ok(bookingService.cancelBooking(bookingId, userId));
+            @RequestParam String userId,
+            @RequestParam(required = false) String reason) {
+        return ResponseEntity.ok(bookingService.cancelBooking(bookingId, userId, reason));
     }
 
     @DeleteMapping("/{bookingId}")

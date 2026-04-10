@@ -98,7 +98,7 @@ export default function ResourceCard({ resource }: ResourceCardProps) {
 
     return (
         <>
-            <div className="group relative bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1">
+            <div className="group relative bg-card rounded-2xl border border-border-main overflow-hidden hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1">
                 <div className={`absolute top-0 left-0 right-0 h-1 ${
                     isUtility 
                         ? 'bg-gradient-to-r from-amber-500 to-orange-500' 
@@ -109,42 +109,42 @@ export default function ResourceCard({ resource }: ResourceCardProps) {
                     <div className="flex justify-between items-start mb-4">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
                             isUtility 
-                                ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' 
-                                : 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
+                                ? 'bg-brand-peach/20 text-brand-peach border-brand-peach/30' 
+                                : 'bg-primary/20 text-primary border-primary/30'
                         }`}>
                             {formatType(resourceType)}
                         </span>
                         <StatusBadge status={status} />
                     </div>
 
-                    <h3 className="text-xl font-bold text-white mb-2 group-hover:text-indigo-300 transition-colors line-clamp-1">
+                    <h3 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors line-clamp-1">
                         {resourceName}
                     </h3>
 
                     {resource.resourceCode && (
-                        <p className="text-xs text-slate-500 mb-4 font-mono">#{resource.resourceCode}</p>
+                        <p className="text-xs text-muted mb-4 font-mono opacity-60">#{resource.resourceCode}</p>
                     )}
 
                     <div className="space-y-3 mb-4">
                         {isFacility && (
-                            <div className="flex items-center text-sm text-slate-400">
-                                <Users className="w-4 h-4 mr-3 text-slate-500 shrink-0" />
-                                <span className="font-medium text-slate-300">{capacity}</span>
+                            <div className="flex items-center text-sm text-muted">
+                                <Users className="w-4 h-4 mr-3 text-muted/60 shrink-0" />
+                                <span className="font-medium text-foreground/80">{capacity}</span>
                                 <span className="ml-1">seats capacity</span>
                             </div>
                         )}
                         
-                        <div className="flex items-start text-sm text-slate-400">
+                        <div className="flex items-start text-sm text-muted">
                             {isUtility ? (
-                                <Package className="w-4 h-4 mr-3 text-slate-500 shrink-0 mt-0.5" />
+                                <Package className="w-4 h-4 mr-3 text-muted/60 shrink-0 mt-0.5" />
                             ) : (
-                                <MapPin className="w-4 h-4 mr-3 text-slate-500 shrink-0 mt-0.5" />
+                                <MapPin className="w-4 h-4 mr-3 text-muted/60 shrink-0 mt-0.5" />
                             )}
                             <span className="line-clamp-2">{locationDisplay}</span>
                         </div>
 
                         {isUtility && resource.description && (
-                            <p className="text-sm text-slate-400 line-clamp-2">{resource.description}</p>
+                            <p className="text-sm text-muted line-clamp-2">{resource.description}</p>
                         )}
                     </div>
 
@@ -153,13 +153,13 @@ export default function ResourceCard({ resource }: ResourceCardProps) {
                             {resource.amenities.slice(0, 3).map((amenity, idx) => (
                                 <span 
                                     key={idx} 
-                                    className="px-2 py-0.5 text-xs rounded-md bg-slate-700/50 text-slate-400 border border-slate-600/30"
+                                    className="px-2 py-0.5 text-xs rounded-md bg-foreground/5 text-muted border border-border-main"
                                 >
                                     {amenity}
                                 </span>
                             ))}
                             {resource.amenities.length > 3 && (
-                                <span className="px-2 py-0.5 text-xs rounded-md bg-slate-700/50 text-slate-500">
+                                <span className="px-2 py-0.5 text-xs rounded-md bg-foreground/5 text-muted/60">
                                     +{resource.amenities.length - 3}
                                 </span>
                             )}
@@ -171,11 +171,7 @@ export default function ResourceCard({ resource }: ResourceCardProps) {
                     {isAdmin ? (
                         <Link 
                             href={`/dashboard/facilities/${resourceId}`}
-                            className={`flex items-center justify-center w-full px-4 py-3 text-sm font-semibold text-white rounded-xl transition-all shadow-lg active:scale-[0.98] ${
-                                isUtility
-                                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-amber-500/25 hover:shadow-amber-500/40'
-                                    : 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 shadow-indigo-500/25 hover:shadow-indigo-500/40'
-                            }`}
+                            className="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold text-white rounded-xl transition-all shadow-lg active:scale-[0.98] bg-gradient-to-r from-primary to-brand-pink hover:opacity-90 shadow-primary/25 hover:shadow-primary/40"
                         >
                             <Eye className="w-4 h-4 mr-2" />
                             View Details
@@ -183,11 +179,7 @@ export default function ResourceCard({ resource }: ResourceCardProps) {
                     ) : (
                         <button 
                             onClick={() => setIsModalOpen(true)}
-                            className={`flex items-center justify-center w-full px-4 py-3 text-sm font-semibold text-white rounded-xl transition-all shadow-lg active:scale-[0.98] ${
-                                isUtility
-                                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-amber-500/25 hover:shadow-amber-500/40'
-                                    : 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 shadow-indigo-500/25 hover:shadow-indigo-500/40'
-                            }`}
+                            className="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold text-white rounded-xl transition-all shadow-lg active:scale-[0.98] bg-gradient-to-r from-primary to-brand-pink hover:opacity-90 shadow-primary/25 hover:shadow-primary/40"
                         >
                             <Eye className="w-4 h-4 mr-2" />
                             View Details

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Swal from "sweetalert2";
+import { Activity } from "lucide-react";
 
 export default function AdminTickets() {
     const [tickets, setTickets] = useState<any[]>([]);
@@ -136,13 +137,32 @@ export default function AdminTickets() {
             url.searchParams.append("note", note);
             const res = await fetch(url.toString(), { method: "PATCH", credentials: "include" });
             if (res.ok) {
-                Swal.fire({ title: "Updated!", icon: "success", background: '#1e293b', color: '#fff' });
+                Swal.fire({ 
+                    title: "Updated!", 
+                    icon: "success", 
+                    background: 'var(--card-bg)', 
+                    color: 'var(--foreground)',
+                    customClass: { popup: 'glass-card border-none rounded-[2rem]' }
+                });
                 fetchTickets();
             } else {
-                Swal.fire({ title: "Error", text: await res.text(), icon: "error", background: '#1e293b', color: '#fff' });
+                Swal.fire({ 
+                    title: "Error", 
+                    text: await res.text(), 
+                    icon: "error", 
+                    background: 'var(--card-bg)', 
+                    color: 'var(--foreground)',
+                    customClass: { popup: 'glass-card border-none rounded-[2rem]' }
+                });
             }
         } catch {
-            Swal.fire({ title: "Error", icon: "error", background: '#1e293b', color: '#fff' });
+            Swal.fire({ 
+                title: "Error", 
+                icon: "error", 
+                background: 'var(--card-bg)', 
+                color: 'var(--foreground)',
+                customClass: { popup: 'glass-card border-none rounded-[2rem]' }
+            });
         }
     };
 
@@ -161,8 +181,13 @@ export default function AdminTickets() {
             confirmButtonColor: isPositive ? '#10b981' : '#ef4444',
             cancelButtonColor: '#6366f1',
             confirmButtonText: 'Confirm',
-            background: '#1e293b',
-            color: '#fff',
+            background: 'var(--card-bg)',
+            color: 'var(--foreground)',
+            customClass: {
+                popup: 'glass-card border-none rounded-[2rem]',
+                confirmButton: 'px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-xs',
+                cancelButton: 'px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-xs'
+            }
         }).then((result) => {
             if (result.isConfirmed) processStatusChange(id, actionType, result.value || "");
         });
@@ -172,20 +197,20 @@ export default function AdminTickets() {
         const attachmentsHtml = ticket.attachments?.length > 0
             ? `
                 <div class="mt-4">
-                    <h4 class="text-sm font-semibold text-slate-300 mb-2">Attachments (${ticket.attachments.length})</h4>
+                    <h4 class="text-xs font-bold text-muted uppercase tracking-widest mb-2">Attachments (${ticket.attachments.length})</h4>
                     <div class="flex gap-2 flex-wrap justify-center">
                         ${ticket.attachments.map((att: any) => `
                             <img 
                                 src="${apiUrl}${att.fileUrl}" 
                                 alt="${att.fileName}" 
-                                class="w-24 h-24 object-cover rounded-lg border border-slate-600 cursor-pointer hover:opacity-80 transition-opacity"
+                                class="w-20 h-20 object-cover rounded-xl border border-border-main cursor-pointer hover:opacity-80 transition-all hover:scale-105"
                                 onclick="window.open('${apiUrl}${att.fileUrl}', '_blank')"
                             >
                         `).join('')}
                     </div>
                 </div>
             `
-            : '<div class="mt-4 text-sm text-slate-400">No attachments</div>';
+            : '<div class="mt-4 text-xs font-bold text-muted uppercase tracking-widest">No attachments</div>';
 
         Swal.fire({
             title: `Ticket #${ticket.id?.substring(0,6).toUpperCase()}`,
@@ -205,12 +230,12 @@ export default function AdminTickets() {
                             'bg-amber-500/20 text-amber-400'
                         }">${(ticket.status || 'OPEN').replace('_', ' ')}</span>
                     </div>
-                    <h3 class="text-lg font-bold text-white mb-2">${ticket.title}</h3>
-                    <p class="text-sm text-slate-300 mb-3">${ticket.description}</p>
-                    <div class="text-xs text-slate-400 space-y-1">
-                        <div><span class="font-semibold text-slate-300">Resource:</span> ${ticket.resourceDisplay || 'General'}</div>
-                        <div><span class="font-semibold text-slate-300">Reported By:</span> ${ticket.reportedById || 'Unknown'}</div>
-                        <div><span class="font-semibold text-slate-300">Created:</span> ${ticket.createdAt ? new Date(ticket.createdAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</div>
+                    <h3 class="text-lg font-bold text-foreground mb-2">${ticket.title}</h3>
+                    <p class="text-sm text-muted mb-3">${ticket.description}</p>
+                    <div class="text-xs text-muted/80 space-y-1">
+                        <div><span class="font-semibold text-foreground/80">Resource:</span> ${ticket.resourceDisplay || 'General'}</div>
+                        <div><span class="font-semibold text-foreground/80">Reported By:</span> ${ticket.reportedById || 'Unknown'}</div>
+                        <div><span class="font-semibold text-foreground/80">Created:</span> ${ticket.createdAt ? new Date(ticket.createdAt).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</div>
                     </div>
                     ${attachmentsHtml}
                     ${ticket.rejectionReason ? `
@@ -226,59 +251,63 @@ export default function AdminTickets() {
                 </div>
             `,
             width: '600px',
-            background: '#1e293b',
-            color: '#fff',
-            confirmButtonColor: '#6366f1',
+            background: 'var(--card-bg)',
+            color: 'var(--foreground)',
+            confirmButtonColor: 'var(--primary)',
             confirmButtonText: 'Close',
+            customClass: {
+                popup: 'glass-card border-none rounded-[2rem]',
+                title: 'text-2xl font-black text-foreground',
+                htmlContainer: 'text-left',
+                confirmButton: 'px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-xs'
+            }
         });
     };
 
     return (
-        <div className="p-6 text-white max-w-7xl mx-auto space-y-6">
+        <div className="p-6 text-foreground max-w-7xl mx-auto space-y-6">
             {/* Hero Banner Section */}
-            <div className="relative w-full rounded-3xl overflow-hidden border border-slate-700/50 shadow-2xl bg-slate-900 group/banner">
+            <div className="relative w-full rounded-3xl overflow-hidden border border-border-main shadow-2xl bg-card group/banner">
                 {/* Background Decoration */}
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-pink-500/20 opacity-40 transition-opacity duration-700 group-hover/banner:opacity-60" />
-                <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/30 blur-[120px] -mr-48 -mt-48 rounded-full" />
-                <div className="absolute bottom-0 left-0 w-96 h-96 bg-pink-500/20 blur-[120px] -ml-48 -mb-48 rounded-full" />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-brand-pink/10 opacity-40 transition-opacity duration-700 group-hover/banner:opacity-60" />
+                <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 blur-[120px] -mr-48 -mt-48 rounded-full" />
+                <div className="absolute bottom-0 left-0 w-96 h-96 bg-brand-pink/10 blur-[120px] -ml-48 -mb-48 rounded-full" />
                 
                 <div className="relative p-8 md:p-10 flex flex-col items-center text-center space-y-6">
                     <div className="space-y-3 max-w-2xl">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[10px] font-black uppercase tracking-[0.3em]">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-[0.3em]">
+                            <Activity size={12} />
                             Ticket Management System
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white text-center">
-                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">
-                                Ticket Management
-                            </span>
+                        <h1 className="text-3xl md:text-5xl font-black tracking-tight text-foreground uppercase italic leading-none">
+                            Ticket <span className="text-primary not-italic">Management</span>
                         </h1>
-                        <p className="text-slate-300 text-sm md:text-base font-semibold max-w-lg mx-auto leading-relaxed drop-shadow-sm">
+                        <p className="text-muted text-sm md:text-base font-semibold max-w-lg mx-auto leading-relaxed">
                             Manage and track all incident tickets across the institution. Monitor resolution progress and maintain service quality.
                         </p>
                     </div>
 
                     {/* Stats Cards */}
                     <div className="w-full grid grid-cols-2 md:grid-cols-5 gap-3">
-                        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50">
-                            <div className="text-2xl font-bold text-white">{stats.total}</div>
-                            <div className="text-xs text-slate-400 font-medium">Total</div>
+                        <div className="bg-foreground/5 backdrop-blur-sm rounded-xl p-4 border border-border-main">
+                            <div className="text-2xl font-bold text-foreground">{stats.total}</div>
+                            <div className="text-xs text-muted font-medium">Total</div>
                         </div>
-                        <div className="bg-amber-500/10 backdrop-blur-sm rounded-xl p-4 border border-amber-500/20">
-                            <div className="text-2xl font-bold text-amber-400">{stats.open}</div>
-                            <div className="text-xs text-amber-400/70 font-medium">Open</div>
+                        <div className="bg-brand-peach/10 backdrop-blur-sm rounded-xl p-4 border border-brand-peach/20">
+                            <div className="text-2xl font-bold text-brand-peach">{stats.open}</div>
+                            <div className="text-xs text-brand-peach/70 font-medium">Open</div>
                         </div>
-                        <div className="bg-blue-500/10 backdrop-blur-sm rounded-xl p-4 border border-blue-500/20">
-                            <div className="text-2xl font-bold text-blue-400">{stats.inProgress}</div>
-                            <div className="text-xs text-blue-400/70 font-medium">In Progress</div>
+                        <div className="bg-primary-light/10 backdrop-blur-sm rounded-xl p-4 border border-primary-light/20">
+                            <div className="text-2xl font-bold text-primary-light">{stats.inProgress}</div>
+                            <div className="text-xs text-primary-light/70 font-medium">In Progress</div>
                         </div>
                         <div className="bg-emerald-500/10 backdrop-blur-sm rounded-xl p-4 border border-emerald-500/20">
-                            <div className="text-2xl font-bold text-emerald-400">{stats.resolved}</div>
-                            <div className="text-xs text-emerald-400/70 font-medium">Resolved</div>
+                            <div className="text-2xl font-bold text-emerald-500">{stats.resolved}</div>
+                            <div className="text-xs text-emerald-500/70 font-medium">Resolved</div>
                         </div>
-                        <div className="bg-red-500/10 backdrop-blur-sm rounded-xl p-4 border border-red-500/20">
-                            <div className="text-2xl font-bold text-red-400">{stats.critical}</div>
-                            <div className="text-xs text-red-400/70 font-medium">Critical</div>
+                        <div className="bg-rose-500/10 backdrop-blur-sm rounded-xl p-4 border border-rose-500/20">
+                            <div className="text-2xl font-bold text-rose-500">{stats.critical}</div>
+                            <div className="text-xs text-rose-500/70 font-medium">Critical</div>
                         </div>
                     </div>
 
@@ -286,7 +315,7 @@ export default function AdminTickets() {
                     <button 
                         onClick={() => fetchTickets()}
                         disabled={refreshing}
-                        className="flex items-center justify-center gap-3 px-8 py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-500/30 active:scale-95 transition-all disabled:opacity-50"
+                        className="flex items-center justify-center gap-3 px-8 py-3 rounded-2xl font-bold text-sm active:scale-95 transition-all disabled:opacity-50 btn-primary-action"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={refreshing ? 'animate-spin' : ''}>
                             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
@@ -299,24 +328,24 @@ export default function AdminTickets() {
                 </div>
             </div>
 
-            <div className="bg-slate-800/30 rounded-2xl p-4 mb-6 border border-slate-700/50">
+            <div className="bg-card rounded-2xl p-4 mb-6 border border-border-main">
                 <div className="flex flex-wrap gap-4 items-end">
                     <div className="flex-1 min-w-[200px]">
-                        <label className="block text-xs font-semibold text-slate-400 mb-1">Search</label>
+                        <label className="block text-xs font-semibold text-muted mb-1">Search</label>
                         <input
                             type="text"
                             placeholder="Search title, description, ID..."
                             value={filters.search}
                             onChange={(e) => setFilters({...filters, search: e.target.value})}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                            className="w-full px-3 py-2 bg-background border border-border-main rounded-lg text-sm text-foreground placeholder-muted focus:border-primary focus:outline-none"
                         />
                     </div>
                     <div className="min-w-[140px]">
-                        <label className="block text-xs font-semibold text-slate-400 mb-1">Status</label>
+                        <label className="block text-xs font-semibold text-muted mb-1">Status</label>
                         <select
                             value={filters.status}
                             onChange={(e) => setFilters({...filters, status: e.target.value})}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white focus:border-indigo-500 focus:outline-none"
+                            className="w-full px-3 py-2 bg-background border border-border-main rounded-lg text-sm text-foreground focus:border-primary focus:outline-none"
                         >
                             <option value="">All Status</option>
                             <option value="OPEN">Open</option>
@@ -327,11 +356,11 @@ export default function AdminTickets() {
                         </select>
                     </div>
                     <div className="min-w-[140px]">
-                        <label className="block text-xs font-semibold text-slate-400 mb-1">Priority</label>
+                        <label className="block text-xs font-semibold text-muted mb-1">Priority</label>
                         <select
                             value={filters.priority}
                             onChange={(e) => setFilters({...filters, priority: e.target.value})}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white focus:border-indigo-500 focus:outline-none"
+                            className="w-full px-3 py-2 bg-background border border-border-main rounded-lg text-sm text-foreground focus:border-primary focus:outline-none"
                         >
                             <option value="">All Priorities</option>
                             <option value="CRITICAL">Critical</option>
@@ -341,55 +370,55 @@ export default function AdminTickets() {
                         </select>
                     </div>
                     <div className="min-w-[150px]">
-                        <label className="block text-xs font-semibold text-slate-400 mb-1">From Date</label>
+                        <label className="block text-xs font-semibold text-muted mb-1">From Date</label>
                         <input
                             type="date"
                             value={filters.dateFrom}
                             onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white focus:border-indigo-500 focus:outline-none"
+                            className="w-full px-3 py-2 bg-background border border-border-main rounded-lg text-sm text-foreground focus:border-primary focus:outline-none"
                         />
                     </div>
                     <div className="min-w-[150px]">
-                        <label className="block text-xs font-semibold text-slate-400 mb-1">To Date</label>
+                        <label className="block text-xs font-semibold text-muted mb-1">To Date</label>
                         <input
                             type="date"
                             value={filters.dateTo}
                             onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white focus:border-indigo-500 focus:outline-none"
+                            className="w-full px-3 py-2 bg-background border border-border-main rounded-lg text-sm text-foreground focus:border-primary focus:outline-none"
                         />
                     </div>
                     {hasActiveFilters && (
                         <button
                             onClick={clearFilters}
-                            className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-lg text-sm font-medium transition-colors"
+                            className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 rounded-lg text-sm font-medium transition-colors"
                         >
                             Clear
                         </button>
                     )}
                 </div>
-                <div className="mt-3 text-sm text-slate-400">
+                <div className="mt-3 text-sm text-muted">
                     Showing {filteredTickets.length} of {tickets.length} tickets
                 </div>
             </div>
 
             {loading ? (
-                <div className="text-center text-slate-400 py-10">Loading tickets...</div>
+                <div className="text-center text-muted py-10">Loading tickets...</div>
             ) : (
-                <div className="bg-slate-800/30 rounded-2xl overflow-hidden border border-slate-700/50">
+                <div className="bg-card rounded-2xl overflow-hidden border border-border-main shadow-xl">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[800px]">
                             <thead>
-                                <tr className="bg-slate-800/50 border-b border-slate-700">
-                                    <th className="p-4 font-semibold text-slate-300">Issue Details</th>
-                                    <th className="p-4 font-semibold text-slate-300 w-28">Priority</th>
-                                    <th className="p-4 font-semibold text-slate-300 w-32">Status</th>
-                                    <th className="p-4 font-semibold text-slate-300 text-right min-w-[350px]">Actions</th>
+                                <tr className="bg-foreground/5 border-b border-border-main">
+                                    <th className="p-4 font-semibold text-foreground/80">Issue Details</th>
+                                    <th className="p-4 font-semibold text-foreground/80 w-28">Priority</th>
+                                    <th className="p-4 font-semibold text-foreground/80 w-32">Status</th>
+                                    <th className="p-4 font-semibold text-foreground/80 text-right min-w-[350px]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredTickets.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="p-8 text-center text-slate-400">
+                                        <td colSpan={5} className="p-8 text-center text-muted">
                                             {hasActiveFilters ? (
                                                 <div>
                                                     <div className="text-lg mb-2">No tickets match your filters</div>
@@ -402,18 +431,18 @@ export default function AdminTickets() {
                                     </tr>
                                 ) : (
                                     filteredTickets.map((t) => (
-                                        <tr key={t.id} className={`border-b border-slate-700/50 hover:bg-slate-800/30 transition-colors ${isOverdue(t) ? 'bg-red-500/5' : ''}`}>
+                                        <tr key={t.id} className={`border-b border-border-main/50 hover:bg-foreground/5 transition-colors ${isOverdue(t) ? 'bg-rose-500/5' : ''}`}>
                                             <td className="p-4">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="font-semibold text-slate-200">{t.title}</div>
+                                                    <div className="font-semibold text-foreground">{t.title}</div>
                                                     {isOverdue(t) && (
-                                                        <span className="animate-pulse text-[10px] font-bold px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">
+                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-500 border border-rose-500/30">
                                                             OVERDUE
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="text-sm text-slate-400 mt-1 line-clamp-2">{t.description}</div>
-                                                <div className="text-xs text-indigo-400 mt-2 font-mono">Resource: {t.resourceDisplay || 'General'}</div>
+                                                <div className="text-sm text-muted mt-1 line-clamp-2">{t.description}</div>
+                                                <div className="text-xs text-primary mt-2 font-mono">Resource: {t.resourceDisplay || 'General'}</div>
                                                 {t.attachments && t.attachments.length > 0 && (
                                                     <div className="flex gap-1 mt-2">
                                                         {t.attachments.slice(0, 3).map((att: any, idx: number) => (
@@ -421,12 +450,12 @@ export default function AdminTickets() {
                                                                 key={idx}
                                                                 src={`${apiUrl}${att.fileUrl}`}
                                                                 alt={`Attachment ${idx + 1}`}
-                                                                className="w-10 h-10 object-cover rounded border border-slate-600 cursor-pointer hover:opacity-80 transition-opacity"
+                                                                className="w-10 h-10 object-cover rounded-lg border border-border-main cursor-pointer hover:opacity-80 transition-opacity"
                                                                 onClick={() => window.open(`${apiUrl}${att.fileUrl}`, '_blank')}
                                                             />
                                                         ))}
                                                         {t.attachments.length > 3 && (
-                                                            <span className="w-10 h-10 flex items-center justify-center text-xs bg-slate-700 rounded border border-slate-600">
+                                                            <span className="w-10 h-10 flex items-center justify-center text-[10px] font-black bg-foreground/5 rounded-lg border border-border-main text-muted">
                                                                 +{t.attachments.length - 3}
                                                             </span>
                                                         )}
@@ -434,11 +463,11 @@ export default function AdminTickets() {
                                                 )}
                                             </td>
                                             <td className="p-4">
-                                                <span className={`text-xs font-bold px-2 py-1 rounded shadow-sm ${
-                                                    t.priority === 'CRITICAL' ? 'text-red-500 bg-red-500/10' :
-                                                    t.priority === 'HIGH' ? 'text-orange-400 bg-orange-400/10' :
-                                                    t.priority === 'MEDIUM' ? 'text-blue-400 bg-blue-400/10' :
-                                                    'text-slate-400 bg-slate-400/10'
+                                                <span className={`text-[10px] font-black px-2 py-1 rounded shadow-sm border ${
+                                                    t.priority === 'CRITICAL' ? 'text-rose-500 bg-rose-500/10 border-rose-500/20' :
+                                                    t.priority === 'HIGH' ? 'text-amber-500 bg-amber-500/10 border-amber-500/20' :
+                                                    t.priority === 'MEDIUM' ? 'text-primary bg-primary/10 border-primary/20' :
+                                                    'text-muted bg-foreground/5 border-border-main'
                                                 }`}>
                                                     {t.priority || 'LOW'}
                                                 </span>
@@ -457,7 +486,7 @@ export default function AdminTickets() {
                                                 <div className="flex justify-end gap-2 flex-wrap">
                                                     <button 
                                                         onClick={() => handleViewDetails(t)}
-                                                        className="px-3 py-1.5 text-xs font-medium bg-slate-600/50 hover:bg-slate-500 text-slate-200 rounded-lg transition-colors"
+                                                        className="px-3 py-1.5 text-xs font-medium bg-foreground/10 hover:bg-foreground/20 text-foreground rounded-lg transition-all"
                                                     >
                                                         View
                                                     </button>
@@ -465,13 +494,13 @@ export default function AdminTickets() {
                                                         <>
                                                             <button 
                                                                 onClick={() => handleAction(t.id, "IN_PROGRESS", true)}
-                                                                className="px-3 py-1.5 text-xs font-medium bg-indigo-500/20 hover:bg-indigo-500 hover:text-white text-indigo-400 rounded-lg transition-colors"
+                                                                className="px-3 py-1.5 text-xs font-medium bg-primary/20 hover:bg-primary hover:text-white text-primary rounded-lg transition-colors"
                                                             >
                                                                 Start Work
                                                             </button>
                                                             <button 
                                                                 onClick={() => handleAction(t.id, "REJECTED", false)}
-                                                                className="px-3 py-1.5 text-xs font-medium bg-red-500/20 hover:bg-red-500 hover:text-white text-red-400 rounded-lg transition-colors"
+                                                                className="px-3 py-1.5 text-xs font-medium bg-rose-500/20 hover:bg-rose-500 hover:text-white text-rose-500 rounded-lg transition-colors"
                                                             >
                                                                 Reject
                                                             </button>
@@ -484,7 +513,7 @@ export default function AdminTickets() {
                                                             Resolve Issue
                                                         </button>
                                                     ) : (
-                                                        <span className="text-xs text-slate-500 italic">Closed</span>
+                                                        <span className="text-xs text-muted italic font-medium">Closed</span>
                                                     )}
                                                 </div>
                                             </td>

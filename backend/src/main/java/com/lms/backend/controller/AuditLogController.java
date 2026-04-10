@@ -21,4 +21,15 @@ public class AuditLogController {
             @PathVariable String entityId) {
         return ResponseEntity.ok(auditLogService.getLogsForEntity(entityType, entityId));
     }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<AuditLog>> getAllLogs() {
+        return ResponseEntity.ok(auditLogService.getAllLogs());
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<AuditLog>> searchByActionType(
+            @RequestParam String actionType) {
+        return ResponseEntity.ok(auditLogService.searchByActionType(actionType));
+    }
 }

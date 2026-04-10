@@ -32,6 +32,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import FetchInterceptor from "@/components/FetchInterceptor";
 
 import Navbar from "@/components/Navbar";
+import ThemeHandler from "@/components/ThemeHandler";
 
 export default function RootLayout({
   children,
@@ -43,10 +44,11 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} h-full antialiased selection:bg-indigo-500/30 selection:text-indigo-200`}
+      className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} h-full antialiased selection:bg-primary/30 selection:text-primary-light transition-colors duration-500`}
     >
-      <body className="min-h-screen flex flex-col bg-[#020617] text-slate-200 overflow-x-hidden">
+      <body className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden transition-colors duration-500">
         <Providers>
+          <ThemeHandler />
           <FetchInterceptor />
           <GoogleOAuthProvider clientId={clientId}>
             <Navbar />

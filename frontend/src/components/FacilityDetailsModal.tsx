@@ -368,10 +368,10 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose, prefil
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose}></div>
             
-            <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl">
-                <div className="sticky top-0 flex items-center justify-between p-6 border-b border-slate-700 bg-slate-800">
-                    <h2 className="text-2xl font-bold text-white">{resourceName}</h2>
-                    <button onClick={onClose} className="p-2 text-slate-400 hover:text-white transition-colors">
+            <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-card rounded-2xl border border-border-main shadow-2xl">
+                <div className="sticky top-0 flex items-center justify-between p-6 border-b border-border-main bg-card">
+                    <h2 className="text-2xl font-bold text-foreground">{resourceName}</h2>
+                    <button onClick={onClose} className="p-2 text-muted hover:text-foreground transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -412,18 +412,18 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose, prefil
                     )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex items-center text-slate-300">
-                            <MapPin className="w-5 h-5 mr-3 text-slate-500" />
+                        <div className="flex items-center text-foreground/80">
+                            <MapPin className="w-5 h-5 mr-3 text-muted" />
                             <div>
-                                <p className="text-xs text-slate-500 uppercase">Location</p>
+                                <p className="text-xs text-muted uppercase font-bold tracking-wider">Location</p>
                                 <p className="font-medium">{getLocationDisplay()}</p>
                             </div>
                         </div>
                         {!isUtility && (
-                            <div className="flex items-center text-slate-300">
-                                <Users className="w-5 h-5 mr-3 text-slate-500" />
+                            <div className="flex items-center text-foreground/80">
+                                <Users className="w-5 h-5 mr-3 text-muted" />
                                 <div>
-                                    <p className="text-xs text-slate-500 uppercase">Capacity</p>
+                                    <p className="text-xs text-muted uppercase font-bold tracking-wider">Capacity</p>
                                     <p className="font-medium">{capacity} seats</p>
                                 </div>
                             </div>
@@ -432,17 +432,17 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose, prefil
 
                     {resource.description && (
                         <div>
-                            <p className="text-xs text-slate-500 uppercase mb-1">Description</p>
-                            <p className="text-slate-300">{resource.description}</p>
+                            <p className="text-xs text-muted uppercase font-bold tracking-wider mb-1">Description</p>
+                            <p className="text-foreground/80 leading-relaxed">{resource.description}</p>
                         </div>
                     )}
 
                     {resource.amenities && resource.amenities.length > 0 && !isUtility && (
                         <div>
-                            <p className="text-xs text-slate-500 uppercase mb-2">Amenities</p>
+                            <p className="text-xs text-muted uppercase font-bold tracking-wider mb-2">Amenities</p>
                             <div className="flex flex-wrap gap-2">
                                 {resource.amenities.map((amenity, idx) => (
-                                    <span key={idx} className="px-3 py-1 text-sm rounded-md bg-slate-700/50 text-slate-300 border border-slate-600/30">
+                                    <span key={idx} className="px-3 py-1 text-sm rounded-md bg-foreground/5 text-foreground/80 border border-border-main">
                                         {amenity}
                                     </span>
                                 ))}
@@ -461,33 +461,33 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose, prefil
                     )}
 
                     {canBook && (
-                        <div className="border-t border-slate-700 pt-6">
-                            <h3 className="text-lg font-semibold text-white mb-4">
+                        <div className="border-t border-border-main pt-6">
+                            <h3 className="text-lg font-semibold text-foreground mb-4">
                                 {isUtility ? "Book this Utility" : "Book this Facility"}
                             </h3>
                             
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-2">Date</label>
+                                    <label className="block text-sm text-muted font-bold mb-2">Date</label>
                                     <input
                                         type="date"
                                         value={selectedDate}
                                         onChange={(e) => setSelectedDate(e.target.value)}
                                         min={getMinDate()}
-                                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-foreground/5 border border-border-main rounded-xl text-foreground placeholder-muted focus:border-primary transition-all outline-none"
                                     />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm text-slate-400 mb-2">Start Time</label>
+                                        <label className="block text-sm text-muted font-bold mb-2">Start Time</label>
                                         <select
                                             value={selectedStartTime}
                                             onChange={(e) => {
                                                 setSelectedStartTime(e.target.value);
                                                 setSelectedEndTime("");
                                             }}
-                                            className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer"
+                                            className="w-full px-4 py-3 bg-foreground/5 border border-border-main rounded-xl text-foreground focus:border-primary transition-all outline-none cursor-pointer"
                                         >
                                             <option value="">Select start</option>
                                             {TIME_SLOTS.map(time => (
@@ -498,12 +498,12 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose, prefil
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm text-slate-400 mb-2">End Time</label>
+                                        <label className="block text-sm text-muted font-bold mb-2">End Time</label>
                                         <select
                                             value={selectedEndTime}
                                             onChange={(e) => setSelectedEndTime(e.target.value)}
                                             disabled={!selectedStartTime}
-                                            className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none cursor-pointer disabled:opacity-50"
+                                            className="w-full px-4 py-3 bg-foreground/5 border border-border-main rounded-xl text-foreground focus:border-primary transition-all outline-none cursor-pointer disabled:opacity-50"
                                         >
                                             <option value="">Select end</option>
                                             {TIME_SLOTS.filter(t => {
@@ -517,7 +517,7 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose, prefil
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-2">
+                                    <label className="block text-sm text-muted font-bold mb-2">
                                         {isUtility ? "Purpose of Use" : "Purpose"}
                                     </label>
                                     <input
@@ -525,44 +525,44 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose, prefil
                                         value={purpose}
                                         onChange={(e) => setPurpose(e.target.value)}
                                         placeholder={isUtility ? "Describe how you will use this equipment" : "Enter booking purpose"}
-                                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-foreground/5 border border-border-main rounded-xl text-foreground placeholder-muted focus:border-primary transition-all outline-none"
                                     />
                                 </div>
 
                                 {isUtility ? (
                                     <>
                                         <div>
-                                            <label className="block text-sm text-slate-400 mb-2">Quantity Needed</label>
+                                            <label className="block text-sm text-muted font-bold mb-2">Quantity Needed</label>
                                             <input
                                                 type="number"
                                                 value={quantity}
                                                 onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
                                                 min={1}
                                                 max={10}
-                                                className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                                                className="w-full px-4 py-3 bg-foreground/5 border border-border-main rounded-xl text-foreground placeholder-muted focus:border-primary transition-all outline-none"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm text-slate-400 mb-2">Setup/Support Notes</label>
+                                            <label className="block text-sm text-muted font-bold mb-2">Setup/Support Notes</label>
                                             <textarea
                                                 value={supportNotes}
                                                 onChange={(e) => setSupportNotes(e.target.value)}
                                                 placeholder="Any special setup requirements or support needed..."
                                                 rows={2}
-                                                className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none resize-none"
+                                                className="w-full px-4 py-3 bg-foreground/5 border border-border-main rounded-xl text-foreground placeholder-muted focus:border-primary transition-all outline-none resize-none"
                                             />
                                         </div>
                                     </>
                                 ) : (
                                     <div>
-                                        <label className="block text-sm text-slate-400 mb-2">Expected Attendees</label>
+                                        <label className="block text-sm text-muted font-bold mb-2">Expected Attendees</label>
                                         <input
                                             type="number"
                                             value={attendees}
                                             onChange={(e) => setAttendees(parseInt(e.target.value) || 1)}
                                             min={1}
                                             max={capacity}
-                                            className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                                            className="w-full px-4 py-3 bg-foreground/5 border border-border-main rounded-xl text-foreground placeholder-muted focus:border-primary transition-all outline-none"
                                         />
                                     </div>
                                 )}
@@ -571,10 +571,10 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose, prefil
                     )}
                 </div>
 
-                <div className="sticky bottom-0 flex items-center justify-end gap-3 p-6 border-t border-slate-700 bg-slate-800">
+                <div className="sticky bottom-0 flex items-center justify-end gap-3 p-6 border-t border-border-main bg-card">
                     <button
                         onClick={onClose}
-                        className="px-6 py-3 text-slate-300 hover:text-white font-medium transition-colors"
+                        className="px-6 py-3 text-muted hover:text-foreground font-bold transition-colors"
                     >
                         Cancel
                     </button>
@@ -583,10 +583,11 @@ export default function FacilityDetailsModal({ resource, isOpen, onClose, prefil
                         disabled={isBooking || !canBook || !isFormValid()}
                         className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
                             canBook 
-                                ? "bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-indigo-500/25 hover:shadow-indigo-500/40"
-                                : "bg-slate-600 text-slate-400 cursor-not-allowed"
+                                ? "btn-primary-action"
+                                : "bg-foreground/10 text-muted cursor-not-allowed"
                         }`}
                     >
+
                         {isBooking ? (
                             <>
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

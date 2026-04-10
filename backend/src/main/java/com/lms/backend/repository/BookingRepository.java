@@ -20,12 +20,12 @@ public interface BookingRepository extends MongoRepository<Booking, String>, Boo
     Page<Booking> findByResourceIdAndStatus(String resourceId, String status, Pageable pageable);
     
     @Query("{ 'resourceId': ?0, 'status': { $in: ['PENDING', 'APPROVED'] }, " +
-           "'$or': [ { 'startTime': { '$lt': ?2 }, 'endTime': { '$gt': ?1 } } ] }")
+           "'startTime': { $lt: ?2 }, 'endTime': { $gt: ?1 } }")
     List<Booking> findConflictingBookings(String resourceId, LocalDateTime startTime, LocalDateTime endTime);
     
     @Query("{ 'resourceId': ?0, 'status': { $in: ['PENDING', 'APPROVED'] }, " +
-           "'_id': { '$ne': ?3 }, " +
-           "'$or': [ { 'startTime': { '$lt': ?2 }, 'endTime': { '$gt': ?1 } } ] }")
+           "'_id': { $ne: ?3 }, " +
+           "'startTime': { $lt: ?2 }, 'endTime': { $gt: ?1 } }")
     List<Booking> findConflictingBookingsExcluding(String resourceId, LocalDateTime startTime, 
                                                     LocalDateTime endTime, String excludeBookingId);
     

@@ -51,6 +51,38 @@ public class BookingService {
         return bookingRepository.getBookingStats();
     }
 
+    public List<BookingCalendarDto> getCalendarBookings() {
+        List<Booking> bookings = bookingRepository.findAll();
+        Set<String> resourceIds = bookings.stream()
+                .map(Booking::getResourceId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        
+        Map<String, Resource> resourceMap = new HashMap<>();
+        if (!resourceIds.isEmpty()) {
+            resourceRepository.findAllById(resourceIds).forEach(r -> resourceMap.put(r.getId(), r));
+        }
+        
+        return bookings.stream()
+                .map(b -> convertToCalendarDto(b, resourceMap.get(b.getResourceId())))
+                .collect(Collectors.toList());
+    }
+
+    private BookingCalendarDto convertToCalendarDto(Booking booking, Resource resource) {
+        return BookingCalendarDto.builder()
+                .id(booking.getId())
+                .resourceId(booking.getResourceId())
+                .resourceName(resource != null ? resource.getResourceName() : null)
+                .resourceType(resource != null ? resource.getType() : null)
+                .purpose(booking.getPurpose())
+                .startTime(booking.getStartTime())
+                .endTime(booking.getEndTime())
+                .status(booking.getStatus())
+                .requestedByUserId(booking.getRequestedBy() != null ? booking.getRequestedBy().getUserId() : null)
+                .requestedByName(booking.getRequestedBy() != null ? booking.getRequestedBy().getName() : null)
+                .build();
+    }
+
     public PaginatedResponseDto<BookingResponseDto> getBookingsPaginated(BookingFilterDto filter) {
         int page = filter.getPage() != null ? filter.getPage() : 0;
         int size = filter.getSize() != null ? filter.getSize() : 10;
@@ -80,8 +112,26 @@ public class BookingService {
             bookingPage = bookingRepository.findAll(pageable);
         }
         
-        List<BookingResponseDto> content = bookingPage.getContent().stream()
-                .map(this::convertToResponseDto)
+        List<Booking> bookings = bookingPage.getContent();
+        
+        Set<String> resourceIds = bookings.stream()
+                .map(Booking::getResourceId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<String, Resource> resourceMap = new HashMap<>();
+        if (!resourceIds.isEmpty()) {
+            resourceRepository.findAllById(resourceIds).forEach(r -> resourceMap.put(r.getId(), r));
+        }
+        
+        List<String> bookingIds = bookings.stream().map(Booking::getId).collect(Collectors.toList());
+        Map<String, List<BookingStatusHistory>> historyMap = new HashMap<>();
+        if (!bookingIds.isEmpty()) {
+            historyRepository.findByBookingIdIn(bookingIds)
+                .forEach(h -> historyMap.computeIfAbsent(h.getBookingId(), k -> new ArrayList<>()).add(h));
+        }
+        
+        List<BookingResponseDto> content = bookings.stream()
+                .map(b -> convertToResponseDtoWithCache(b, resourceMap.get(b.getResourceId()), historyMap.get(b.getId())))
                 .collect(Collectors.toList());
         
         return PaginatedResponseDto.<BookingResponseDto>builder()
@@ -92,6 +142,53 @@ public class BookingService {
                 .totalPages(bookingPage.getTotalPages())
                 .first(bookingPage.isFirst())
                 .last(bookingPage.isLast())
+                .build();
+    }
+    
+    private BookingResponseDto convertToResponseDtoWithCache(Booking booking, Resource resource, List<BookingStatusHistory> historyList) {
+        List<BookingResponseDto.BookingHistoryDto> history = historyList != null ? historyList.stream()
+                .map(h -> BookingResponseDto.BookingHistoryDto.builder()
+                        .id(h.getId())
+                        .oldStatus(h.getOldStatus())
+                        .newStatus(h.getNewStatus())
+                        .changedById(h.getChangedById())
+                        .changedByName(getUserName(h.getChangedById()))
+                        .note(h.getNote())
+                        .changedAt(h.getChangedAt())
+                        .build())
+                .collect(Collectors.toList()) : Collections.emptyList();
+        
+        return BookingResponseDto.builder()
+                .id(booking.getId())
+                .resourceId(booking.getResourceId())
+                .resourceName(resource != null ? resource.getResourceName() : null)
+                .resourceType(resource != null ? resource.getType() : null)
+                .resourceLocation(resource != null ? formatLocation(resource) : null)
+                .resourceCapacity(resource != null ? resource.getCapacity() : null)
+                .requestedBy(booking.getRequestedBy() != null ?
+                        BookingResponseDto.UserSummaryDto.builder()
+                                .userId(booking.getRequestedBy().getUserId())
+                                .name(booking.getRequestedBy().getName())
+                                .email(booking.getRequestedBy().getEmail())
+                                .build() : null)
+                .reviewedBy(booking.getReviewedBy() != null ?
+                        BookingResponseDto.UserSummaryDto.builder()
+                                .userId(booking.getReviewedBy().getUserId())
+                                .name(booking.getReviewedBy().getName())
+                                .email(booking.getReviewedBy().getEmail())
+                                .build() : null)
+                .purpose(booking.getPurpose())
+                .expectedAttendees(booking.getExpectedAttendees())
+                .startTime(booking.getStartTime())
+                .endTime(booking.getEndTime())
+                .type(booking.getType())
+                .status(booking.getStatus())
+                .rejectionReason(booking.getRejectionReason())
+                .approvedAt(booking.getApprovedAt())
+                .cancelledAt(booking.getCancelledAt())
+                .createdAt(booking.getCreatedAt())
+                .updatedAt(booking.getUpdatedAt())
+                .history(history)
                 .build();
     }
 
@@ -281,7 +378,7 @@ public class BookingService {
         return updatedBooking;
     }
 
-    public Booking cancelBooking(String bookingId, String userId) {
+    public Booking cancelBooking(String bookingId, String userId, String reason) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
         
@@ -290,20 +387,31 @@ public class BookingService {
                     "Only APPROVED or PENDING bookings can be cancelled");
         }
         
-        if (booking.getRequestedBy() != null && 
+        boolean isAdmin = false;
+        try {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user != null && user.getRoles() != null && 
+                (user.getRoles().contains("ADMIN") || user.getRoles().contains("ROLE_ADMIN"))) {
+                isAdmin = true;
+            }
+        } catch (Exception ignored) {}
+        
+        if (!isAdmin && booking.getRequestedBy() != null && 
             !booking.getRequestedBy().getUserId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, 
                     "You can only cancel your own bookings");
         }
         
         String oldStatus = booking.getStatus();
+        String cancelReason = reason != null && !reason.trim().isEmpty() ? reason.trim() : "Cancelled by " + (isAdmin ? "admin" : "user");
+        
         booking.setStatus("CANCELLED");
         booking.setCancelledAt(LocalDateTime.now());
         booking.setUpdatedAt(LocalDateTime.now());
         
         Booking cancelledBooking = bookingRepository.save(booking);
         
-        createStatusHistory(bookingId, userId, oldStatus, "CANCELLED", "Cancelled by user");
+        createStatusHistory(bookingId, userId, oldStatus, "CANCELLED", cancelReason);
         
         return cancelledBooking;
     }

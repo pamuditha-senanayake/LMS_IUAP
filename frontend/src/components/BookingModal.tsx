@@ -165,7 +165,13 @@ export default function BookingModal({ isOpen, onClose, onSuccess, editBooking }
         onClose();
       } else {
         const errText = await res.text();
-        setError(errText || "Failed to create booking");
+        if (errText.includes("409 CONFLICT") || errText.includes("already booked")) {
+          const conflictMatch = errText.match(/Conflict with:\s*([^"]+)/);
+          const conflictName = conflictMatch ? conflictMatch[1].trim() : "another booking";
+          setError(`This resource is already booked during this time range. Conflict with: ${conflictName}`);
+        } else {
+          setError(errText || "Failed to create booking");
+        }
       }
     } catch {
       setError("Network error. Please try again.");
@@ -275,17 +281,22 @@ export default function BookingModal({ isOpen, onClose, onSuccess, editBooking }
             </div>
             <div>
               <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
-                Type
+                <Users size={16} />
+                Expected Attendees
               </label>
-              <select
-                value={bookingType}
-                onChange={(e) => setBookingType(e.target.value)}
+              <input
+                type="number"
+                value={expectedAttendees}
+                onChange={(e) => setExpectedAttendees(Math.max(1, parseInt(e.target.value) || 1))}
+                min={1}
+                max={selectedResource?.capacity || 100}
                 className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              >
-                <option value="FACILITY">Facility</option>
-                <option value="EQUIPMENT">Equipment</option>
-                <option value="LAB">Lab</option>
-              </select>
+              />
+              {selectedResource && (
+                <p className="text-xs text-slate-400 mt-1">
+                  Maximum capacity: {selectedResource.capacity}
+                </p>
+              )}
             </div>
           </div>
 
@@ -367,25 +378,6 @@ export default function BookingModal({ isOpen, onClose, onSuccess, editBooking }
             />
           </div>
 
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
-              <Users size={16} />
-              Expected Attendees
-            </label>
-            <input
-              type="number"
-              value={expectedAttendees}
-              onChange={(e) => setExpectedAttendees(Math.max(1, parseInt(e.target.value) || 1))}
-              min={1}
-              max={selectedResource?.capacity || 100}
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
-            {selectedResource && (
-              <p className="text-xs text-slate-400 mt-1">
-                Maximum capacity: {selectedResource.capacity}
-              </p>
-            )}
-          </div>
         </div>
 
         <div className="sticky bottom-0 flex items-center justify-end gap-3 p-6 border-t border-slate-700 bg-slate-900 rounded-b-2xl">

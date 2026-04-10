@@ -301,10 +301,10 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
             onClick={(e) => e.target === e.currentTarget && handleClose()}
         >
-            <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="w-full max-w-lg bg-card rounded-[2rem] shadow-2xl border border-border-main overflow-hidden max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-300">
                 <div className="px-6 pt-6 pb-4">
                     <div className="flex items-center justify-between mb-1">
-                        <h2 className="text-xl font-semibold text-slate-900">Add New Resource</h2>
+                        <h2 className="text-xl font-black uppercase tracking-tight text-foreground">Add New Resource</h2>
                         <button
                             onClick={handleClose}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
@@ -312,7 +312,7 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                             <X className="w-5 h-5" />
                         </button>
                     </div>
-                    <p className="text-sm text-slate-500">Create a new facility or utility resource</p>
+                    <p className="text-sm font-medium text-muted">Create a new facility or utility resource</p>
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-5">
@@ -324,10 +324,10 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                                     key={opt.value}
                                     type="button"
                                     onClick={() => handleCategoryChange(opt.value as "FACILITY" | "UTILITY")}
-                                    className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                                    className={`flex-1 py-2.5 text-sm font-bold uppercase tracking-widest rounded-lg transition-all ${
                                         category === opt.value
-                                            ? 'bg-white text-slate-900 shadow-sm'
-                                            : 'text-slate-500 hover:text-slate-700'
+                                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                                            : 'text-muted hover:text-foreground hover:bg-foreground/5'
                                     }`}
                                 >
                                     {opt.label}
@@ -483,7 +483,7 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                     )}
                 </div>
 
-                <div className="flex items-center justify-end gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
+                <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-border-main bg-foreground/[0.02]">
                     <button
                         onClick={handleClose}
                         className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all"
@@ -493,10 +493,11 @@ export default function AddResourceModal({ isOpen, onClose, onSuccess }: AddReso
                     <button
                         onClick={handleSubmit}
                         disabled={isSubmitting || !isValid}
-                        className="px-5 py-2 text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-8 py-2.5 text-sm font-black uppercase tracking-widest rounded-xl transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 btn-primary-action"
                     >
                         {isSubmitting ? "Adding..." : "Add Resource"}
                     </button>
+
                 </div>
             </div>
         </div>

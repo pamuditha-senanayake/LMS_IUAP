@@ -20,4 +20,12 @@ public class AuditLogService {
     public List<AuditLog> getLogsForEntity(String entityType, String entityId) {
         return auditLogRepository.findByEntityTypeAndEntityId(entityType, entityId);
     }
+
+    public List<AuditLog> getAllLogs() {
+        return auditLogRepository.findAllByOrderByCreatedAtDesc();
+    }
+
+    public List<AuditLog> searchByActionType(String actionType) {
+        return auditLogRepository.findByActionTypeIgnoreCaseContainingOrderByCreatedAtDesc(actionType);
+    }
 }

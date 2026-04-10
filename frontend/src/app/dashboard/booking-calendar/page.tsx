@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import Swal from "sweetalert2";
 import BookingDetailsModal from "@/components/BookingDetailsModal";
 import { CalendarSkeleton } from "@/components/Skeleton";
 
@@ -10,38 +11,25 @@ interface CalendarBooking {
   id: string;
   resourceId: string;
   resourceName?: string;
+  resourceType?: string;
   purpose: string;
   startTime: string;
   endTime: string;
   status: string;
-  requestedBy?: {
-    name: string;
-  };
+  requestedByUserId?: string;
+  requestedByName?: string;
 }
 
-interface PaginatedResponse {
-  content: CalendarBooking[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-}
-
-const fetchBookings = async (page: number, size: number): Promise<PaginatedResponse> => {
+const fetchCalendarBookings = async (): Promise<CalendarBooking[]> => {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-  const params = new URLSearchParams({
-    page: page.toString(),
-    size: size.toString(),
-    sortBy: "startTime",
-    sortDirection: "ASC",
-  });
-  
-  const res = await fetch(`${apiUrl}/api/bookings?${params}`, { credentials: "include" });
+  const res = await fetch(`${apiUrl}/api/bookings/calendar`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch bookings");
   return res.json();
 };
 
 export default function BookingCalendarPage() {
+  const queryClient = useQueryClient();
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -57,11 +45,110 @@ export default function BookingCalendarPage() {
 
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  const { data, isLoading } = useQuery({
+  const { data: allBookings, isLoading } = useQuery({
     queryKey: ["calendar-bookings"],
-    queryFn: () => fetchBookings(0, 1000),
+    queryFn: fetchCalendarBookings,
     staleTime: 60 * 1000,
   });
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+        const res = await fetch(`${apiUrl}/api/auth/me`, { credentials: "include" });
+        if (res.ok) {
+          const user = await res.json();
+          setCurrentUser(user);
+        }
+      } catch {}
+    };
+    loadUser();
+  }, []);
+
+  const handleCancel = async (booking: CalendarBooking) => {
+    const commonReasons = [
+      'Schedule conflict',
+      'No longer needed',
+      'Changed plans',
+      'Resource not suitable',
+      'Booked by mistake',
+      'Other'
+    ];
+
+    const result = await Swal.fire({
+      title: "Cancel this booking?",
+      html: `
+        <div style="text-align: left; color: #94a3b8;">
+          <label for="cancel-reason" style="display: block; margin-bottom: 8px; font-size: 14px;">Select a reason for cancellation:</label>
+          <select id="cancel-reason" style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #475569; margin-bottom: 16px;">
+            <option value="">-- Select Reason --</option>
+            ${commonReasons.map(r => `<option value="${r}">${r}</option>`).join('')}
+          </select>
+          <div id="other-reason-container" style="display: none;">
+            <label for="other-reason" style="display: block; margin-bottom: 8px; font-size: 14px;">Please specify:</label>
+            <textarea id="other-reason" rows="3" style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #475569; resize: none;" placeholder="Enter the reason..."></textarea>
+          </div>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6366f1',
+      confirmButtonText: 'Cancel Booking',
+      background: '#1e293b',
+      color: '#fff',
+      didOpen: () => {
+        const reasonSelect = document.getElementById('cancel-reason') as HTMLSelectElement;
+        const otherContainer = document.getElementById('other-reason-container');
+        
+        reasonSelect?.addEventListener('change', () => {
+          if (otherContainer) {
+            otherContainer.style.display = reasonSelect.value === 'Other' ? 'block' : 'none';
+          }
+        });
+      },
+      preConfirm: () => {
+        const reasonSelect = document.getElementById('cancel-reason') as HTMLSelectElement;
+        const otherReason = document.getElementById('other-reason') as HTMLTextAreaElement;
+        
+        if (!reasonSelect?.value) {
+          Swal.showValidationMessage('Please select a reason');
+          return false;
+        }
+        
+        if (reasonSelect.value === 'Other' && !otherReason?.value.trim()) {
+          Swal.showValidationMessage('Please specify the reason');
+          return false;
+        }
+        
+        return reasonSelect.value === 'Other' ? otherReason?.value.trim() : reasonSelect.value;
+      }
+    });
+
+    if (result.isConfirmed && result.value) {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+        const url = new URL(`${apiUrl}/api/bookings/${booking.id}/cancel`);
+        url.searchParams.append("userId", currentUser?.id || "");
+        url.searchParams.append("reason", result.value);
+
+        const res = await fetch(url.toString(), {
+          method: "POST",
+          credentials: "include"
+        });
+
+        if (res.ok) {
+          Swal.fire({ title: "Cancelled!", icon: "success", background: '#1e293b', color: '#fff' });
+          queryClient.invalidateQueries({ queryKey: ["calendar-bookings"] });
+          setShowDetailsModal(false);
+        } else {
+          Swal.fire({ title: "Error", text: await res.text(), icon: "error", background: '#1e293b', color: '#fff' });
+        }
+      } catch {
+        Swal.fire({ title: "Error", text: "Network Error", icon: "error", background: '#1e293b', color: '#fff' });
+      }
+    }
+  };
 
   const getDaysInMonth = (month: number, year: number) => new Date(year, month + 1, 0).getDate();
   const getFirstDayOfMonth = (month: number, year: number) => new Date(year, month, 1).getDay();
@@ -70,9 +157,9 @@ export default function BookingCalendarPage() {
   const nextMonth = () => setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
   const goToToday = () => setCurrentDate(new Date());
 
-  const allBookings: CalendarBooking[] = data?.content || [];
+  const calendarBookings: CalendarBooking[] = allBookings || [];
   
-  const monthBookings = allBookings.filter((b) => {
+  const monthBookings = calendarBookings.filter((b) => {
     const bookingDate = new Date(b.startTime);
     return bookingDate.getMonth() === currentMonth && bookingDate.getFullYear() === currentYear;
   });
@@ -103,8 +190,8 @@ export default function BookingCalendarPage() {
     }
   };
 
-  const uniqueResources = Array.from(new Set(allBookings.map((b) => b.resourceId))).map((id) => {
-    const booking = allBookings.find((b) => b.resourceId === id);
+  const uniqueResources = Array.from(new Set(calendarBookings.map((b) => b.resourceId))).map((id) => {
+    const booking = calendarBookings.find((b) => b.resourceId === id);
     return { id, name: booking?.resourceName || id };
   });
 
@@ -165,8 +252,8 @@ export default function BookingCalendarPage() {
   return (
     <div className="p-6 text-white max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-purple-500">
-          Booking Calendar
+        <h1 className="text-3xl md:text-5xl font-black tracking-tight text-foreground">
+            Booking <span className="text-primary">Calendar</span>
         </h1>
         <p className="text-slate-400 mt-2">View all bookings in a calendar format</p>
       </div>
@@ -253,6 +340,10 @@ export default function BookingCalendarPage() {
           setSelectedBookingId(null);
         }}
         bookingId={selectedBookingId}
+        onCancel={() => {
+          const booking = calendarBookings.find((b) => b.id === selectedBookingId);
+          if (booking) handleCancel(booking);
+        }}
       />
     </div>
   );
