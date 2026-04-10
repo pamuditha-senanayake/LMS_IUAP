@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
-import { 
-    Pencil, 
-    Trash2, 
-    RotateCw, 
-    User as UserIcon, 
-    Shield, 
-    Mail, 
-    Users, 
+import {
+    Pencil,
+    Trash2,
+    RotateCw,
+    User as UserIcon,
+    Shield,
+    Mail,
+    Users,
     Search,
     MoreVertical
 } from "lucide-react";
@@ -55,8 +55,8 @@ export default function UserManagement() {
         fetchUsers();
     }, []);
 
-    const filteredUsers = users.filter(user => 
-        user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const filteredUsers = users.filter(user =>
+        user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -146,11 +146,11 @@ export default function UserManagement() {
                     });
 
                     if (res.ok) {
-                        Swal.fire({ 
-                            title: "Saved!", 
-                            text: "User information updated.", 
-                            icon: "success", 
-                            background: 'var(--card-bg)', 
+                        Swal.fire({
+                            title: "Saved!",
+                            text: "User information updated.",
+                            icon: "success",
+                            background: 'var(--card-bg)',
                             color: 'var(--foreground)',
                             customClass: { popup: 'rounded-3xl border border-border-main shadow-2xl' }
                         });
@@ -203,11 +203,11 @@ export default function UserManagement() {
                     });
 
                     if (res.ok) {
-                        Swal.fire({ 
-                            title: "Deleted", 
-                            text: "User has been removed successfully.", 
-                            icon: "success", 
-                            background: 'var(--card-bg)', 
+                        Swal.fire({
+                            title: "Deleted",
+                            text: "User has been removed successfully.",
+                            icon: "success",
+                            background: 'var(--card-bg)',
                             color: 'var(--foreground)',
                             customClass: { popup: 'rounded-3xl border border-border-main shadow-2xl' }
                         });
@@ -231,7 +231,7 @@ export default function UserManagement() {
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary-dark/10 to-brand-pink/20 opacity-40 transition-opacity duration-700 group-hover/banner:opacity-60" />
                 <div className="absolute top-0 right-0 w-96 h-96 bg-primary/30 blur-[120px] -mr-48 -mt-48 rounded-full" />
                 <div className="absolute bottom-0 left-0 w-96 h-96 bg-brand-pink/20 blur-[120px] -ml-48 -mb-48 rounded-full" />
-                
+
                 <div className="relative p-8 md:p-12 flex flex-col items-center text-center space-y-8">
                     <div className="space-y-4 max-w-2xl">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] font-black uppercase tracking-[0.3em]">
@@ -253,9 +253,9 @@ export default function UserManagement() {
                             <div className="absolute inset-0 bg-indigo-500/30 blur-xl opacity-0 group-focus-within/search:opacity-100 transition-opacity duration-500" />
                             <div className="relative flex items-center bg-background border border-border-main group-focus-within/search:border-primary rounded-2xl transition-all duration-300 shadow-2xl">
                                 <Search className="absolute left-5 text-muted group-focus-within/search:text-primary" size={20} />
-                                <input 
-                                    type="text" 
-                                    placeholder="Search by name, email or identifier..." 
+                                <input
+                                    type="text"
+                                    placeholder="Search by name, email or identifier..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="w-full pl-14 pr-4 py-4 bg-transparent outline-none text-foreground placeholder:text-muted/60 text-sm font-bold"
@@ -267,7 +267,7 @@ export default function UserManagement() {
                             </div>
                         </div>
 
-                        <button 
+                        <button
                             onClick={fetchUsers}
                             disabled={loading}
                             className="shrink-0 flex items-center justify-center gap-3 px-8 py-4 btn-primary-action rounded-2xl font-black text-sm disabled:opacity-50"
@@ -342,8 +342,8 @@ export default function UserManagement() {
                                         <td className="p-5">
                                             <div className="inline-flex flex-wrap gap-2">
                                                 {(user.roles || ["ROLE_STUDENT"]).map((role: string) => (
-                                                    <span 
-                                                        key={role} 
+                                                    <span
+                                                        key={role}
                                                         className={`text-[10px] font-black px-2.5 py-1 rounded-[10px] border border-border-main uppercase tracking-widest ${getRoleStyles(role)}`}
                                                     >
                                                         {role.replace("ROLE_", "")}
@@ -353,14 +353,14 @@ export default function UserManagement() {
                                         </td>
                                         <td className="p-5 text-right">
                                             <div className="flex justify-end gap-2 transition-all">
-                                                <button 
+                                                <button
                                                     onClick={() => handleEdit(user)}
                                                     className="p-2.5 bg-foreground/5 hover:bg-primary/20 text-primary border border-border-main rounded-xl transition-all shadow-sm"
                                                     title="Edit Permissions"
                                                 >
                                                     <Pencil size={18} />
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => handleDelete(user.id, user.name)}
                                                     className="p-2.5 bg-foreground/5 hover:bg-rose-500/20 text-rose-500 border border-border-main hover:border-rose-500/30 rounded-xl transition-all shadow-sm"
                                                     title="Delete User"
@@ -375,7 +375,7 @@ export default function UserManagement() {
                         </tbody>
                     </table>
                 </div>
-                
+
                 {/* Stats Footer */}
                 {!loading && (
                     <div className="bg-foreground/5 p-4 border-t border-border-main flex items-center justify-between">
