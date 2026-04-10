@@ -249,7 +249,7 @@ export default function Navbar() {
                                         <Link 
                                             href="/register" 
                                             onClick={() => setIsDropdownOpen(false)}
-                                            className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-widest text-white bg-primary hover:bg-primary-dark transition-all mt-1 shadow-xl shadow-primary/20 border border-primary/20 active:scale-95"
+                                            className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all mt-1 shadow-xl border border-primary/20 active:scale-95 btn-primary-action"
                                         >
                                             <UserPlus size={18} strokeWidth={3} />
                                             Register Now

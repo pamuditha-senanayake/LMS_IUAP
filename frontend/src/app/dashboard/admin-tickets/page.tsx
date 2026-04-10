@@ -315,7 +315,7 @@ export default function AdminTickets() {
                     <button 
                         onClick={() => fetchTickets()}
                         disabled={refreshing}
-                        className="flex items-center justify-center gap-3 px-8 py-3 bg-primary hover:bg-primary-dark text-white rounded-2xl font-bold text-sm shadow-xl shadow-primary/20 active:scale-95 transition-all disabled:opacity-50"
+                        className="flex items-center justify-center gap-3 px-8 py-3 rounded-2xl font-bold text-sm active:scale-95 transition-all disabled:opacity-50 btn-primary-action"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={refreshing ? 'animate-spin' : ''}>
                             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>

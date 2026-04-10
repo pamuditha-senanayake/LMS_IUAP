@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
+import { CheckCheck } from "lucide-react";
 
 export default function Notifications() {
     const [notifications, setNotifications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [markingAll, setMarkingAll] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     const fetchNotifications = async (userId: string) => {
         setLoading(true);
@@ -30,8 +33,10 @@ export default function Notifications() {
                 const res = await fetch(`${apiUrl}/api/auth/me`, { credentials: "include" });
                 if (res.ok) {
                     const user = await res.json();
-                    if (user.id) fetchNotifications(user.id);
-                    else setLoading(false);
+                    if (user.id) {
+                        setCurrentUserId(user.id);
+                        fetchNotifications(user.id);
+                    } else setLoading(false);
                 } else {
                     setLoading(false);
                 }
@@ -65,11 +70,56 @@ export default function Notifications() {
         }
     };
 
+    const handleMarkAllAsRead = async () => {
+        if (!currentUserId) return;
+        const unread = notifications.filter((n) => !n.isRead);
+        if (unread.length === 0) return;
+
+        setMarkingAll(true);
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+            await Promise.all(
+                unread.map((n) =>
+                    fetch(`${apiUrl}/api/notifications/${n.id}/read`, {
+                        method: "PATCH",
+                        credentials: "include"
+                    })
+                )
+            );
+            fetchNotifications(currentUserId);
+        } catch {
+            Swal.fire({
+                title: "Error",
+                text: "Failed to mark all as read",
+                icon: "error",
+                background: 'var(--card-bg)',
+                color: 'var(--foreground)',
+                customClass: { popup: 'glass-card border-none rounded-[2rem]' }
+            });
+        } finally {
+            setMarkingAll(false);
+        }
+    };
+
+    const unreadCount = notifications.filter((n) => !n.isRead).length;
+
     return (
         <div className="p-6 text-foreground max-w-4xl mx-auto">
-            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-foreground mb-10">
-                Alerts & <span className="text-primary">Notifications</span>
-            </h1>
+            <div className="flex items-center justify-between mb-10 gap-4 flex-wrap">
+                <h1 className="text-3xl md:text-5xl font-black tracking-tight text-foreground">
+                    Alerts & <span className="text-primary">Notifications</span>
+                </h1>
+                {!loading && unreadCount > 0 && (
+                    <button
+                        onClick={handleMarkAllAsRead}
+                        disabled={markingAll}
+                        className="flex items-center gap-2 px-5 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all active:scale-95 disabled:opacity-50 btn-primary-action"
+                    >
+                        <CheckCheck size={16} />
+                        {markingAll ? "Marking..." : `Mark All as Read (${unreadCount})`}
+                    </button>
+                )}
+            </div>
 
             {loading ? (
                 <div className="text-center text-muted py-10">Checking notifications...</div>
@@ -95,9 +145,9 @@ export default function Notifications() {
                                         <button 
                                             onClick={(e) => {
                                                 const user = JSON.parse(localStorage.getItem("user") || "{}");
-                                                handleMarkAsRead(n.id, e, user.userId || user.id);
+                                                handleMarkAsRead(n.id, e, user.userId || user.id || currentUserId);
                                             }}
-                                            className="px-4 py-2 text-xs font-bold bg-primary hover:bg-primary-dark text-white rounded-xl transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-95 whitespace-nowrap"
+                                            className="px-4 py-2 text-xs font-bold rounded-xl transition-all active:scale-95 whitespace-nowrap btn-primary-action"
                                         >
                                             Mark as Read
                                         </button>

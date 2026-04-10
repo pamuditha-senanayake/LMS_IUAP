@@ -119,10 +119,11 @@ export default function UserManagement() {
             color: 'var(--foreground)',
             customClass: {
                 popup: 'rounded-[2rem] border border-border-main glass-card p-8',
-                confirmButton: 'px-8 py-3 rounded-xl font-bold text-base transition-all active:scale-95',
+                confirmButton: 'px-8 py-3 rounded-xl font-bold text-base transition-all active:scale-95 btn-primary-action',
                 cancelButton: 'px-8 py-3 text-muted font-semibold hover:text-foreground transition-all',
                 actions: 'mt-8 gap-4'
             },
+
             preConfirm: () => {
                 return {
                     name: (document.getElementById('swal-input1') as HTMLInputElement).value,
@@ -187,10 +188,11 @@ export default function UserManagement() {
             color: 'var(--foreground)',
             customClass: {
                 popup: 'rounded-[2rem] border border-border-main glass-card p-8',
-                confirmButton: 'px-8 py-3 rounded-xl font-bold text-base transition-all active:scale-95',
+                confirmButton: 'px-8 py-3 rounded-xl font-bold text-base transition-all active:scale-95 btn-danger-action',
                 cancelButton: 'px-8 py-3 text-muted font-semibold hover:text-foreground transition-all',
                 actions: 'mt-4 gap-4'
             }
+
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {

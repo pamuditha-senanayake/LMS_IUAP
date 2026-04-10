@@ -14,8 +14,10 @@ import {
     Calendar,
     CalendarDays,
     Sun,
-    Moon
+    Moon,
+    ClipboardList
 } from "lucide-react";
+
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -89,6 +91,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: "Admin Tickets", path: "/dashboard/admin-tickets", icon: Ticket },
         { name: "Admin Facilities", path: "/dashboard/admin-facilities", icon: Building },
         { name: "Alerts", path: "/dashboard/notifications", icon: Bell },
+        // { name: "Audit Logs", path: "/dashboard/audit-logs", icon: ClipboardList },
+
     ];
 
     if (!isLoaded) return (

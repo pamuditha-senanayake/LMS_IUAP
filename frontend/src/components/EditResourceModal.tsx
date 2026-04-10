@@ -611,10 +611,11 @@ export default function EditResourceModal({ isOpen, onClose, resource, onSave, o
                                 <button
                                     onClick={handleSave}
                                     disabled={isSubmitting}
-                                    className="px-8 py-2.5 text-sm font-black uppercase tracking-widest text-white bg-primary hover:bg-primary-dark rounded-xl transition-all shadow-xl shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                                    className="px-8 py-2.5 text-sm font-black uppercase tracking-widest rounded-xl transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 btn-primary-action"
                                 >
                                     {isSubmitting ? "Saving..." : "Save Changes"}
                                 </button>
+
                             </>
                         ) : (
                             <button
