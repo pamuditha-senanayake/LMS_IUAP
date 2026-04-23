@@ -100,3 +100,9 @@ The project includes a **GitHub Actions** workflow that triggers on every push o
 - **Input Validation:** All backend endpoints are secured with **Jakarta Validation** (`@Valid`) and a **Global Exception Handler** to prevent data corruption and sensitive information leakage.
 
 ---
+
+## Developers
+- **Pamuditha Senanayake** - [pamudithasenanayake.online](https://pamudithasenanayake.online)
+- **Udayanga Weerakoon**
+- **Imashi Dissanayake**
+- **Anjalee Kulathunga**
